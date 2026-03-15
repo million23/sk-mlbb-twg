@@ -1,28 +1,36 @@
-import { Outlet, createRootRoute } from '@tanstack/react-router'
-import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
-import { TanStackDevtools } from '@tanstack/react-devtools'
+import { TanStackDevtools } from "@tanstack/react-devtools";
+import { createRootRoute, Outlet } from "@tanstack/react-router";
+import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 
-import '../styles.css'
+import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
+import "../styles.css";
 
 export const Route = createRootRoute({
   component: RootComponent,
-})
+});
 
 function RootComponent() {
+
   return (
     <>
-      <Outlet />
+      <ThemeProvider defaultTheme="dark" storageKey="sk-mlbb-twg-theme">
+        <div className="min-h-screen bg-background">
+          <Outlet />
+        </div>
+        <Toaster position="bottom-right" />
+      </ThemeProvider>
       <TanStackDevtools
         config={{
-          position: 'bottom-right',
+          position: "bottom-right",
         }}
         plugins={[
           {
-            name: 'TanStack Router',
+            name: "TanStack Router",
             render: <TanStackRouterDevtoolsPanel />,
           },
         ]}
       />
     </>
-  )
+  );
 }

@@ -9,38 +9,167 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ComponentsRouteImport } from './routes/components'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppChar91idChar93IndexRouteImport } from './routes/app/[id]/index'
+import { Route as AppChar91idChar93TournamentRouteImport } from './routes/app/[id]/tournament'
+import { Route as AppChar91idChar93TeamsRouteImport } from './routes/app/[id]/teams'
+import { Route as AppChar91idChar93ParticipantsRouteImport } from './routes/app/[id]/participants'
+import { Route as AppChar91idChar93AdminsRouteImport } from './routes/app/[id]/admins'
+import { Route as AppChar91idChar93_layoutRouteImport } from './routes/app/[id]/__layout'
+import { Route as AppAuthLoginRouteImport } from './routes/app/auth/login'
+import { Route as AppAuthCheckRouteImport } from './routes/app/auth/check'
 
+const ComponentsRoute = ComponentsRouteImport.update({
+  id: '/components',
+  path: '/components',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppChar91idChar93IndexRoute = AppChar91idChar93IndexRouteImport.update({
+  id: '/app/id/',
+  path: '/app/id/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppChar91idChar93TournamentRoute =
+  AppChar91idChar93TournamentRouteImport.update({
+    id: '/app/id/tournament',
+    path: '/app/id/tournament',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AppChar91idChar93TeamsRoute = AppChar91idChar93TeamsRouteImport.update({
+  id: '/app/id/teams',
+  path: '/app/id/teams',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppChar91idChar93ParticipantsRoute =
+  AppChar91idChar93ParticipantsRouteImport.update({
+    id: '/app/id/participants',
+    path: '/app/id/participants',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AppChar91idChar93AdminsRoute = AppChar91idChar93AdminsRouteImport.update({
+  id: '/app/id/admins',
+  path: '/app/id/admins',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppChar91idChar93_layoutRoute =
+  AppChar91idChar93_layoutRouteImport.update({
+    id: '/app/id/__layout',
+    path: '/app/id',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AppAuthLoginRoute = AppAuthLoginRouteImport.update({
+  id: '/app/auth/login',
+  path: '/app/auth/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppAuthCheckRoute = AppAuthCheckRouteImport.update({
+  id: '/app/auth/check',
+  path: '/app/auth/check',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/components': typeof ComponentsRoute
+  '/app/auth/check': typeof AppAuthCheckRoute
+  '/app/auth/login': typeof AppAuthLoginRoute
+  '/app/id': typeof AppChar91idChar93_layoutRoute
+  '/app/id/admins': typeof AppChar91idChar93AdminsRoute
+  '/app/id/participants': typeof AppChar91idChar93ParticipantsRoute
+  '/app/id/teams': typeof AppChar91idChar93TeamsRoute
+  '/app/id/tournament': typeof AppChar91idChar93TournamentRoute
+  '/app/id/': typeof AppChar91idChar93IndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/components': typeof ComponentsRoute
+  '/app/auth/check': typeof AppAuthCheckRoute
+  '/app/auth/login': typeof AppAuthLoginRoute
+  '/app/id': typeof AppChar91idChar93IndexRoute
+  '/app/id/admins': typeof AppChar91idChar93AdminsRoute
+  '/app/id/participants': typeof AppChar91idChar93ParticipantsRoute
+  '/app/id/teams': typeof AppChar91idChar93TeamsRoute
+  '/app/id/tournament': typeof AppChar91idChar93TournamentRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/components': typeof ComponentsRoute
+  '/app/auth/check': typeof AppAuthCheckRoute
+  '/app/auth/login': typeof AppAuthLoginRoute
+  '/app/id/__layout': typeof AppChar91idChar93_layoutRoute
+  '/app/id/admins': typeof AppChar91idChar93AdminsRoute
+  '/app/id/participants': typeof AppChar91idChar93ParticipantsRoute
+  '/app/id/teams': typeof AppChar91idChar93TeamsRoute
+  '/app/id/tournament': typeof AppChar91idChar93TournamentRoute
+  '/app/id/': typeof AppChar91idChar93IndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/components'
+    | '/app/auth/check'
+    | '/app/auth/login'
+    | '/app/id'
+    | '/app/id/admins'
+    | '/app/id/participants'
+    | '/app/id/teams'
+    | '/app/id/tournament'
+    | '/app/id/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/components'
+    | '/app/auth/check'
+    | '/app/auth/login'
+    | '/app/id'
+    | '/app/id/admins'
+    | '/app/id/participants'
+    | '/app/id/teams'
+    | '/app/id/tournament'
+  id:
+    | '__root__'
+    | '/'
+    | '/components'
+    | '/app/auth/check'
+    | '/app/auth/login'
+    | '/app/id/__layout'
+    | '/app/id/admins'
+    | '/app/id/participants'
+    | '/app/id/teams'
+    | '/app/id/tournament'
+    | '/app/id/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ComponentsRoute: typeof ComponentsRoute
+  AppAuthCheckRoute: typeof AppAuthCheckRoute
+  AppAuthLoginRoute: typeof AppAuthLoginRoute
+  AppChar91idChar93_layoutRoute: typeof AppChar91idChar93_layoutRoute
+  AppChar91idChar93AdminsRoute: typeof AppChar91idChar93AdminsRoute
+  AppChar91idChar93ParticipantsRoute: typeof AppChar91idChar93ParticipantsRoute
+  AppChar91idChar93TeamsRoute: typeof AppChar91idChar93TeamsRoute
+  AppChar91idChar93TournamentRoute: typeof AppChar91idChar93TournamentRoute
+  AppChar91idChar93IndexRoute: typeof AppChar91idChar93IndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/components': {
+      id: '/components'
+      path: '/components'
+      fullPath: '/components'
+      preLoaderRoute: typeof ComponentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +177,76 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app/id/': {
+      id: '/app/id/'
+      path: '/app/id'
+      fullPath: '/app/id/'
+      preLoaderRoute: typeof AppChar91idChar93IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/id/tournament': {
+      id: '/app/id/tournament'
+      path: '/app/id/tournament'
+      fullPath: '/app/id/tournament'
+      preLoaderRoute: typeof AppChar91idChar93TournamentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/id/teams': {
+      id: '/app/id/teams'
+      path: '/app/id/teams'
+      fullPath: '/app/id/teams'
+      preLoaderRoute: typeof AppChar91idChar93TeamsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/id/participants': {
+      id: '/app/id/participants'
+      path: '/app/id/participants'
+      fullPath: '/app/id/participants'
+      preLoaderRoute: typeof AppChar91idChar93ParticipantsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/id/admins': {
+      id: '/app/id/admins'
+      path: '/app/id/admins'
+      fullPath: '/app/id/admins'
+      preLoaderRoute: typeof AppChar91idChar93AdminsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/id/__layout': {
+      id: '/app/id/__layout'
+      path: '/app/id'
+      fullPath: '/app/id'
+      preLoaderRoute: typeof AppChar91idChar93_layoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/auth/login': {
+      id: '/app/auth/login'
+      path: '/app/auth/login'
+      fullPath: '/app/auth/login'
+      preLoaderRoute: typeof AppAuthLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/auth/check': {
+      id: '/app/auth/check'
+      path: '/app/auth/check'
+      fullPath: '/app/auth/check'
+      preLoaderRoute: typeof AppAuthCheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ComponentsRoute: ComponentsRoute,
+  AppAuthCheckRoute: AppAuthCheckRoute,
+  AppAuthLoginRoute: AppAuthLoginRoute,
+  AppChar91idChar93_layoutRoute: AppChar91idChar93_layoutRoute,
+  AppChar91idChar93AdminsRoute: AppChar91idChar93AdminsRoute,
+  AppChar91idChar93ParticipantsRoute: AppChar91idChar93ParticipantsRoute,
+  AppChar91idChar93TeamsRoute: AppChar91idChar93TeamsRoute,
+  AppChar91idChar93TournamentRoute: AppChar91idChar93TournamentRoute,
+  AppChar91idChar93IndexRoute: AppChar91idChar93IndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
