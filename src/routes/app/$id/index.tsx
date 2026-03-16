@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import {
   Card,
   CardContent,
@@ -10,11 +10,25 @@ import { useParticipants } from "@/hooks/use-participants";
 import { useTeams } from "@/hooks/use-teams";
 import { useUpcomingTournaments } from "@/hooks/use-tournaments";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Users, UsersRound, Trophy } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getAvatarUrl } from "@/lib/avatar";
+import { ChevronRight, Users, UsersRound, Trophy } from "lucide-react";
 
 export const Route = createFileRoute("/app/$id/")({
   component: DashboardPage,
 });
+
+function getInitials(name?: string, gameID?: string) {
+  if (name?.trim()) {
+    return name
+      .split(/\s+/)
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  }
+  return gameID?.slice(0, 2).toUpperCase() ?? "??";
+}
 
 function StatCard({
   title,
@@ -54,11 +68,16 @@ function StatCard({
 }
 
 function DashboardPage() {
+  const params = useParams({ strict: false });
+  const id = (params as { id?: string })?.id ?? "";
   const { data: participants, isLoading: participantsLoading } =
     useParticipants();
   const { data: teams, isLoading: teamsLoading } = useTeams();
   const { data: upcomingTournaments, isLoading: tournamentsLoading } =
     useUpcomingTournaments();
+
+  const recentParticipants = (participants ?? []).slice(0, 5);
+  const recentTeams = (teams ?? []).slice(0, 5);
 
   return (
     <div className="space-y-6">
@@ -91,6 +110,119 @@ function DashboardPage() {
           icon={Trophy}
           isLoading={tournamentsLoading}
         />
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Recently added participants</CardTitle>
+              <CardDescription>Latest 5 registered players</CardDescription>
+            </div>
+            <Link
+              to="/app/$id/participants"
+              params={{ id }}
+              className="text-sm font-medium text-primary hover:underline flex items-center gap-1"
+            >
+              View all
+              <ChevronRight className="size-4" />
+            </Link>
+          </CardHeader>
+          <CardContent>
+            {participantsLoading ? (
+              <div className="flex flex-col gap-3">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-20 rounded-lg" />
+                ))}
+              </div>
+            ) : recentParticipants.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No participants yet
+              </p>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {recentParticipants.map((p) => (
+                  <Card
+                    key={p.id}
+                    className="overflow-hidden transition-shadow hover:shadow-md"
+                  >
+                    <CardContent className="p-3">
+                      <div className="flex items-center gap-3">
+                        <Avatar size="sm">
+                          <AvatarImage src={getAvatarUrl(p.id)} alt={p.name} />
+                          <AvatarFallback>
+                            {getInitials(p.name, p.gameID)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium text-sm">
+                            {p.name ?? p.gameID ?? "-"}
+                          </p>
+                          <p className="text-muted-foreground font-mono text-xs">
+                            {p.gameID ?? ""}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Recently added teams</CardTitle>
+              <CardDescription>Latest 5 formed teams</CardDescription>
+            </div>
+            <Link
+              to="/app/$id/teams"
+              params={{ id }}
+              className="text-sm font-medium text-primary hover:underline flex items-center gap-1"
+            >
+              View all
+              <ChevronRight className="size-4" />
+            </Link>
+          </CardHeader>
+          <CardContent>
+            {teamsLoading ? (
+              <div className="flex flex-col gap-3">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-20 rounded-lg" />
+                ))}
+              </div>
+            ) : recentTeams.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No teams yet</p>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {recentTeams.map((t) => (
+                  <Card
+                    key={t.id}
+                    className="overflow-hidden transition-shadow hover:shadow-md"
+                  >
+                    <CardContent className="p-3">
+                      <div className="flex items-center gap-3">
+                        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
+                          <UsersRound className="size-5 text-muted-foreground" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium text-sm">
+                            {t.name ?? t.id}
+                          </p>
+                          <p className="text-muted-foreground text-xs capitalize">
+                            {t.status ?? "forming"}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       <Card>
