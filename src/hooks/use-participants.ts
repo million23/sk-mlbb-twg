@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createMutationQueue } from "@/lib/mutation-queue";
 import { getCollection } from "@/lib/pocketbase";
 import { rateLimited } from "@/lib/rate-limited-api";
 import { queryKeys } from "@/lib/query-keys";
 import type { Collections } from "@/types/pocketbase-types";
+import { useRef } from "react";
 
 type ParticipantInput = Partial<
   Omit<Collections["participants"], "id" | "created" | "updated">
@@ -21,8 +23,13 @@ export function useParticipants() {
   });
 }
 
+const ADD_MEMBER_QUEUE_INTERVAL_MS = 400;
+
 export function useParticipantMutations() {
   const queryClient = useQueryClient();
+  const addMemberQueue = useRef(
+    createMutationQueue(ADD_MEMBER_QUEUE_INTERVAL_MS)
+  ).current;
 
   const createMutation = useMutation({
     mutationFn: async (data: ParticipantInput) => {
@@ -52,6 +59,7 @@ export function useParticipantMutations() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.participants });
+      queryClient.invalidateQueries({ queryKey: queryKeys.teamSuggestions });
     },
   });
 
@@ -83,6 +91,7 @@ export function useParticipantMutations() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.participants });
+      queryClient.invalidateQueries({ queryKey: queryKeys.teamSuggestions });
     },
   });
 
@@ -108,8 +117,39 @@ export function useParticipantMutations() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.participants });
+      queryClient.invalidateQueries({ queryKey: queryKeys.teamSuggestions });
     },
   });
+
+  const updateQueued = (data: ParticipantInput & { id: string }) => {
+    const { id, ...patch } = data;
+    queryClient.cancelQueries({ queryKey: queryKeys.participants });
+    const prev =
+      queryClient.getQueryData<Participant[]>(queryKeys.participants);
+    queryClient.setQueryData<Participant[]>(queryKeys.participants, (old) =>
+      old?.map((p) =>
+        p.id === id
+          ? { ...p, ...patch, updated: new Date().toISOString() }
+          : p
+      ) ?? old
+    );
+    addMemberQueue.enqueue(async () => {
+      try {
+        await rateLimited(async () => {
+          const col = getCollection("participants");
+          return col.update(id, patch);
+        });
+      } catch (err) {
+        if (prev != null) {
+          queryClient.setQueryData(queryKeys.participants, prev);
+        }
+        throw err;
+      } finally {
+        queryClient.invalidateQueries({ queryKey: queryKeys.participants });
+        queryClient.invalidateQueries({ queryKey: queryKeys.teamSuggestions });
+      }
+    });
+  };
 
   return {
     create: {
@@ -121,6 +161,7 @@ export function useParticipantMutations() {
         updateMutation.mutate(data),
       mutateAsync: (data: ParticipantInput & { id: string }) =>
         updateMutation.mutateAsync(data),
+      mutateQueued: updateQueued,
     },
     delete: {
       mutate: (id: string) => deleteMutation.mutate(id),

@@ -387,14 +387,35 @@ function TeamsPage() {
   useEffect(() => {
     if (!teams || !participants) return;
     for (const team of teams) {
-      const count = participants.filter((p) => p.team === team.id).length;
-      if (
-        count >= 5 &&
-        (team.status === "forming" || team.status === "incomplete") &&
-        !updatedForReady.current.has(team.id)
-      ) {
-        updatedForReady.current.add(team.id);
-        mutations.update.mutate({ id: team.id, status: "ready" });
+      const members = participants.filter((p) => p.team === team.id);
+      const count = members.length;
+      const captainIsMember =
+        team.captain && members.some((p) => p.id === team.captain);
+      const needsCaptainClear =
+        (count === 0 && team.captain) || (team.captain && !captainIsMember);
+
+      if (count >= 5) {
+        if (needsCaptainClear) {
+          mutations.update.mutate({ id: team.id, captain: "" });
+        } else if (
+          (team.status === "forming" || team.status === "incomplete") &&
+          !updatedForReady.current.has(team.id)
+        ) {
+          updatedForReady.current.add(team.id);
+          mutations.update.mutate({ id: team.id, status: "ready" });
+        }
+      } else {
+        const targetStatus = count === 0 ? "incomplete" : "forming";
+        const needsStatusUpdate =
+          team.status !== targetStatus && team.status !== "inactive";
+        if (needsStatusUpdate || needsCaptainClear) {
+          updatedForReady.current.delete(team.id);
+          mutations.update.mutate({
+            id: team.id,
+            ...(needsStatusUpdate && { status: targetStatus }),
+            ...(needsCaptainClear && { captain: "" }),
+          });
+        }
       }
     }
   }, [teams, participants, mutations.update]);
@@ -402,7 +423,7 @@ function TeamsPage() {
   const handleAddMember = (participantId: string, teamId: string) => {
     const currentCount = getTeamMemberCount(teamId);
     const newCount = currentCount + 1;
-    participantMutations.update.mutate({ id: participantId, team: teamId });
+    participantMutations.update.mutateQueued({ id: participantId, team: teamId });
     if (newCount >= 5) {
       updatedForReady.current.add(teamId);
       mutations.update.mutate({ id: teamId, status: "ready" });

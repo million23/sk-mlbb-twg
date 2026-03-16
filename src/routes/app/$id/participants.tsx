@@ -40,11 +40,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -64,10 +59,11 @@ import {
   useParticipantMutations,
   useParticipants,
 } from "@/hooks/use-participants";
+import { useTeamSuggestions } from "@/hooks/use-team-suggestions";
 import { useTeams } from "@/hooks/use-teams";
-import type { Collections } from "@/types/pocketbase-types";
+import type { Collections, PlayerRole } from "@/types/pocketbase-types";
 import { createFileRoute } from "@tanstack/react-router";
-import { ChevronDown, LayoutGrid, LayoutList, Plus, Search, Users } from "lucide-react";
+import { LayoutGrid, LayoutList, Plus, Search, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -79,81 +75,28 @@ type ParticipantFormData = Partial<
   Omit<Collections["participants"], "id" | "created" | "updated">
 >;
 
-function TeamPopover({
-  onChange,
-  teams,
-  triggerLabel,
-}: {
-  value: string;
-  onChange: (v: string | undefined) => void;
-  teams: { id: string; name?: string }[];
-  triggerLabel: string;
-}) {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger
-        className="flex h-10 w-full items-center justify-between gap-2 rounded-lg border border-input bg-transparent px-3 py-2 text-left text-sm font-normal ring-offset-background hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-        aria-expanded={open}
-      >
-        <span className="truncate">{triggerLabel}</span>
-        <ChevronDown className="size-4 shrink-0 opacity-50" />
-      </PopoverTrigger>
-      <PopoverContent className="min-w-80 w-(--anchor-width) max-w-[calc(100vw-2rem)] p-2" align="start">
-        <div className="flex max-h-[min(var(--available-height,280px),70vh)] flex-col gap-0.5 overflow-y-auto">
-          <Button
-            type="button"
-            variant="ghost"
-            className="h-auto w-full justify-start py-3 pl-3 text-left font-normal"
-            onClick={() => {
-              onChange(undefined);
-              setOpen(false);
-            }}
-          >
-            No team
-          </Button>
-          {teams.map((t) => (
-            <Button
-              type="button"
-              key={t.id}
-              variant="ghost"
-              className="h-auto w-full justify-start py-3 pl-3 text-left font-normal"
-              onClick={() => {
-                onChange(t.id);
-                setOpen(false);
-              }}
-            >
-              {t.name ?? t.id}
-            </Button>
-          ))}
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-}
+const PREFERRED_ROLES: { value: PlayerRole; label: string }[] = [
+  { value: "mid", label: "Mid" },
+  { value: "gold", label: "Gold" },
+  { value: "exp", label: "Exp" },
+  { value: "support", label: "Support" },
+  { value: "jungle", label: "Jungle" },
+];
 
 function ParticipantForm({
   form,
   setForm,
   editingId,
-  teams,
   onClose,
   onSubmit,
-  isMobile = false,
 }: {
   form: ParticipantFormData;
   setForm: React.Dispatch<React.SetStateAction<ParticipantFormData>>;
   editingId: string | null;
-  teams: { id: string; name?: string }[] | undefined;
   onClose: () => void;
   onSubmit: () => void;
   isMobile?: boolean;
 }) {
-  const teamLabel =
-    form.team === "" || !form.team
-      ? "No team"
-      : teams?.find((t) => t.id === form.team)?.name ?? "No team";
   return (
     <div className="w-full space-y-4 px-4 pb-4">
       <div className="space-y-2">
@@ -195,51 +138,45 @@ function ParticipantForm({
         />
       </div>
       <div className="space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <Label>Team</Label>
-          {form.team && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-auto py-1 text-muted-foreground hover:text-destructive"
-              onClick={() => setForm((f) => ({ ...f, team: undefined }))}
-            >
-              Remove from team
-            </Button>
-          )}
+        <Label>Preferred lanes (1st, 2nd, 3rd)</Label>
+        <div className="grid grid-cols-3 gap-2">
+          {[0, 1, 2].map((i) => {
+            const roles = form.preferredRoles ?? [];
+            const used = roles.filter((r, j) => j !== i && r);
+            return (
+              <Select
+                key={i}
+                value={roles[i] ?? ""}
+                onValueChange={(v) => {
+                  const next = [...roles];
+                  next[i] = (v || "") as PlayerRole;
+                  setForm((f) => ({ ...f, preferredRoles: next }));
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="—">
+                    {(value: string | null) =>
+                      value
+                        ? PREFERRED_ROLES.find((r) => r.value === value)?.label ??
+                          value
+                        : null
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">—</SelectItem>
+                  {PREFERRED_ROLES.filter((r) => !used.includes(r.value)).map(
+                    (r) => (
+                      <SelectItem key={r.value} value={r.value}>
+                        {r.label}
+                      </SelectItem>
+                    )
+                  )}
+                </SelectContent>
+              </Select>
+            );
+          })}
         </div>
-        {isMobile ? (
-          <TeamPopover
-            value={form.team ?? ""}
-            onChange={(v) => setForm((f) => ({ ...f, team: v }))}
-            teams={teams ?? []}
-            triggerLabel={teamLabel}
-          />
-        ) : (
-          <Select
-            value={form.team ?? ""}
-            onValueChange={(v) =>
-              setForm((f) => ({ ...f, team: v || undefined }))
-            }
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="No team">
-                {(value: string | null) =>
-                  value ? teams?.find((t) => t.id === value)?.name ?? value : null
-                }
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">No team</SelectItem>
-              {teams?.map((t) => (
-                <SelectItem key={t.id} value={t.id}>
-                  {t.name ?? t.id}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
       </div>
       <div className="flex gap-2 pt-4">
         <Button onClick={onSubmit} className="flex-1">
@@ -253,9 +190,35 @@ function ParticipantForm({
   );
 }
 
+type TeamSuggestion = {
+  suggestedTeamId?: string;
+  suggestedTeamName?: string;
+  suggestionPriority?: string;
+};
+
 function ParticipantsPage() {
   const { data: participants, isLoading } = useParticipants();
   const { data: teams } = useTeams();
+  const { data: teamSuggestions } = useTeamSuggestions();
+
+  const suggestionsByParticipant = useMemo(() => {
+    const map = new Map<string, TeamSuggestion[]>();
+    for (const s of teamSuggestions ?? []) {
+      const pid =
+        typeof s.participantId === "string"
+          ? s.participantId
+          : (s.participantId as { id?: string })?.id;
+      if (!pid) continue;
+      const list = map.get(pid) ?? [];
+      list.push({
+        suggestedTeamId: s.suggestedTeamId,
+        suggestedTeamName: s.suggestedTeamName,
+        suggestionPriority: s.suggestionPriority,
+      });
+      map.set(pid, list);
+    }
+    return map;
+  }, [teamSuggestions]);
   const mutations = useParticipantMutations();
   const isMobile = useIsMobile();
   const [view, setView] = useState<"table" | "cards">("table");
@@ -300,11 +263,17 @@ function ParticipantsPage() {
   };
 
   const handleSubmit = () => {
+    const payload = {
+      ...form,
+      preferredRoles: (form.preferredRoles ?? [])
+        .filter((r): r is PlayerRole => Boolean(r))
+        .slice(0, 3),
+    };
     if (editingId) {
-      mutations.update.mutate({ id: editingId, ...form });
+      mutations.update.mutate({ id: editingId, ...payload });
       toast.success("Participant updated");
     } else {
-      mutations.create.mutate(form);
+      mutations.create.mutate(payload);
       toast.success("Participant added");
     }
     setSheetOpen(false);
@@ -321,6 +290,11 @@ function ParticipantsPage() {
   const handleRemoveFromTeam = (p: Collections["participants"] & { id: string }) => {
     mutations.update.mutate({ id: p.id, team: "" });
     toast.success("Removed from team");
+  };
+
+  const handleJoinTeam = (participantId: string, teamId: string) => {
+    mutations.update.mutateQueued({ id: participantId, team: teamId });
+    toast.success("Added to team");
   };
 
   const getTeamName = (teamId: string | undefined) =>
@@ -429,8 +403,9 @@ function ParticipantsPage() {
                     <TableHead>Name</TableHead>
                     <TableHead>Contact</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Preferred lanes</TableHead>
                     <TableHead>Team</TableHead>
-                    <TableHead className="w-[100px]">Actions</TableHead>
+                    <TableHead className="w-[120px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -439,9 +414,11 @@ function ParticipantsPage() {
                     key={p.id}
                     participant={p}
                     teamName={getTeamName(p.team)}
+                    suggestions={suggestionsByParticipant.get(p.id) ?? []}
                     onEdit={openEdit}
                     onDelete={setDeleteId}
                     onRemoveFromTeam={handleRemoveFromTeam}
+                    onJoinTeam={handleJoinTeam}
                   />
                 ))}
                 </TableBody>
@@ -460,9 +437,11 @@ function ParticipantsPage() {
                   key={p.id}
                   participant={p}
                   teamName={getTeamName(p.team)}
+                  suggestions={suggestionsByParticipant.get(p.id) ?? []}
                   onEdit={openEdit}
                   onDelete={setDeleteId}
                   onRemoveFromTeam={handleRemoveFromTeam}
+                  onJoinTeam={handleJoinTeam}
                 />
               ))}
               </div>
@@ -490,7 +469,6 @@ function ParticipantsPage() {
                 form={form}
                 setForm={setForm}
                 editingId={editingId}
-                teams={teams}
                 onClose={() => setSheetOpen(false)}
                 onSubmit={handleSubmit}
                 isMobile
@@ -511,7 +489,6 @@ function ParticipantsPage() {
               form={form}
               setForm={setForm}
               editingId={editingId}
-              teams={teams}
               onClose={() => setSheetOpen(false)}
               onSubmit={handleSubmit}
             />
