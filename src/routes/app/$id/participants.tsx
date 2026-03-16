@@ -62,8 +62,8 @@ import {
 import { useTeams } from "@/hooks/use-teams";
 import type { Collections } from "@/types/pocketbase-types";
 import { createFileRoute } from "@tanstack/react-router";
-import { LayoutGrid, LayoutList, Plus, Users } from "lucide-react";
-import { useState } from "react";
+import { LayoutGrid, LayoutList, Plus, Search, Users } from "lucide-react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/$id/participants")({
@@ -231,17 +231,37 @@ function ParticipantsPage() {
   const getTeamName = (teamId: string | undefined) =>
     teams?.find((t) => t.id === teamId)?.name ?? "-";
 
+  const [search, setSearch] = useState("");
+  const filteredParticipants = useMemo(() => {
+    if (!search.trim()) return participants ?? [];
+    const q = search.toLowerCase().trim();
+    return (participants ?? []).filter((p) => {
+      const name = (p.name ?? "").toLowerCase();
+      const gameID = (p.gameID ?? "").toLowerCase();
+      const contact = (p.contactNumber ?? "").toLowerCase();
+      const area = (p.area ?? "").toLowerCase();
+      const teamName = getTeamName(p.team).toLowerCase();
+      return (
+        name.includes(q) ||
+        gameID.includes(q) ||
+        contact.includes(q) ||
+        area.includes(q) ||
+        teamName.includes(q)
+      );
+    });
+  }, [participants, search, teams]);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold tracking-tight">Participants</h1>
           <p className="text-muted-foreground">
             Manage registered players for the tournament
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex rounded-lg border border-input p-0.5">
+          <div className="hidden sm:flex rounded-lg border border-input p-0.5">
             <Button
               variant={view === "table" ? "secondary" : "ghost"}
               size="sm"
@@ -274,6 +294,17 @@ function ParticipantsPage() {
           <CardDescription>
             {participants?.length ?? 0} registered
           </CardDescription>
+          {participants && participants.length > 0 && (
+            <div className="relative mt-2">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name, Game ID, contact, area..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -293,21 +324,22 @@ function ParticipantsPage() {
                 Add first participant
               </Button>
             </Empty>
-          ) : view === "table" ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12" />
-                  <TableHead>Game ID</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Contact</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Team</TableHead>
-                  <TableHead className="w-[100px]">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {participants.map((p) => (
+          ) : (isMobile ? "cards" : view) === "table" ? (
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-12" />
+                    <TableHead>Game ID</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Contact</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Team</TableHead>
+                    <TableHead className="w-[100px]">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredParticipants.map((p) => (
                   <ParticipantTableRow
                     key={p.id}
                     participant={p}
@@ -316,11 +348,18 @@ function ParticipantsPage() {
                     onDelete={setDeleteId}
                   />
                 ))}
-              </TableBody>
-            </Table>
+                </TableBody>
+              </Table>
+              {filteredParticipants.length === 0 && search && (
+                <p className="py-4 text-center text-sm text-muted-foreground">
+                  No participants match &quot;{search}&quot;
+                </p>
+              )}
+            </>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {participants.map((p) => (
+            <>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {filteredParticipants.map((p) => (
                 <ParticipantCard
                   key={p.id}
                   participant={p}
@@ -329,7 +368,13 @@ function ParticipantsPage() {
                   onDelete={setDeleteId}
                 />
               ))}
-            </div>
+              </div>
+              {filteredParticipants.length === 0 && search && (
+                <p className="py-4 text-center text-sm text-muted-foreground">
+                  No participants match &quot;{search}&quot;
+                </p>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

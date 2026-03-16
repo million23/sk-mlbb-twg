@@ -325,17 +325,28 @@ function TeamsPage() {
     ? teams?.find((t) => t.id === addMembersTeamId)
     : null;
 
+  const [search, setSearch] = useState("");
+  const filteredTeams = useMemo(() => {
+    if (!search.trim()) return teams ?? [];
+    const q = search.toLowerCase().trim();
+    return (teams ?? []).filter((t) => {
+      const name = (t.name ?? "").toLowerCase();
+      const captainName = getCaptainName(t.captain).toLowerCase();
+      return name.includes(q) || captainName.includes(q);
+    });
+  }, [teams, search, participants]);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold tracking-tight">Teams</h1>
           <p className="text-muted-foreground">
             Manage teams for the tournament
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex rounded-lg border border-input p-0.5">
+          <div className="hidden sm:flex rounded-lg border border-input p-0.5">
             <Button
               variant={view === "table" ? "secondary" : "ghost"}
               size="sm"
@@ -366,6 +377,17 @@ function TeamsPage() {
         <CardHeader>
           <CardTitle>All teams</CardTitle>
           <CardDescription>{teams?.length ?? 0} teams</CardDescription>
+          {teams && teams.length > 0 && (
+            <div className="relative mt-2">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by team name or captain..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -385,20 +407,21 @@ function TeamsPage() {
                 Add first team
               </Button>
             </Empty>
-          ) : view === "table" ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12" />
-                  <TableHead>Name</TableHead>
-                  <TableHead>Captain</TableHead>
-                  <TableHead>Members</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-[100px]">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {teams.map((t) => (
+          ) : (isMobile ? "cards" : view) === "table" ? (
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-12" />
+                    <TableHead>Name</TableHead>
+                    <TableHead>Captain</TableHead>
+                    <TableHead>Members</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="w-[100px]">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredTeams.map((t) => (
                   <TeamTableRow
                     key={t.id}
                     team={t}
@@ -410,11 +433,18 @@ function TeamsPage() {
                     onAddMembers={(team) => setAddMembersTeamId(team.id)}
                   />
                 ))}
-              </TableBody>
-            </Table>
+                </TableBody>
+              </Table>
+              {filteredTeams.length === 0 && search && (
+                <p className="py-4 text-center text-sm text-muted-foreground">
+                  No teams match &quot;{search}&quot;
+                </p>
+              )}
+            </>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {teams.map((t) => (
+            <>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {filteredTeams.map((t) => (
                 <TeamCard
                   key={t.id}
                   team={t}
@@ -426,7 +456,13 @@ function TeamsPage() {
                   onAddMembers={(team) => setAddMembersTeamId(team.id)}
                 />
               ))}
-            </div>
+              </div>
+              {filteredTeams.length === 0 && search && (
+                <p className="py-4 text-center text-sm text-muted-foreground">
+                  No teams match &quot;{search}&quot;
+                </p>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

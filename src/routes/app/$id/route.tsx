@@ -13,7 +13,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
-  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import {
   AlertDialog,
@@ -27,14 +26,17 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   LayoutDashboard,
+  LogOut,
+  Menu,
+  PanelLeft,
+  ShieldCheck,
+  Trophy,
   Users,
   UsersRound,
-  Trophy,
-  ShieldCheck,
-  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePocketBaseAuth } from "@/hooks/use-pocketbase-auth";
+import { useSidebar } from "@/components/ui/sidebar";
 import { useState } from "react";
 
 export const Route = createFileRoute("/app/$id")({
@@ -60,12 +62,25 @@ const navItems = [
 ] as const;
 
 function AdminLayout() {
+  return (
+    <SidebarProvider>
+      <AdminLayoutContent />
+    </SidebarProvider>
+  );
+}
+
+function AdminLayoutContent() {
   const params = useParams({ strict: false });
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut } = usePocketBaseAuth();
+  const { setOpenMobile, isMobile } = useSidebar();
   const [signOutOpen, setSignOutOpen] = useState(false);
   const id = (params as { id?: string })?.id ?? "main";
+
+  const closeMobileSidebar = () => {
+    if (isMobile) setOpenMobile(false);
+  };
 
   const handleSignOut = () => {
     signOut();
@@ -81,11 +96,11 @@ function AdminLayout() {
   };
 
   return (
-    <SidebarProvider>
+    <>
       <Sidebar variant="inset" collapsible="icon">
         <SidebarHeader className="border-b border-sidebar-border">
           <div className="flex h-12 items-center gap-2 px-2">
-            <SidebarTrigger />
+            <MobileSidebarTrigger />
             <span className="font-semibold text-sidebar-foreground">
               SK MLBB Tracker
             </span>
@@ -104,6 +119,7 @@ function AdminLayout() {
                           to={item.to}
                           params={{ id }}
                           activeOptions={{ exact: item.to === "/app/$id/" }}
+                          onClick={closeMobileSidebar}
                         />
                       }
                       isActive={isActive(item.to)}
@@ -155,12 +171,31 @@ function AdminLayout() {
       </AlertDialog>
       <SidebarInset>
         <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
-          <SidebarTrigger className="-ml-1" />
+          <MobileSidebarTrigger />
         </header>
-        <div className="flex-1 overflow-auto p-4 md:p-6">
+        <div className="min-w-0 flex-1 overflow-auto p-4 md:p-6">
           <Outlet />
         </div>
       </SidebarInset>
-    </SidebarProvider>
+    </>
+  );
+}
+
+function MobileSidebarTrigger() {
+  const { toggleSidebar, isMobile } = useSidebar();
+  return (
+    <Button
+      variant="ghost"
+      size={isMobile ? "icon" : "icon-sm"}
+      className="-ml-1 size-10 md:size-8"
+      onClick={toggleSidebar}
+      aria-label="Toggle menu"
+    >
+      {isMobile ? (
+        <Menu className="size-6" />
+      ) : (
+        <PanelLeft className="size-4" />
+      )}
+    </Button>
   );
 }
