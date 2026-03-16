@@ -1,5 +1,7 @@
-import { useLiveQuery } from "@tanstack/react-db";
-import { participantsCollection } from "@/lib/collections";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { getCollection } from "@/lib/pocketbase";
+import { rateLimited } from "@/lib/rate-limited-api";
+import { queryKeys } from "@/lib/query-keys";
 import type { Collections } from "@/types/pocketbase-types";
 
 type ParticipantInput = Partial<
@@ -7,55 +9,71 @@ type ParticipantInput = Partial<
 >;
 
 export function useParticipants() {
-  const result = useLiveQuery((q) =>
-    q.from({ participant: participantsCollection }).select(({ participant }) => participant)
-  );
-  return {
-    ...result,
-    data: result.data ?? [],
-    isLoading: result.isLoading,
-    isError: result.isError,
-    error: result.isError ? (result as { status?: unknown }).status : undefined,
-    refetch: () => participantsCollection.utils.refetch(),
-  };
+  return useQuery({
+    queryKey: queryKeys.participants,
+    queryFn: () =>
+      rateLimited(async () => {
+        const col = getCollection("participants");
+        const list = await col.getFullList({ sort: "-created" });
+        return list as Collections["participants"][];
+      }),
+  });
 }
 
 export function useParticipantMutations() {
+  const queryClient = useQueryClient();
+
+  const createMutation = useMutation({
+    mutationFn: async (data: ParticipantInput) => {
+      return rateLimited(async () => {
+        const col = getCollection("participants");
+        return col.create(data);
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.participants });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async (data: ParticipantInput & { id: string }) => {
+      const { id, ...patch } = data;
+      return rateLimited(async () => {
+        const col = getCollection("participants");
+        return col.update(id, patch);
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.participants });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return rateLimited(async () => {
+        const col = getCollection("participants");
+        return col.delete(id);
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.participants });
+    },
+  });
+
   return {
     create: {
-      mutate: (data: ParticipantInput) => {
-        participantsCollection.insert({
-          id: crypto.randomUUID(),
-          ...data,
-        } as Parameters<typeof participantsCollection.insert>[0]);
-      },
-      mutateAsync: async (data: ParticipantInput) => {
-        const tx = participantsCollection.insert({
-          id: crypto.randomUUID(),
-          ...data,
-        } as Parameters<typeof participantsCollection.insert>[0]);
-        return tx.isPersisted.promise;
-      },
+      mutate: (data: ParticipantInput) => createMutation.mutate(data),
+      mutateAsync: (data: ParticipantInput) => createMutation.mutateAsync(data),
     },
     update: {
-      mutate: ({ id, ...patch }: ParticipantInput & { id: string }) => {
-        participantsCollection.update(id, (draft) => Object.assign(draft, patch));
-      },
-      mutateAsync: async ({ id, ...patch }: ParticipantInput & { id: string }) => {
-        const tx = participantsCollection.update(id, (draft) =>
-          Object.assign(draft, patch)
-        );
-        return tx.isPersisted.promise;
-      },
+      mutate: (data: ParticipantInput & { id: string }) =>
+        updateMutation.mutate(data),
+      mutateAsync: (data: ParticipantInput & { id: string }) =>
+        updateMutation.mutateAsync(data),
     },
     delete: {
-      mutate: (id: string) => {
-        participantsCollection.delete(id);
-      },
-      mutateAsync: async (id: string) => {
-        const tx = participantsCollection.delete(id);
-        return tx.isPersisted.promise;
-      },
+      mutate: (id: string) => deleteMutation.mutate(id),
+      mutateAsync: (id: string) => deleteMutation.mutateAsync(id),
     },
   };
 }
