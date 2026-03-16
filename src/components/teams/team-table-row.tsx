@@ -1,0 +1,152 @@
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { TableCell, TableRow } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
+import { getAvatarUrl } from "@/lib/avatar";
+import { getTeamStatusStyle } from "@/lib/team-status";
+import type { Collections } from "@/types/pocketbase-types";
+import { ChevronDown, Pencil, Trash2, UserPlus } from "lucide-react";
+import { useState } from "react";
+
+type Team = Collections["teams"] & { id: string };
+
+type TeamMember = { id: string; name?: string; gameID?: string };
+
+function getInitials(name?: string) {
+  if (name?.trim()) {
+    return name
+      .split(/\s+/)
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  }
+  return "??";
+}
+
+function MemberInitials(name?: string, gameID?: string) {
+  if (name?.trim()) {
+    return name
+      .split(/\s+/)
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  }
+  return gameID?.slice(0, 2).toUpperCase() ?? "??";
+}
+
+export function TeamTableRow({
+  team,
+  captainName,
+  memberCount,
+  members,
+  onEdit,
+  onDelete,
+  onAddMembers,
+}: {
+  team: Team;
+  captainName: string;
+  memberCount: number;
+  members: TeamMember[];
+  onEdit: (t: Team) => void;
+  onDelete: (id: string) => void;
+  onAddMembers?: (t: Team) => void;
+}) {
+  const t = team;
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <>
+      <TableRow>
+        <TableCell>
+          <Avatar size="sm">
+            <AvatarImage src={getAvatarUrl(t.id)} alt={t.name} />
+            <AvatarFallback>{getInitials(t.name)}</AvatarFallback>
+          </Avatar>
+        </TableCell>
+        <TableCell className="font-medium">{t.name ?? "-"}</TableCell>
+        <TableCell>{captainName}</TableCell>
+        <TableCell>
+          {members.length > 0 ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-auto py-1 -ml-1"
+              onClick={() => setExpanded(!expanded)}
+            >
+              {memberCount} members
+              <ChevronDown
+                className={cn(
+                  "size-4 ml-0.5 transition-transform",
+                  expanded && "rotate-180"
+                )}
+              />
+            </Button>
+          ) : (
+            memberCount
+          )}
+        </TableCell>
+      <TableCell>
+        <Badge
+          variant="outline"
+          className={cn(getTeamStatusStyle(t.status).className)}
+        >
+          {getTeamStatusStyle(t.status).label}
+        </Badge>
+      </TableCell>
+      <TableCell>
+        <div className="flex gap-1">
+          {onAddMembers && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => onAddMembers(t)}
+              title="Add members"
+            >
+              <UserPlus className="size-4" />
+            </Button>
+          )}
+          <Button variant="ghost" size="icon-sm" onClick={() => onEdit(t)}>
+            <Pencil className="size-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="text-destructive hover:text-destructive"
+            onClick={() => onDelete(t.id)}
+          >
+            <Trash2 className="size-4" />
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
+    {expanded && members.length > 0 && (
+      <TableRow>
+        <TableCell colSpan={6} className="bg-muted/30 p-0">
+          <div className="px-4 py-3">
+            <ul className="flex flex-wrap gap-2">
+              {members.map((m) => (
+                <li
+                  key={m.id}
+                  className="flex items-center gap-2 rounded-md border bg-background px-2 py-1.5 text-sm"
+                >
+                  <Avatar size="sm">
+                    <AvatarImage src={getAvatarUrl(m.id)} alt={m.name} />
+                    <AvatarFallback>
+                      {MemberInitials(m.name, m.gameID)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="truncate">
+                    {m.name ?? m.gameID ?? m.id}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </TableCell>
+      </TableRow>
+    )}
+  </>
+  );
+}
