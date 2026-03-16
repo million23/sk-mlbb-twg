@@ -16,6 +16,16 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   LayoutDashboard,
   Users,
   UsersRound,
@@ -25,6 +35,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePocketBaseAuth } from "@/hooks/use-pocketbase-auth";
+import { useState } from "react";
 
 export const Route = createFileRoute("/app/$id")({
   component: AdminLayout,
@@ -53,10 +64,12 @@ function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut } = usePocketBaseAuth();
+  const [signOutOpen, setSignOutOpen] = useState(false);
   const id = (params as { id?: string })?.id ?? "main";
 
   const handleSignOut = () => {
     signOut();
+    setSignOutOpen(false);
     navigate({ to: "/app/auth/login" });
   };
 
@@ -112,7 +125,7 @@ function AdminLayout() {
               variant="ghost"
               size="sm"
               className="justify-start gap-2"
-              onClick={handleSignOut}
+              onClick={() => setSignOutOpen(true)}
             >
               <LogOut className="size-4" />
               Sign out
@@ -120,6 +133,26 @@ function AdminLayout() {
           </div>
         </SidebarFooter>
       </Sidebar>
+
+      <AlertDialog open={signOutOpen} onOpenChange={setSignOutOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sign out?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You will be logged out and redirected to the login page.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleSignOut}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Sign out
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <SidebarInset>
         <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger className="-ml-1" />

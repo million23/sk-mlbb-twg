@@ -8,7 +8,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -29,11 +28,8 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar";
+import { ParticipantCard } from "@/components/participants/participant-card";
+import { ParticipantTableRow } from "@/components/participants/participant-table-row";
 import {
   Empty,
   EmptyDescription,
@@ -41,7 +37,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { getAvatarUrl } from "@/lib/avatar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -55,7 +50,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
-  TableCell,
   TableHead,
   TableHeader,
   TableRow,
@@ -68,7 +62,7 @@ import {
 import { useTeams } from "@/hooks/use-teams";
 import type { Collections } from "@/types/pocketbase-types";
 import { createFileRoute } from "@tanstack/react-router";
-import { LayoutGrid, LayoutList, Pencil, Plus, Trash2, Users } from "lucide-react";
+import { LayoutGrid, LayoutList, Plus, Users } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -201,7 +195,7 @@ function ParticipantsPage() {
     setSheetOpen(true);
   };
 
-  const openEdit = (p: (typeof participants)[number]) => {
+  const openEdit = (p: Collections["participants"] & { id: string }) => {
     setEditingId(p.id);
     setForm({
       gameID: p.gameID ?? "",
@@ -236,18 +230,6 @@ function ParticipantsPage() {
 
   const getTeamName = (teamId: string | undefined) =>
     teams?.find((t) => t.id === teamId)?.name ?? "-";
-
-  const getInitials = (name?: string, gameID?: string) => {
-    if (name?.trim()) {
-      return name
-        .split(/\s+/)
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2);
-    }
-    return gameID?.slice(0, 2).toUpperCase() ?? "??";
-  };
 
   return (
     <div className="space-y-6">
@@ -326,110 +308,26 @@ function ParticipantsPage() {
               </TableHeader>
               <TableBody>
                 {participants.map((p) => (
-                  <TableRow key={p.id}>
-                    <TableCell>
-                      <Avatar size="sm">
-                        <AvatarImage src={getAvatarUrl(p.id)} alt={p.name} />
-                        <AvatarFallback>
-                          {getInitials(p.name, p.gameID)}
-                        </AvatarFallback>
-                      </Avatar>
-                    </TableCell>
-                    <TableCell className="font-mono">
-                      {p.gameID ?? "-"}
-                    </TableCell>
-                    <TableCell>{p.name ?? "-"}</TableCell>
-                    <TableCell>{p.contactNumber ?? "-"}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {p.status ?? "unassigned"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{getTeamName(p.team)}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          onClick={() => openEdit(p)}
-                        >
-                          <Pencil className="size-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => setDeleteId(p.id)}
-                        >
-                          <Trash2 className="size-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                  <ParticipantTableRow
+                    key={p.id}
+                    participant={p}
+                    teamName={getTeamName(p.team)}
+                    onEdit={openEdit}
+                    onDelete={setDeleteId}
+                  />
                 ))}
               </TableBody>
             </Table>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {participants.map((p) => (
-                <Card key={p.id}>
-                  <CardHeader className="pb-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-3">
-                        <Avatar size="lg">
-                          <AvatarImage src={getAvatarUrl(p.id)} alt={p.name} />
-                          <AvatarFallback>
-                            {getInitials(p.name, p.gameID)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <CardTitle className="text-base">
-                            {p.name ?? "-"}
-                          </CardTitle>
-                          <CardDescription className="font-mono text-xs">
-                            {p.gameID ?? "-"}
-                          </CardDescription>
-                        </div>
-                      </div>
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          onClick={() => openEdit(p)}
-                        >
-                          <Pencil className="size-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => setDeleteId(p.id)}
-                        >
-                          <Trash2 className="size-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-1 text-sm">
-                    <p>
-                      <span className="text-muted-foreground">Contact:</span>{" "}
-                      {p.contactNumber ?? "-"}
-                    </p>
-                    <p>
-                      <span className="text-muted-foreground">Area:</span>{" "}
-                      {p.area ?? "-"}
-                    </p>
-                    <div className="flex items-center gap-2 pt-2">
-                      <Badge variant="outline">
-                        {p.status ?? "unassigned"}
-                      </Badge>
-                      <span className="text-muted-foreground">·</span>
-                      <span>
-                        Team: {getTeamName(p.team)}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
+                <ParticipantCard
+                  key={p.id}
+                  participant={p}
+                  teamName={getTeamName(p.team)}
+                  onEdit={openEdit}
+                  onDelete={setDeleteId}
+                />
               ))}
             </div>
           )}
