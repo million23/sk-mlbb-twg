@@ -15,6 +15,7 @@ import {
   Pencil,
   Phone,
   Trash2,
+  UserMinus,
   Users,
   UserCircle2,
 } from "lucide-react";
@@ -53,11 +54,13 @@ export function ParticipantCard({
   teamName,
   onEdit,
   onDelete,
+  onRemoveFromTeam,
 }: {
   participant: Participant;
   teamName: string;
   onEdit: (p: Participant) => void;
   onDelete: (id: string) => void;
+  onRemoveFromTeam?: (p: Participant) => void;
 }) {
   const p = participant;
   return (
@@ -104,6 +107,17 @@ export function ParticipantCard({
           <div className="flex items-center gap-1.5">
             <Users className="size-4 shrink-0 text-muted-foreground" />
             <span className="text-sm">{teamName}</span>
+            {p.team && onRemoveFromTeam && (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="size-6 text-muted-foreground hover:text-destructive"
+                onClick={() => onRemoveFromTeam(p)}
+                aria-label="Remove from team"
+              >
+                <UserMinus className="size-3.5" />
+              </Button>
+            )}
           </div>
         </div>
       </CardContent>

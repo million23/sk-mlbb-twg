@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/table";
 import { getAvatarUrl } from "@/lib/avatar";
 import type { Collections } from "@/types/pocketbase-types";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, UserMinus } from "lucide-react";
 
 type Participant = Collections["participants"] & { id: string };
 
@@ -28,11 +28,13 @@ export function ParticipantTableRow({
   teamName,
   onEdit,
   onDelete,
+  onRemoveFromTeam,
 }: {
   participant: Participant;
   teamName: string;
   onEdit: (p: Participant) => void;
   onDelete: (id: string) => void;
+  onRemoveFromTeam?: (p: Participant) => void;
 }) {
   const p = participant;
   return (
@@ -49,7 +51,22 @@ export function ParticipantTableRow({
       <TableCell>
         <Badge variant="outline">{p.status ?? "unassigned"}</Badge>
       </TableCell>
-      <TableCell>{teamName}</TableCell>
+      <TableCell>
+        <div className="flex items-center gap-1">
+          <span>{teamName}</span>
+          {p.team && onRemoveFromTeam && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="text-muted-foreground hover:text-destructive"
+              onClick={() => onRemoveFromTeam(p)}
+              aria-label="Remove from team"
+            >
+              <UserMinus className="size-4" />
+            </Button>
+          )}
+        </div>
+      </TableCell>
       <TableCell>
         <div className="flex gap-1">
           <Button variant="ghost" size="icon-sm" onClick={() => onEdit(p)}>

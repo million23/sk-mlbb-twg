@@ -194,44 +194,53 @@ function ParticipantForm({
           placeholder="Barangay / area"
         />
       </div>
-      {editingId &&
-        (isMobile ? (
-          <div className="space-y-2">
-            <Label>Team</Label>
-            <TeamPopover
-              value={form.team ?? ""}
-              onChange={(v) => setForm((f) => ({ ...f, team: v }))}
-              teams={teams ?? []}
-              triggerLabel={teamLabel}
-            />
-          </div>
-        ) : (
-          <div className="space-y-2">
-            <Label>Team</Label>
-            <Select
-              value={form.team ?? ""}
-              onValueChange={(v) =>
-                setForm((f) => ({ ...f, team: v || undefined }))
-              }
+      <div className="space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <Label>Team</Label>
+          {form.team && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-auto py-1 text-muted-foreground hover:text-destructive"
+              onClick={() => setForm((f) => ({ ...f, team: undefined }))}
             >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="No team">
-                  {(value: string | null) =>
-                    value ? teams?.find((t) => t.id === value)?.name ?? value : null
-                  }
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">No team</SelectItem>
-                {teams?.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>
-                    {t.name ?? t.id}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        ))}
+              Remove from team
+            </Button>
+          )}
+        </div>
+        {isMobile ? (
+          <TeamPopover
+            value={form.team ?? ""}
+            onChange={(v) => setForm((f) => ({ ...f, team: v }))}
+            teams={teams ?? []}
+            triggerLabel={teamLabel}
+          />
+        ) : (
+          <Select
+            value={form.team ?? ""}
+            onValueChange={(v) =>
+              setForm((f) => ({ ...f, team: v || undefined }))
+            }
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="No team">
+                {(value: string | null) =>
+                  value ? teams?.find((t) => t.id === value)?.name ?? value : null
+                }
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">No team</SelectItem>
+              {teams?.map((t) => (
+                <SelectItem key={t.id} value={t.id}>
+                  {t.name ?? t.id}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      </div>
       <div className="flex gap-2 pt-4">
         <Button onClick={onSubmit} className="flex-1">
           {editingId ? "Save" : "Add"}
@@ -271,6 +280,7 @@ function ParticipantsPage() {
       area: "",
       preferredRoles: [],
       status: "unassigned",
+      team: undefined,
     });
     setSheetOpen(true);
   };
@@ -306,6 +316,11 @@ function ParticipantsPage() {
       toast.success("Participant removed");
       setDeleteId(null);
     }
+  };
+
+  const handleRemoveFromTeam = (p: Collections["participants"] & { id: string }) => {
+    mutations.update.mutate({ id: p.id, team: "" });
+    toast.success("Removed from team");
   };
 
   const getTeamName = (teamId: string | undefined) =>
@@ -426,6 +441,7 @@ function ParticipantsPage() {
                     teamName={getTeamName(p.team)}
                     onEdit={openEdit}
                     onDelete={setDeleteId}
+                    onRemoveFromTeam={handleRemoveFromTeam}
                   />
                 ))}
                 </TableBody>
@@ -446,6 +462,7 @@ function ParticipantsPage() {
                   teamName={getTeamName(p.team)}
                   onEdit={openEdit}
                   onDelete={setDeleteId}
+                  onRemoveFromTeam={handleRemoveFromTeam}
                 />
               ))}
               </div>
