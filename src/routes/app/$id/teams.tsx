@@ -38,6 +38,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -63,6 +68,7 @@ import { useTeams, useTeamMutations } from "@/hooks/use-teams";
 import type { Collections } from "@/types/pocketbase-types";
 import { createFileRoute } from "@tanstack/react-router";
 import {
+  ChevronDown,
   LayoutGrid,
   LayoutList,
   Plus,
@@ -167,6 +173,60 @@ function AddMembersContent({
   );
 }
 
+function CaptainPopover({
+  onChange,
+  teamMembers,
+  triggerLabel,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  teamMembers: { id: string; name?: string; gameID?: string }[];
+  triggerLabel: string;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        className="flex h-10 w-full items-center justify-between gap-2 rounded-lg border border-input bg-transparent px-3 py-2 text-left text-sm font-normal ring-offset-background hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        aria-expanded={open}
+      >
+        <span className="truncate">{triggerLabel}</span>
+        <ChevronDown className="size-4 shrink-0 opacity-50" />
+      </PopoverTrigger>
+      <PopoverContent className="min-w-80 w-(--anchor-width) max-w-[calc(100vw-2rem)] p-2" align="start">
+        <div className="flex max-h-[min(var(--available-height,280px),70vh)] flex-col gap-0.5 overflow-y-auto">
+          <Button
+            type="button"
+            variant="ghost"
+            className="h-auto w-full justify-start py-3 pl-3 text-left font-normal"
+            onClick={() => {
+              onChange("");
+              setOpen(false);
+            }}
+          >
+            No captain
+          </Button>
+          {teamMembers.map((p) => (
+            <Button
+              type="button"
+              key={p.id}
+              variant="ghost"
+              className="h-auto w-full justify-start py-3 pl-3 text-left font-normal"
+              onClick={() => {
+                onChange(p.id);
+                setOpen(false);
+              }}
+            >
+              {p.name ?? p.gameID ?? p.id}
+            </Button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function TeamForm({
   form,
   setForm,
@@ -174,6 +234,7 @@ function TeamForm({
   teamMembers,
   onClose,
   onSubmit,
+  isMobile = false,
 }: {
   form: TeamFormData;
   setForm: React.Dispatch<React.SetStateAction<TeamFormData>>;
@@ -181,9 +242,17 @@ function TeamForm({
   teamMembers: { id: string; name?: string; gameID?: string }[] | undefined;
   onClose: () => void;
   onSubmit: () => void;
+  isMobile?: boolean;
 }) {
+  const captainLabel =
+    form.captain === ""
+      ? "Select captain (team members only)"
+      : teamMembers?.find((p) => p.id === form.captain)?.name ??
+        teamMembers?.find((p) => p.id === form.captain)?.gameID ??
+        "Select captain (team members only)";
+
   return (
-    <div className="space-y-4 px-4 pb-4">
+    <div className="w-full space-y-4 px-4 pb-4">
       <div className="space-y-2">
         <Label htmlFor="name">Team name</Label>
         <Input
@@ -193,29 +262,51 @@ function TeamForm({
           placeholder="Team name"
         />
       </div>
-      {editingId && (
-        <div className="space-y-2">
-          <Label>Captain</Label>
-          <Select
-            value={form.captain ?? ""}
-            onValueChange={(v) =>
-              setForm((f) => ({ ...f, captain: v || undefined }))
-            }
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select captain (team members only)" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">No captain</SelectItem>
-              {teamMembers?.map((p) => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.name ?? p.gameID ?? p.id}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
+      {editingId &&
+        (isMobile ? (
+          <div className="space-y-2">
+            <Label>Captain</Label>
+            <CaptainPopover
+              value={form.captain ?? ""}
+              onChange={(v) =>
+                setForm((f) => ({ ...f, captain: v || "" }))
+              }
+              teamMembers={teamMembers ?? []}
+              triggerLabel={captainLabel}
+            />
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <Label>Captain</Label>
+            <Select
+              value={form.captain ?? ""}
+              onValueChange={(v) =>
+                setForm((f) => ({ ...f, captain: v || "" }))
+              }
+              items={{
+                "": "No captain",
+                ...Object.fromEntries(
+                  (teamMembers ?? []).map((p) => [
+                    p.id,
+                    p.name ?? p.gameID ?? p.id,
+                  ]),
+                ),
+              }}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select captain (team members only)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">No captain</SelectItem>
+                {teamMembers?.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name ?? p.gameID ?? p.id}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        ))}
       <div className="flex gap-2 pt-4">
         <Button onClick={onSubmit} className="flex-1">
           {editingId ? "Save" : "Add"}
@@ -469,13 +560,13 @@ function TeamsPage() {
 
       {isMobile ? (
         <Drawer open={sheetOpen} onOpenChange={setSheetOpen} direction="bottom">
-          <DrawerContent className="max-h-[75vh] flex flex-col overflow-hidden">
-            <DrawerHeader className="shrink-0">
+          <DrawerContent className="max-h-[75vh] flex w-full flex-col overflow-hidden">
+            <DrawerHeader className="shrink-0 px-4">
               <DrawerTitle>
                 {editingId ? "Edit team" : "Add team"}
               </DrawerTitle>
             </DrawerHeader>
-            <div className="min-h-0 overflow-y-auto overscroll-contain">
+            <div className="min-h-0 w-full overflow-y-auto overscroll-contain">
               <TeamForm
                 key={editingId ?? "create"}
                 form={form}
@@ -484,6 +575,7 @@ function TeamsPage() {
                 teamMembers={editingId ? getTeamMembers(editingId) : []}
                 onClose={() => setSheetOpen(false)}
                 onSubmit={handleSubmit}
+                isMobile
               />
             </div>
           </DrawerContent>
@@ -515,13 +607,13 @@ function TeamsPage() {
           onOpenChange={(o) => !o && setAddMembersTeamId(null)}
           direction="bottom"
         >
-          <DrawerContent className="max-h-[85vh] flex flex-col overflow-hidden">
+          <DrawerContent className="max-h-[85vh] flex w-full flex-col overflow-hidden">
             <DrawerHeader className="shrink-0">
               <DrawerTitle>
                 Add members to {addMembersTeam?.name ?? "team"}
               </DrawerTitle>
             </DrawerHeader>
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4">
+            <div className="min-h-0 flex-1 w-full overflow-y-auto overscroll-contain px-4 pb-4">
               {addMembersTeamId && (
                 <AddMembersContent
                   unassignedParticipants={unassignedParticipants}

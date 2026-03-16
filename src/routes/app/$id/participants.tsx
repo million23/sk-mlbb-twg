@@ -40,6 +40,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -62,7 +67,7 @@ import {
 import { useTeams } from "@/hooks/use-teams";
 import type { Collections } from "@/types/pocketbase-types";
 import { createFileRoute } from "@tanstack/react-router";
-import { LayoutGrid, LayoutList, Plus, Search, Users } from "lucide-react";
+import { ChevronDown, LayoutGrid, LayoutList, Plus, Search, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -74,6 +79,60 @@ type ParticipantFormData = Partial<
   Omit<Collections["participants"], "id" | "created" | "updated">
 >;
 
+function TeamPopover({
+  onChange,
+  teams,
+  triggerLabel,
+}: {
+  value: string;
+  onChange: (v: string | undefined) => void;
+  teams: { id: string; name?: string }[];
+  triggerLabel: string;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        className="flex h-10 w-full items-center justify-between gap-2 rounded-lg border border-input bg-transparent px-3 py-2 text-left text-sm font-normal ring-offset-background hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        aria-expanded={open}
+      >
+        <span className="truncate">{triggerLabel}</span>
+        <ChevronDown className="size-4 shrink-0 opacity-50" />
+      </PopoverTrigger>
+      <PopoverContent className="min-w-80 w-(--anchor-width) max-w-[calc(100vw-2rem)] p-2" align="start">
+        <div className="flex max-h-[min(var(--available-height,280px),70vh)] flex-col gap-0.5 overflow-y-auto">
+          <Button
+            type="button"
+            variant="ghost"
+            className="h-auto w-full justify-start py-3 pl-3 text-left font-normal"
+            onClick={() => {
+              onChange(undefined);
+              setOpen(false);
+            }}
+          >
+            No team
+          </Button>
+          {teams.map((t) => (
+            <Button
+              type="button"
+              key={t.id}
+              variant="ghost"
+              className="h-auto w-full justify-start py-3 pl-3 text-left font-normal"
+              onClick={() => {
+                onChange(t.id);
+                setOpen(false);
+              }}
+            >
+              {t.name ?? t.id}
+            </Button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function ParticipantForm({
   form,
   setForm,
@@ -81,6 +140,7 @@ function ParticipantForm({
   teams,
   onClose,
   onSubmit,
+  isMobile = false,
 }: {
   form: ParticipantFormData;
   setForm: React.Dispatch<React.SetStateAction<ParticipantFormData>>;
@@ -88,9 +148,14 @@ function ParticipantForm({
   teams: { id: string; name?: string }[] | undefined;
   onClose: () => void;
   onSubmit: () => void;
+  isMobile?: boolean;
 }) {
+  const teamLabel =
+    form.team === "" || !form.team
+      ? "No team"
+      : teams?.find((t) => t.id === form.team)?.name ?? "No team";
   return (
-    <div className="space-y-4 px-4 pb-4">
+    <div className="w-full space-y-4 px-4 pb-4">
       <div className="space-y-2">
         <Label htmlFor="gameID">Game ID</Label>
         <Input
@@ -129,29 +194,44 @@ function ParticipantForm({
           placeholder="Barangay / area"
         />
       </div>
-      {editingId && (
-        <div className="space-y-2">
-          <Label>Team</Label>
-          <Select
-            value={form.team ?? ""}
-            onValueChange={(v) =>
-              setForm((f) => ({ ...f, team: v || undefined }))
-            }
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="No team" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">No team</SelectItem>
-              {teams?.map((t) => (
-                <SelectItem key={t.id} value={t.id}>
-                  {t.name ?? t.id}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
+      {editingId &&
+        (isMobile ? (
+          <div className="space-y-2">
+            <Label>Team</Label>
+            <TeamPopover
+              value={form.team ?? ""}
+              onChange={(v) => setForm((f) => ({ ...f, team: v }))}
+              teams={teams ?? []}
+              triggerLabel={teamLabel}
+            />
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <Label>Team</Label>
+            <Select
+              value={form.team ?? ""}
+              onValueChange={(v) =>
+                setForm((f) => ({ ...f, team: v || undefined }))
+              }
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="No team">
+                  {(value: string | null) =>
+                    value ? teams?.find((t) => t.id === value)?.name ?? value : null
+                  }
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">No team</SelectItem>
+                {teams?.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.name ?? t.id}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        ))}
       <div className="flex gap-2 pt-4">
         <Button onClick={onSubmit} className="flex-1">
           {editingId ? "Save" : "Add"}
@@ -381,13 +461,13 @@ function ParticipantsPage() {
 
       {isMobile ? (
         <Drawer open={sheetOpen} onOpenChange={setSheetOpen} direction="bottom">
-          <DrawerContent className="max-h-[75vh] flex flex-col overflow-hidden">
-            <DrawerHeader className="shrink-0">
+          <DrawerContent className="max-h-[75vh] flex w-full flex-col overflow-hidden">
+            <DrawerHeader className="shrink-0 px-4">
               <DrawerTitle>
                 {editingId ? "Edit participant" : "Add participant"}
               </DrawerTitle>
             </DrawerHeader>
-            <div className="min-h-0 overflow-y-auto overscroll-contain">
+            <div className="min-h-0 w-full overflow-y-auto overscroll-contain">
               <ParticipantForm
                 key={editingId ?? "create"}
                 form={form}
@@ -396,6 +476,7 @@ function ParticipantsPage() {
                 teams={teams}
                 onClose={() => setSheetOpen(false)}
                 onSubmit={handleSubmit}
+                isMobile
               />
             </div>
           </DrawerContent>
