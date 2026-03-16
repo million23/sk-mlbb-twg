@@ -7,6 +7,7 @@ import type { Collections } from "@/types/pocketbase-types";
 type TeamInput = Partial<
   Omit<Collections["teams"], "id" | "created" | "updated">
 >;
+type Team = Collections["teams"];
 
 export function useTeams() {
   return useQuery({
@@ -15,7 +16,7 @@ export function useTeams() {
       rateLimited(async () => {
         const col = getCollection("teams");
         const list = await col.getFullList({ sort: "-created" });
-        return list as Collections["teams"][];
+        return list as Team[];
       }),
   });
 }
@@ -30,7 +31,26 @@ export function useTeamMutations() {
         return col.create(data);
       });
     },
-    onSuccess: () => {
+    onMutate: async (data) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.teams });
+      const prev = queryClient.getQueryData<Team[]>(queryKeys.teams);
+      const temp: Team = {
+        id: `temp-${Date.now()}`,
+        ...data,
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      };
+      queryClient.setQueryData<Team[]>(queryKeys.teams, (old) =>
+        old ? [temp, ...old] : [temp]
+      );
+      return { prev };
+    },
+    onError: (_err, _data, ctx) => {
+      if (ctx?.prev != null) {
+        queryClient.setQueryData(queryKeys.teams, ctx.prev);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.teams });
     },
   });
@@ -43,7 +63,25 @@ export function useTeamMutations() {
         return col.update(id, patch);
       });
     },
-    onSuccess: () => {
+    onMutate: async (data) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.teams });
+      const prev = queryClient.getQueryData<Team[]>(queryKeys.teams);
+      const { id, ...patch } = data;
+      queryClient.setQueryData<Team[]>(queryKeys.teams, (old) =>
+        old?.map((t) =>
+          t.id === id
+            ? { ...t, ...patch, updated: new Date().toISOString() }
+            : t
+        ) ?? old
+      );
+      return { prev };
+    },
+    onError: (_err, _data, ctx) => {
+      if (ctx?.prev != null) {
+        queryClient.setQueryData(queryKeys.teams, ctx.prev);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.teams });
     },
   });
@@ -55,7 +93,20 @@ export function useTeamMutations() {
         return col.delete(id);
       });
     },
-    onSuccess: () => {
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.teams });
+      const prev = queryClient.getQueryData<Team[]>(queryKeys.teams);
+      queryClient.setQueryData<Team[]>(queryKeys.teams, (old) =>
+        old?.filter((t) => t.id !== id) ?? old
+      );
+      return { prev };
+    },
+    onError: (_err, _data, ctx) => {
+      if (ctx?.prev != null) {
+        queryClient.setQueryData(queryKeys.teams, ctx.prev);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.teams });
     },
   });

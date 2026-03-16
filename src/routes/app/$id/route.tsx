@@ -34,7 +34,9 @@ import {
   Users,
   UsersRound,
 } from "lucide-react";
+import { useIsMutating } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { usePocketBaseAuth } from "@/hooks/use-pocketbase-auth";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useState } from "react";
@@ -101,6 +103,7 @@ function AdminLayoutContent() {
         <SidebarHeader className="border-b border-sidebar-border">
           <div className="flex h-12 items-center gap-2 px-2">
             <MobileSidebarTrigger />
+            <SyncIndicator />
             <span className="font-semibold text-sidebar-foreground">
               SK MLBB Tracker
             </span>
@@ -172,6 +175,7 @@ function AdminLayoutContent() {
       <SidebarInset>
         <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
           <MobileSidebarTrigger />
+          <SyncIndicator />
         </header>
         <div className="min-w-0 flex-1 overflow-auto p-4 md:p-6">
           <Outlet />
@@ -197,5 +201,16 @@ function MobileSidebarTrigger() {
         <PanelLeft className="size-4" />
       )}
     </Button>
+  );
+}
+
+function SyncIndicator() {
+  const isMutating = useIsMutating();
+  if (isMutating === 0) return null;
+  return (
+    <Spinner
+      className="size-4 text-muted-foreground"
+      aria-label="Saving..."
+    />
   );
 }

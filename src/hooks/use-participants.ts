@@ -7,6 +7,7 @@ import type { Collections } from "@/types/pocketbase-types";
 type ParticipantInput = Partial<
   Omit<Collections["participants"], "id" | "created" | "updated">
 >;
+type Participant = Collections["participants"];
 
 export function useParticipants() {
   return useQuery({
@@ -15,7 +16,7 @@ export function useParticipants() {
       rateLimited(async () => {
         const col = getCollection("participants");
         const list = await col.getFullList({ sort: "-created" });
-        return list as Collections["participants"][];
+        return list as Participant[];
       }),
   });
 }
@@ -30,7 +31,26 @@ export function useParticipantMutations() {
         return col.create(data);
       });
     },
-    onSuccess: () => {
+    onMutate: async (data) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.participants });
+      const prev = queryClient.getQueryData<Participant[]>(queryKeys.participants);
+      const temp: Participant = {
+        id: `temp-${Date.now()}`,
+        ...data,
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      };
+      queryClient.setQueryData<Participant[]>(queryKeys.participants, (old) =>
+        old ? [temp, ...old] : [temp]
+      );
+      return { prev };
+    },
+    onError: (_err, _data, ctx) => {
+      if (ctx?.prev != null) {
+        queryClient.setQueryData(queryKeys.participants, ctx.prev);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.participants });
     },
   });
@@ -43,7 +63,25 @@ export function useParticipantMutations() {
         return col.update(id, patch);
       });
     },
-    onSuccess: () => {
+    onMutate: async (data) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.participants });
+      const prev = queryClient.getQueryData<Participant[]>(queryKeys.participants);
+      const { id, ...patch } = data;
+      queryClient.setQueryData<Participant[]>(queryKeys.participants, (old) =>
+        old?.map((p) =>
+          p.id === id
+            ? { ...p, ...patch, updated: new Date().toISOString() }
+            : p
+        ) ?? old
+      );
+      return { prev };
+    },
+    onError: (_err, _data, ctx) => {
+      if (ctx?.prev != null) {
+        queryClient.setQueryData(queryKeys.participants, ctx.prev);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.participants });
     },
   });
@@ -55,7 +93,20 @@ export function useParticipantMutations() {
         return col.delete(id);
       });
     },
-    onSuccess: () => {
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.participants });
+      const prev = queryClient.getQueryData<Participant[]>(queryKeys.participants);
+      queryClient.setQueryData<Participant[]>(queryKeys.participants, (old) =>
+        old?.filter((p) => p.id !== id) ?? old
+      );
+      return { prev };
+    },
+    onError: (_err, _data, ctx) => {
+      if (ctx?.prev != null) {
+        queryClient.setQueryData(queryKeys.participants, ctx.prev);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.participants });
     },
   });

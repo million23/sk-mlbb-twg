@@ -20,7 +20,7 @@ function RootComponent() {
         <div className="min-h-screen bg-background">
           <Outlet />
         </div>
-        <Toaster position="bottom-right" />
+        <Toaster richColors position="bottom-right" />
       </ThemeProvider>
       {!isMobile && (
         <TanStackDevtools
