@@ -10,7 +10,14 @@ import {
 } from "@/components/ui/card";
 import { getAvatarUrl } from "@/lib/avatar";
 import type { Collections } from "@/types/pocketbase-types";
-import { Pencil, Trash2 } from "lucide-react";
+import {
+  MapPin,
+  Pencil,
+  Phone,
+  Trash2,
+  Users,
+  UserCircle2,
+} from "lucide-react";
 
 type Participant = Collections["participants"] & { id: string };
 
@@ -26,6 +33,21 @@ function getInitials(name?: string, gameID?: string) {
   return gameID?.slice(0, 2).toUpperCase() ?? "??";
 }
 
+function InfoRow({
+  icon: Icon,
+  value,
+}: {
+  icon: React.ElementType;
+  value: string;
+}) {
+  return (
+    <div className="flex items-center gap-2 text-sm">
+      <Icon className="size-4 shrink-0 text-muted-foreground" />
+      <span className="truncate">{value || "-"}</span>
+    </div>
+  );
+}
+
 export function ParticipantCard({
   participant,
   teamName,
@@ -39,22 +61,22 @@ export function ParticipantCard({
 }) {
   const p = participant;
   return (
-    <Card>
-      <CardHeader className="pb-2">
+    <Card className="overflow-hidden transition-shadow hover:shadow-md">
+      <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-3">
-            <Avatar size="lg">
+          <div className="flex items-center gap-3 min-w-0">
+            <Avatar size="lg" className="shrink-0">
               <AvatarImage src={getAvatarUrl(p.id)} alt={p.name} />
               <AvatarFallback>{getInitials(p.name, p.gameID)}</AvatarFallback>
             </Avatar>
-            <div>
-              <CardTitle className="text-base">{p.name ?? "-"}</CardTitle>
-              <CardDescription className="font-mono text-xs">
-                {p.gameID ?? "-"}
+            <div className="min-w-0 flex-1">
+              <CardTitle className="text-base truncate">{p.name ?? "-"}</CardTitle>
+              <CardDescription className="font-mono text-xs mt-0.5">
+                ID {p.gameID ?? "-"}
               </CardDescription>
             </div>
           </div>
-          <div className="flex gap-1">
+          <div className="flex gap-0.5 shrink-0">
             <Button variant="ghost" size="icon-sm" onClick={() => onEdit(p)}>
               <Pencil className="size-4" />
             </Button>
@@ -69,18 +91,20 @@ export function ParticipantCard({
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-1 text-sm">
-        <p>
-          <span className="text-muted-foreground">Contact:</span>{" "}
-          {p.contactNumber ?? "-"}
-        </p>
-        <p>
-          <span className="text-muted-foreground">Area:</span> {p.area ?? "-"}
-        </p>
-        <div className="flex items-center gap-2 pt-2">
-          <Badge variant="outline">{p.status ?? "unassigned"}</Badge>
-          <span className="text-muted-foreground">·</span>
-          <span>Team: {teamName}</span>
+      <CardContent className="space-y-2.5 pt-0">
+        <InfoRow icon={Phone} value={p.contactNumber ?? ""} />
+        <InfoRow icon={MapPin} value={p.area ?? ""} />
+        <div className="flex flex-wrap items-center gap-2 pt-1">
+          <div className="flex items-center gap-1.5">
+            <UserCircle2 className="size-4 shrink-0 text-muted-foreground" />
+            <Badge variant="outline" className="font-normal">
+              {p.status ?? "unassigned"}
+            </Badge>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Users className="size-4 shrink-0 text-muted-foreground" />
+            <span className="text-sm">{teamName}</span>
+          </div>
         </div>
       </CardContent>
     </Card>
