@@ -353,6 +353,11 @@ function TeamsPage() {
   };
 
   const handleSubmit = () => {
+    const name = (form.name ?? "").trim();
+    if (!name) {
+      toast.error("Enter a team name");
+      return;
+    }
     if (editingId) {
       mutations.update.mutate({ id: editingId, ...form });
       toast.success("Team updated");

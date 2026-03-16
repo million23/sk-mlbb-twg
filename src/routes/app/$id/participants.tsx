@@ -263,6 +263,12 @@ function ParticipantsPage() {
   };
 
   const handleSubmit = () => {
+    const name = (form.name ?? "").trim();
+    const gameID = (form.gameID ?? "").trim();
+    if (!name && !gameID) {
+      toast.error("Enter at least a name or Game ID");
+      return;
+    }
     const payload = {
       ...form,
       preferredRoles: (form.preferredRoles ?? [])
