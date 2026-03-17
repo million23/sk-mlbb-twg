@@ -34,6 +34,11 @@ import {
   Users,
   UsersRound,
 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useIsMutating } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -75,7 +80,7 @@ function AdminLayoutContent() {
   const params = useParams({ strict: false });
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut } = usePocketBaseAuth();
+  const { signOut, record } = usePocketBaseAuth();
   const { setOpenMobile, isMobile } = useSidebar();
   const [signOutOpen, setSignOutOpen] = useState(false);
   const id = (params as { id?: string })?.id ?? "main";
@@ -104,7 +109,7 @@ function AdminLayoutContent() {
           <div className="flex h-12 items-center gap-2 px-2">
             <MobileSidebarTrigger />
             <SyncIndicator />
-            <span className="font-semibold text-sidebar-foreground">
+            <span className="font-semibold text-sidebar-foreground max-w-48 overflow-hidden transition-[opacity,max-width] duration-250 ease-[cubic-bezier(0.4,0,0.2,1)] group-data-[collapsible=icon]:max-w-0 group-data-[collapsible=icon]:opacity-0">
               SK MLBB Tracker
             </span>
           </div>
@@ -138,8 +143,17 @@ function AdminLayoutContent() {
           </SidebarGroup>
         </SidebarContent>
         <SidebarFooter className="border-t border-sidebar-border">
-          <div className="flex flex-col gap-2 px-2 py-2">
-            <div className="text-xs text-muted-foreground">Barangay 176-E</div>
+          <div className="flex min-w-0 flex-col gap-2 px-2 py-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="max-w-48 truncate text-xs text-muted-foreground transition-[opacity,max-width] duration-250 ease-[cubic-bezier(0.4,0,0.2,1)] group-data-[collapsible=icon]:max-w-0 group-data-[collapsible=icon]:opacity-0">
+                  {(record as { name?: string } | null)?.name ?? "Signed in"}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="right" sideOffset={8}>
+                {(record as { name?: string } | null)?.name ?? "Signed in"}
+              </TooltipContent>
+            </Tooltip>
             <Button
               variant="ghost"
               size="sm"
@@ -147,7 +161,7 @@ function AdminLayoutContent() {
               onClick={() => setSignOutOpen(true)}
             >
               <LogOut className="size-4" />
-              Sign out
+              <span className="max-w-24 overflow-hidden transition-[opacity,max-width] duration-250 ease-[cubic-bezier(0.4,0,0.2,1)] group-data-[collapsible=icon]:max-w-0 group-data-[collapsible=icon]:opacity-0">Sign out</span>
             </Button>
           </div>
         </SidebarFooter>

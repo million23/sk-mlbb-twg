@@ -14,6 +14,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
+import { DateTimePicker } from "@/components/ui/date-time-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -142,42 +143,18 @@ function TournamentForm({
       </div>
       <div className="space-y-2">
         <Label htmlFor="startAt">Start date</Label>
-        <Input
+        <DateTimePicker
           id="startAt"
-          type="datetime-local"
-          value={
-            form.startAt
-              ? new Date(form.startAt).toISOString().slice(0, 16)
-              : ""
-          }
-          onChange={(e) =>
-            setForm((f) => ({
-              ...f,
-              startAt: e.target.value
-                ? new Date(e.target.value).toISOString()
-                : "",
-            }))
-          }
+          value={form.startAt ?? ""}
+          onChange={(v) => setForm((f) => ({ ...f, startAt: v }))}
         />
       </div>
       <div className="space-y-2">
         <Label htmlFor="endAt">End date</Label>
-        <Input
+        <DateTimePicker
           id="endAt"
-          type="datetime-local"
-          value={
-            form.endAt
-              ? new Date(form.endAt).toISOString().slice(0, 16)
-              : ""
-          }
-          onChange={(e) =>
-            setForm((f) => ({
-              ...f,
-              endAt: e.target.value
-                ? new Date(e.target.value).toISOString()
-                : "",
-            }))
-          }
+          value={form.endAt ?? ""}
+          onChange={(v) => setForm((f) => ({ ...f, endAt: v }))}
         />
       </div>
       <div className="space-y-2">

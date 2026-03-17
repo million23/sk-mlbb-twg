@@ -1,3 +1,4 @@
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,6 +38,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
+import { BirthdayPicker } from "@/components/ui/birthday-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -55,6 +57,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { AGE_BRACKETS } from "@/config/age-brackets";
+import { formatBirthdateDisplay, getAge, getAgeBracketLabel } from "@/lib/age";
+import { getAvatarUrl } from "@/lib/avatar";
 import {
   useParticipantMutations,
   useParticipants,
@@ -97,8 +102,28 @@ function ParticipantForm({
   onSubmit: () => void;
   isMobile?: boolean;
 }) {
+  const getInitials = (name?: string, gameID?: string) => {
+    if (name?.trim()) {
+      return name
+        .split(/\s+/)
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
+    }
+    return gameID?.slice(0, 2).toUpperCase() ?? "??";
+  };
+
   return (
     <div className="w-full space-y-4 px-4 pb-4">
+      {editingId && (
+        <div className="flex justify-center pb-2">
+          <Avatar className="size-16">
+            <AvatarImage src={getAvatarUrl(editingId)} alt={form.name ?? ""} />
+            <AvatarFallback>{getInitials(form.name, form.gameID)}</AvatarFallback>
+          </Avatar>
+        </div>
+      )}
       <div className="space-y-2">
         <Label htmlFor="gameID">Game ID</Label>
         <Input
@@ -135,6 +160,14 @@ function ParticipantForm({
           value={form.area ?? ""}
           onChange={(e) => setForm((f) => ({ ...f, area: e.target.value }))}
           placeholder="Barangay / area"
+        />
+      </div>
+      <div className="w-full space-y-2">
+        <Label htmlFor="birthdate">Birthday</Label>
+        <BirthdayPicker
+          id="birthdate"
+          value={form.birthdate ?? ""}
+          onChange={(v) => setForm((f) => ({ ...f, birthdate: v || undefined }))}
         />
       </div>
       <div className="space-y-2">
@@ -236,6 +269,7 @@ function ParticipantsPage() {
     name: "",
     contactNumber: "",
     area: "",
+    birthdate: undefined,
     preferredRoles: [],
     status: "unassigned",
   });
@@ -247,6 +281,7 @@ function ParticipantsPage() {
       name: "",
       contactNumber: "",
       area: "",
+      birthdate: undefined,
       preferredRoles: [],
       status: "unassigned",
       team: undefined,
@@ -261,6 +296,7 @@ function ParticipantsPage() {
       name: p.name ?? "",
       contactNumber: p.contactNumber ?? "",
       area: p.area ?? "",
+      birthdate: p.birthdate ?? undefined,
       preferredRoles: p.preferredRoles ?? [],
       status: p.status ?? "unassigned",
       team: p.team,
@@ -325,12 +361,19 @@ function ParticipantsPage() {
       const contact = (p.contactNumber ?? "").toLowerCase();
       const area = (p.area ?? "").toLowerCase();
       const teamName = getTeamName(p.team).toLowerCase();
+      const age = getAge(p.birthdate);
+      const ageStr = age !== null ? String(age) : "";
+      const bracket = getAgeBracketLabel(age, AGE_BRACKETS).toLowerCase();
+      const birthdateStr = (formatBirthdateDisplay(p.birthdate) ?? "").toLowerCase();
       return (
         name.includes(q) ||
         gameID.includes(q) ||
         contact.includes(q) ||
         area.includes(q) ||
-        teamName.includes(q)
+        teamName.includes(q) ||
+        ageStr.includes(q) ||
+        bracket.includes(q) ||
+        birthdateStr.includes(q)
       );
     });
   }, [participants, search, getTeamName]);
@@ -382,7 +425,7 @@ function ParticipantsPage() {
             <div className="relative mt-2">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <Input
-                placeholder="Search by name, Game ID, contact, area..."
+                placeholder="Search by name, Game ID, contact, area, age..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9"
@@ -417,6 +460,7 @@ function ParticipantsPage() {
                     <TableHead>Game ID</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Contact</TableHead>
+                    <TableHead>Birthday</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Preferred lanes</TableHead>
                     <TableHead>Team</TableHead>

@@ -8,9 +8,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { formatBirthdateDisplay, getAge } from "@/lib/age";
 import { getAvatarUrl } from "@/lib/avatar";
 import type { Collections, PlayerRole } from "@/types/pocketbase-types";
 import {
+  Cake,
   Gamepad2,
   MapPin,
   Pencil,
@@ -91,6 +93,7 @@ export function ParticipantCard({
   onJoinTeam?: (participantId: string, teamId: string) => void;
 }) {
   const p = participant;
+  const age = getAge(p.birthdate);
   return (
     <Card className="overflow-hidden transition-shadow hover:shadow-md">
       <CardHeader className="pb-3">
@@ -136,6 +139,15 @@ export function ParticipantCard({
       <CardContent className="space-y-2.5 pt-0">
         <InfoRow icon={Phone} value={p.contactNumber ?? ""} />
         <InfoRow icon={MapPin} value={p.area ?? ""} />
+        <div className="flex items-center gap-2 text-sm">
+          <Cake className="size-4 shrink-0 text-muted-foreground" />
+          <span className="tabular-nums">
+            {formatBirthdateDisplay(p.birthdate) ?? "-"}
+            {age !== null && (
+              <span className="text-muted-foreground ml-1.5">({age} yrs)</span>
+            )}
+          </span>
+        </div>
         <InfoRow
           icon={Gamepad2}
           value={formatPreferredRoles(p.preferredRoles)}
@@ -148,19 +160,19 @@ export function ParticipantCard({
             </Badge>
           </div>
           <div className="flex items-center gap-1.5">
-            <Users className="size-4 shrink-0 text-muted-foreground" />
-            <span className="text-sm">{teamName}</span>
             {p.team && onRemoveFromTeam && (
               <Button
                 variant="ghost"
                 size="icon-sm"
-                className="size-6 text-muted-foreground hover:text-destructive"
+                className="size-6 shrink-0 text-muted-foreground hover:text-destructive"
                 onClick={() => onRemoveFromTeam(p)}
                 aria-label="Remove from team"
               >
                 <UserMinus className="size-3.5" />
               </Button>
             )}
+            <Users className="size-4 shrink-0 text-muted-foreground" />
+            <span className="text-sm">{teamName}</span>
           </div>
         </div>
         {!p.team && suggestions.length > 0 && (

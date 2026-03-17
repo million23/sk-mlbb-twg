@@ -10,6 +10,7 @@ import {
   TableCell,
   TableRow,
 } from "@/components/ui/table";
+import { formatBirthdateDisplay, getAge } from "@/lib/age";
 import { getAvatarUrl } from "@/lib/avatar";
 import type { Collections, PlayerRole } from "@/types/pocketbase-types";
 import { CircleHelp, Pencil, Plus, Trash2, UserMinus } from "lucide-react";
@@ -68,6 +69,7 @@ export function ParticipantTableRow({
   onJoinTeam?: (participantId: string, teamId: string) => void;
 }) {
   const p = participant;
+  const age = getAge(p.birthdate);
   return (
     <TableRow>
       <TableCell>
@@ -79,6 +81,12 @@ export function ParticipantTableRow({
       <TableCell className="font-mono">{p.gameID ?? "-"}</TableCell>
       <TableCell>{p.name ?? "-"}</TableCell>
       <TableCell>{p.contactNumber ?? "-"}</TableCell>
+      <TableCell className="text-sm tabular-nums">
+        {formatBirthdateDisplay(p.birthdate) ?? "-"}
+        {age !== null && (
+          <span className="text-muted-foreground ml-1.5">({age} yrs)</span>
+        )}
+      </TableCell>
       <TableCell>
         <Badge variant="outline">{p.status ?? "unassigned"}</Badge>
       </TableCell>
@@ -87,18 +95,18 @@ export function ParticipantTableRow({
       </TableCell>
       <TableCell>
         <div className="flex items-center gap-1">
-          <span>{teamName}</span>
           {p.team && onRemoveFromTeam && (
             <Button
               variant="ghost"
               size="icon-sm"
-              className="text-muted-foreground hover:text-destructive"
+              className="text-muted-foreground hover:text-destructive shrink-0"
               onClick={() => onRemoveFromTeam(p)}
               aria-label="Remove from team"
             >
               <UserMinus className="size-4" />
             </Button>
           )}
+          <span>{teamName}</span>
           {!p.team && suggestions.length > 0 && onJoinTeam && (
             <Popover>
               <PopoverTrigger
@@ -145,17 +153,6 @@ export function ParticipantTableRow({
       </TableCell>
       <TableCell>
         <div className="flex gap-1">
-          {p.team && onRemoveFromTeam && (
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="text-muted-foreground hover:text-destructive"
-              onClick={() => onRemoveFromTeam(p)}
-              aria-label="Remove from team"
-            >
-              <UserMinus className="size-4" />
-            </Button>
-          )}
           <Button variant="ghost" size="icon-sm" onClick={() => onEdit(p)}>
             <Pencil className="size-4" />
           </Button>
