@@ -1,0 +1,15 @@
+# Smoke test: Login page loads and shows form
+# Run with: maestro test maestro/login-page.yaml
+# Ensure dev server is running: bun run dev
+url: http://localhost:1023/app/auth/login
+name: Login Page Smoke Test
+tags:
+  - smoke
+  - web
+---
+- launchApp
+- assertVisible: Login to Admin Panel
+- assertVisible: Email
+- assertVisible: Password
+- assertVisible: Login
+- takeScreenshot: login-page

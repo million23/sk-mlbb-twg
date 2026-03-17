@@ -1,0 +1,24 @@
+# Full login flow: Home -> Login page -> (requires valid credentials)
+# For CI: use env vars MAESTRO_LOGIN_EMAIL and MAESTRO_LOGIN_PASSWORD
+# Run with: maestro test maestro/login-flow.yaml
+url: http://localhost:1023
+name: Login Flow
+tags:
+  - auth
+  - web
+env:
+  # Set these for authenticated tests, e.g.:
+  # MAESTRO_LOGIN_EMAIL: "admin@example.com"
+  # MAESTRO_LOGIN_PASSWORD: "your-password"
+---
+- launchApp
+- tapOn: Admin login
+- assertVisible: Login to Admin Panel
+# Tap on Email field (label or placeholder) then type
+- tapOn: Email
+- inputText: ${MAESTRO_LOGIN_EMAIL}
+- tapOn: Password
+- inputText: ${MAESTRO_LOGIN_PASSWORD}
+- tapOn: Login
+# After successful login, user is redirected to dashboard
+# - assertVisible: Dashboard  # Uncomment when you have a dashboard title
