@@ -1,24 +1,53 @@
-# Full login flow: Home -> Login page -> (requires valid credentials)
-# For CI: use env vars MAESTRO_LOGIN_EMAIL and MAESTRO_LOGIN_PASSWORD
-# Run with: maestro test maestro/login-flow.yaml
+# Full login flow: Home -> Login page -> Authenticated app shell
+# Uses inline flow env values (Maestro Studio friendly, no OS env needed)
 url: http://localhost:1023
-name: Login Flow
+name: Login E2E Flow
 tags:
   - auth
   - web
+  - e2e
 env:
-  # Set these for authenticated tests, e.g.:
-  # MAESTRO_LOGIN_EMAIL: "admin@example.com"
-  # MAESTRO_LOGIN_PASSWORD: "your-password"
+  # MAESTRO_LOGIN_EMAIL:
+  # MAESTRO_LOGIN_PASSWORD: 
 ---
+# Start app (may land on Home or Dashboard if auth cookie exists)
 - launchApp
-- tapOn: Admin login
+
+# If already authenticated, sign out first so this remains a true login test
+- runFlow:
+    when:
+      visible: Dashboard
+    commands:
+      - tapOn: Sign out
+      - assertVisible: Sign out?
+      - tapOn: Sign out
+
+# If on Home page, proceed to login
+- runFlow:
+    when:
+      visible: SK MLBB Tournament Tracker
+    commands:
+      - tapOn: Admin login
+
+# Login form checks
 - assertVisible: Login to Admin Panel
-# Tap on Email field (label or placeholder) then type
-- tapOn: Email
+- assertVisible: Email
+- assertVisible: Password
+- assertVisible: Login
+
+# Fill and submit credentials
+- tapOn:
+    id: email
 - inputText: ${MAESTRO_LOGIN_EMAIL}
-- tapOn: Password
+- tapOn:
+    id: password
 - inputText: ${MAESTRO_LOGIN_PASSWORD}
 - tapOn: Login
-# After successful login, user is redirected to dashboard
-# - assertVisible: Dashboard  # Uncomment when you have a dashboard title
+
+# Post-login checks (dashboard layout)
+- extendedWaitUntil:
+    visible: Dashboard
+    timeout: 15000
+- assertVisible: Participants
+- assertVisible: Teams
+- takeScreenshot: login-flow-success
