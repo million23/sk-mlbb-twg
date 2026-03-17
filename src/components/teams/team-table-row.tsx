@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import { getAvatarUrl } from "@/lib/avatar";
+import { getAvatarUrl, getTeamAvatarUrl } from "@/lib/avatar";
 import { getTeamStatusStyle } from "@/lib/team-status";
 import type { Collections } from "@/types/pocketbase-types";
 import { ChevronDown, Pencil, Trash2, UserPlus } from "lucide-react";
@@ -61,7 +61,7 @@ export function TeamTableRow({
       <TableRow>
         <TableCell>
           <Avatar size="sm">
-            <AvatarImage src={getAvatarUrl(t.id)} alt={t.name} />
+            <AvatarImage src={getTeamAvatarUrl(t.id)} alt={t.name} />
             <AvatarFallback>{getInitials(t.name)}</AvatarFallback>
           </Avatar>
         </TableCell>

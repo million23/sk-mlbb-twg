@@ -1,15 +1,19 @@
-const DICEBEAR_BASE = "https://api.dicebear.com/9.x";
-const DEFAULT_STYLE = "lorelei";
+import { createAvatar } from "@dicebear/core";
+import { identicon, lorelei } from "@dicebear/collection";
 
 /**
- * Returns a DiceBear avatar URL for the given seed.
+ * Returns a DiceBear avatar data URI for the given seed (generated locally, no API).
  * @param seed - Unique string (e.g. id, name, email) to generate consistent avatar
- * @param style - DiceBear style (lorelei, avataaars, pixel-art, etc.)
  */
-export function getAvatarUrl(
-  seed: string,
-  style: string = DEFAULT_STYLE
-): string {
-  const encoded = encodeURIComponent(seed || "default");
-  return `${DICEBEAR_BASE}/${style}/svg?seed=${encoded}`;
+export function getAvatarUrl(seed: string): string {
+  const avatar = createAvatar(lorelei, { seed: seed || "default" });
+  return avatar.toDataUri();
+}
+
+/**
+ * Returns a DiceBear avatar data URI for teams (identicon style - abstract geometric shapes).
+ */
+export function getTeamAvatarUrl(seed: string): string {
+  const avatar = createAvatar(identicon, { seed: seed || "default" });
+  return avatar.toDataUri();
 }

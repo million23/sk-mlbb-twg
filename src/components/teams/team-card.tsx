@@ -14,7 +14,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
-import { getAvatarUrl } from "@/lib/avatar";
+import { getAvatarUrl, getTeamAvatarUrl } from "@/lib/avatar";
 import { getTeamStatusStyle } from "@/lib/team-status";
 import type { Collections } from "@/types/pocketbase-types";
 import {
@@ -93,7 +93,7 @@ export function TeamCard({
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-3 min-w-0">
             <Avatar size="lg" className="shrink-0">
-              <AvatarImage src={getAvatarUrl(t.id)} alt={t.name} />
+              <AvatarImage src={getTeamAvatarUrl(t.id)} alt={t.name} />
               <AvatarFallback>{getInitials(t.name)}</AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
