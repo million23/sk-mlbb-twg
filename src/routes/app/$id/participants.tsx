@@ -64,7 +64,7 @@ import { useTeams } from "@/hooks/use-teams";
 import type { Collections, PlayerRole } from "@/types/pocketbase-types";
 import { createFileRoute } from "@tanstack/react-router";
 import { LayoutGrid, LayoutList, Plus, Search, Users } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/$id/participants")({
@@ -204,10 +204,16 @@ function ParticipantsPage() {
   const suggestionsByParticipant = useMemo(() => {
     const map = new Map<string, TeamSuggestion[]>();
     for (const s of teamSuggestions ?? []) {
+      const participantRef = s.participantId as unknown;
       const pid =
-        typeof s.participantId === "string"
-          ? s.participantId
-          : (s.participantId as { id?: string })?.id;
+        typeof participantRef === "string"
+          ? participantRef
+          : participantRef &&
+              typeof participantRef === "object" &&
+              "id" in participantRef &&
+              typeof (participantRef as { id?: unknown }).id === "string"
+            ? (participantRef as { id: string }).id
+            : undefined;
       if (!pid) continue;
       const list = map.get(pid) ?? [];
       list.push({
@@ -303,8 +309,11 @@ function ParticipantsPage() {
     toast.success("Added to team");
   };
 
-  const getTeamName = (teamId: string | undefined) =>
-    teams?.find((t) => t.id === teamId)?.name ?? "-";
+  const getTeamName = useCallback(
+    (teamId: string | undefined) =>
+      teams?.find((t) => t.id === teamId)?.name ?? "-",
+    [teams]
+  );
 
   const [search, setSearch] = useState("");
   const filteredParticipants = useMemo(() => {
@@ -324,7 +333,7 @@ function ParticipantsPage() {
         teamName.includes(q)
       );
     });
-  }, [participants, search, teams]);
+  }, [participants, search, getTeamName]);
 
   return (
     <div className="space-y-6">
