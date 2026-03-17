@@ -43,6 +43,7 @@ import { useIsMutating } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { usePocketBaseAuth } from "@/hooks/use-pocketbase-auth";
+import { queryClient } from "@/lib/query-client";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useState } from "react";
 
@@ -93,6 +94,8 @@ function AdminLayoutContent() {
     signOut();
     setSignOutOpen(false);
     navigate({ to: "/app/auth/login" });
+    // Clear cache after navigation so queries unmount first; prevents stale state on re-login
+    queueMicrotask(() => queryClient.clear());
   };
 
   const isActive = (path: string) => {

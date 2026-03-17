@@ -9,7 +9,11 @@ export function useAdmins() {
     queryFn: () =>
       rateLimited(async () => {
         const col = getCollection("admins");
-        return col.getFullList({ sort: "-created" });
+        return col.getFullList({
+          sort: "-created",
+          fields: "id,email,name,role,isActive,lastLoginAt,created,updated",
+        });
       }),
+    refetchOnMount: "always",
   });
 }

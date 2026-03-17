@@ -50,6 +50,7 @@ export enum TournamentStatus {
 export interface Collections {
     admins: {
         id: string;
+        email?: string;
         name?: string;
         role?: AdminRole;
         isActive?: boolean;

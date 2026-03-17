@@ -1,5 +1,6 @@
 export { useIsMobile } from "./use-mobile";
 export { usePocketBaseAuth } from "./use-pocketbase-auth";
+export { useAdminMutations } from "./use-admin-mutations";
 export { useAdmins } from "./use-admins";
 export { useParticipants, useParticipantMutations } from "./use-participants";
 export { useTeams, useTeamMutations } from "./use-teams";
