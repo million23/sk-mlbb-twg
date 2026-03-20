@@ -153,7 +153,14 @@ function AdminForm({
             }
           >
             <SelectTrigger id="admin-role" className="w-full sm:w-auto sm:min-w-[160px]">
-              <SelectValue placeholder="Select role" />
+              <SelectValue placeholder="Select role">
+                {(value) =>
+                  value != null && value !== ""
+                    ? (ADMIN_ROLES.find((r) => r.value === value)?.label ??
+                      String(value))
+                    : null
+                }
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {ADMIN_ROLES.map((r) => (

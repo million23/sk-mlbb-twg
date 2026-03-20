@@ -48,6 +48,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useTournaments, useTournamentMutations } from "@/hooks/use-tournaments";
+import { getTournamentStatusLabel, TOURNAMENT_STATUS_OPTIONS } from "@/lib/tournament-status";
 import type { Collections } from "@/types/pocketbase-types";
 import { LayoutGrid, LayoutList, MapPin, Plus, Pencil, Trash2, Trophy } from "lucide-react";
 import { toast } from "sonner";
@@ -56,17 +57,6 @@ import { format } from "date-fns";
 export const Route = createFileRoute("/app/$id/tournament")({
   component: TournamentPage,
 });
-
-const STATUS_OPTIONS: {
-  value: Collections["tournaments"]["status"];
-  label: string;
-}[] = [
-  { value: "draft", label: "Draft" },
-  { value: "upcoming", label: "Upcoming" },
-  { value: "live", label: "Live" },
-  { value: "completed", label: "Completed" },
-  { value: "archived", label: "Archived" },
-];
 
 type TournamentFormData = Partial<
   Omit<Collections["tournaments"], "id" | "created" | "updated">
@@ -163,10 +153,18 @@ function TournamentForm({
           }
         >
           <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select status" />
+            <SelectValue placeholder="Select status">
+              {(value) =>
+                value != null && value !== ""
+                  ? getTournamentStatusLabel(
+                      value as Collections["tournaments"]["status"],
+                    )
+                  : null
+              }
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
-            {STATUS_OPTIONS.map((o) => (
+            {TOURNAMENT_STATUS_OPTIONS.map((o) => (
               <SelectItem key={o.value} value={o.value}>
                 {o.label}
               </SelectItem>
@@ -360,8 +358,8 @@ function TournamentPage() {
                           <span className="text-muted-foreground">
                             {formatDate(t.startAt)}
                           </span>
-                          <Badge variant="outline" className="capitalize">
-                            {t.status ?? "draft"}
+                          <Badge variant="outline">
+                            {getTournamentStatusLabel(t.status)}
                           </Badge>
                         </div>
                       </div>

@@ -3,6 +3,7 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { getTournamentStatusLabel } from "@/lib/tournament-status";
 import type { Collections } from "@/types/pocketbase-types";
 import { format } from "date-fns";
 import { Pencil, Trash2 } from "lucide-react";
@@ -48,7 +49,9 @@ export function getTournamentColumns(
       accessorKey: "status",
       header: "Status",
       cell: ({ row }) => (
-        <Badge variant="outline">{row.original.status ?? "draft"}</Badge>
+        <Badge variant="outline">
+          {getTournamentStatusLabel(row.original.status)}
+        </Badge>
       ),
     },
     {

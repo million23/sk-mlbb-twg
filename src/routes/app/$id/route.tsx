@@ -50,6 +50,7 @@ import {
   Menu,
   PanelLeft,
   ShieldCheck,
+  Swords,
   Trophy,
   Users,
   UsersRound,
@@ -75,6 +76,7 @@ const navItems = [
   { to: "/app/$id/participants", label: "Participants", icon: Users },
   { to: "/app/$id/teams", label: "Teams", icon: UsersRound },
   { to: "/app/$id/tournament", label: "Tournament", icon: Trophy },
+  { to: "/app/$id/matches", label: "Matches", icon: Swords },
   { to: "/app/$id/admins", label: "Admins", icon: ShieldCheck },
 ] as const;
 

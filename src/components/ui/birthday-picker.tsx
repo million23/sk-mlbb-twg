@@ -168,7 +168,11 @@ export function BirthdayPicker({
       >
         <SelectTrigger className="flex-1 min-w-0">
           <SelectValue placeholder="Month">
-            {month ? MONTHS.find((m) => m.value === month)?.label ?? month : null}
+            {(value) =>
+              value != null && value !== ""
+                ? (MONTHS.find((m) => m.value === value)?.label ?? String(value))
+                : null
+            }
           </SelectValue>
         </SelectTrigger>
         <SelectContent>
@@ -181,7 +185,9 @@ export function BirthdayPicker({
       </Select>
       <Select value={day} onValueChange={handleDayChange} disabled={disabled}>
         <SelectTrigger className="w-20 shrink-0">
-          <SelectValue placeholder="Day" />
+          <SelectValue placeholder="Day">
+            {(value) => (value != null && value !== "" ? String(value) : null)}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {days.map((d) => (

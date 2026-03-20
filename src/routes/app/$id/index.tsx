@@ -1,4 +1,3 @@
-import { GeneratedAvatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -8,13 +7,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StatusBadge } from "@/components/participants/status-badge";
 import { useParticipants } from "@/hooks/use-participants";
 import { useTeams } from "@/hooks/use-teams";
 import { useUpcomingTournaments } from "@/hooks/use-tournaments";
-import { getAvatarUrl } from "@/lib/avatar";
-import { TeamStatus } from "@/types/pocketbase-types";
+import { getTeamStatusStyle } from "@/lib/team-status";
+import { cn } from "@/lib/utils";
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
-import { ChevronRight, Trophy, Users, UsersRound } from "lucide-react";
+import { ChevronRight, Trophy, User, Users, UsersRound } from "lucide-react";
 
 export const Route = createFileRoute("/app/$id/")({
   component: DashboardPage,
@@ -120,9 +120,16 @@ function DashboardPage() {
           </CardHeader>
           <CardContent>
             {participantsLoading ? (
-              <div className="flex flex-col gap-3">
-                {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} className="h-20 rounded-lg" />
+              <div className="overflow-hidden rounded-lg border border-border divide-y divide-border">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="flex items-center gap-3 px-3 py-3">
+                    <Skeleton className="size-10 shrink-0 rounded-lg" />
+                    <div className="min-w-0 flex-1 space-y-1.5">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
+                    <Skeleton className="h-6 w-20 shrink-0 rounded-full" />
+                  </div>
                 ))}
               </div>
             ) : recentParticipants.length === 0 ? (
@@ -130,30 +137,31 @@ function DashboardPage() {
                 No participants yet
               </p>
             ) : (
-              <div className="flex flex-col gap-3">
+              <div className="overflow-hidden rounded-lg border border-border divide-y divide-border">
                 {recentParticipants.map((p) => (
-                  <Card
+                  <div
                     key={p.id}
-                    className="overflow-hidden transition-shadow hover:shadow-md"
+                    className="flex items-center gap-3 px-3 py-3 transition-colors hover:bg-muted/40"
                   >
-                    <CardContent className="p-3">
-                      <div className="flex items-center gap-3">
-                        <GeneratedAvatar
-                          size="sm"
-                          src={getAvatarUrl(p.id)}
-                          alt={p.name ?? ""}
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate font-medium text-sm">
-                            {p.name ?? p.gameID ?? "-"}
-                          </p>
-                          <p className="text-muted-foreground font-mono text-xs">
-                            {p.gameID ?? ""}
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border bg-muted/60">
+                      <User
+                        className="size-5 text-muted-foreground"
+                        aria-hidden
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium text-sm">
+                        {p.name ?? p.gameID ?? "-"}
+                      </p>
+                      <p className="truncate text-muted-foreground font-mono text-xs">
+                        {p.gameID ?? "—"}
+                      </p>
+                    </div>
+                    <StatusBadge
+                      status={p.status ?? "unassigned"}
+                      className="shrink-0 font-normal"
+                    />
+                  </div>
                 ))}
               </div>
             )}
@@ -177,56 +185,58 @@ function DashboardPage() {
           </CardHeader>
           <CardContent>
             {teamsLoading ? (
-              <div className="flex flex-col gap-3">
-                {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} className="h-20 rounded-lg" />
+              <div className="overflow-hidden rounded-lg border border-border divide-y divide-border">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="flex items-center gap-3 px-3 py-3">
+                    <Skeleton className="size-10 shrink-0 rounded-lg" />
+                    <div className="min-w-0 flex-1 space-y-1.5">
+                      <Skeleton className="h-4 w-36" />
+                      <Skeleton className="h-3 w-28" />
+                    </div>
+                    <Skeleton className="h-6 w-16 shrink-0 rounded-full" />
+                  </div>
                 ))}
               </div>
             ) : recentTeams.length === 0 ? (
               <p className="text-sm text-muted-foreground">No teams yet</p>
             ) : (
-              <div className="flex flex-col gap-3">
-                {recentTeams.map((t) => (
-                  <Card
-                    key={t.id}
-                    className="overflow-hidden transition-shadow hover:shadow-md"
-                  >
-                    <CardContent>
-                      <div className="flex items-center gap-3">
-                        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
-                          <UsersRound className="size-5 text-muted-foreground" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="truncate font-medium text-sm">
-                            {t.name ?? t.id}
-                          </p>
-                        </div>
-                        <div className="">
-                          {t.status === TeamStatus.Forming && (
-                            <Badge className="bg-orange-500 text-orange-50 font-bold">
-                              Forming
-                            </Badge>
-                          )}
-                          {t.status === TeamStatus.Ready && (
-                            <Badge className="bg-green-500 text-green-50 font-bold">
-                              Ready
-                            </Badge>
-                          )}
-                          {t.status === TeamStatus.Incomplete && (
-                            <Badge className="bg-red-500 text-red-50 font-bold">
-                              Incomplete
-                            </Badge>
-                          )}
-                          {t.status === TeamStatus.Inactive && (
-                            <Badge className="bg-muted text-muted-foreground font-bold">
-                              Inactive
-                            </Badge>
-                          )}
-                        </div>
+              <div className="overflow-hidden rounded-lg border border-border divide-y divide-border">
+                {recentTeams.map((t) => {
+                  const memberCount =
+                    participants?.filter((p) => p.team === t.id).length ?? 0;
+                  const statusStyle = getTeamStatusStyle(t.status);
+                  return (
+                    <div
+                      key={t.id}
+                      className="flex items-center gap-3 px-3 py-3 transition-colors hover:bg-muted/40"
+                    >
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border bg-muted/60">
+                        <UsersRound
+                          className="size-5 text-muted-foreground"
+                          aria-hidden
+                        />
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium text-sm">
+                          {t.name ?? "-"}
+                        </p>
+                        <p className="text-muted-foreground text-xs">
+                          {memberCount} member
+                          {memberCount !== 1 ? "s" : ""}
+                        </p>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "shrink-0 font-normal",
+                          statusStyle.className,
+                        )}
+                      >
+                        {statusStyle.label}
+                      </Badge>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </CardContent>

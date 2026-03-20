@@ -1,4 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
+import {
+  getTournamentStatusLabel,
+  type TournamentStatus,
+} from '@/lib/tournament-status'
 import { Bell, Info, ShieldCheck, Users } from 'lucide-react'
 
 import {
@@ -170,7 +174,13 @@ function ComponentsPage() {
                   <Label>Status</Label>
                   <Select defaultValue="upcoming">
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select a status" />
+                      <SelectValue placeholder="Select a status">
+                        {(value) =>
+                          value != null && value !== ""
+                            ? getTournamentStatusLabel(value as TournamentStatus)
+                            : null
+                        }
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectGroup>

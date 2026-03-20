@@ -5,6 +5,7 @@ export const queryKeys = {
   tournaments: ["tournaments"] as const,
   tournamentDrafts: ["tournament_drafts"] as const,
   matchDrafts: ["match_drafts"] as const,
+  matches: ["matches"] as const,
   teamSuggestions: ["team_suggestions"] as const,
   draftSuggestions: ["draft_suggestions"] as const,
   publicUpcoming: ["public", "upcoming"] as const,

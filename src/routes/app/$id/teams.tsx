@@ -302,7 +302,13 @@ function TeamForm({
               }}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select captain (team members only)" />
+                <SelectValue placeholder="Select captain (team members only)">
+                  {(value) => {
+                    if (value == null || value === "") return null;
+                    const p = teamMembers?.find((m) => m.id === value);
+                    return p?.name ?? p?.gameID ?? String(value);
+                  }}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">No captain</SelectItem>

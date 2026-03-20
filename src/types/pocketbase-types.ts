@@ -25,6 +25,15 @@ export enum MatchDraftStatus {
     Completed = "completed",
 }
 
+/** Bracket / schedule row for a tournament (distinct from per-game `match_drafts`). */
+export enum MatchStatus {
+    Scheduled = "scheduled",
+    Live = "live",
+    Completed = "completed",
+    Walkover = "walkover",
+    Cancelled = "cancelled",
+}
+
 export enum ParticipantStatus {
     Unassigned = "unassigned",
     Suggested = "suggested",
@@ -69,6 +78,25 @@ export interface Collections {
         status?: "pending" | "active" | "completed";
         bans?: any;
         picks?: any;
+        created?: string;
+        updated?: string;
+    };
+
+    matches: {
+        id: string;
+        tournament?: string;
+        teamA?: string;
+        teamB?: string;
+        winner?: string;
+        round?: string;
+        order?: number;
+        bestOf: number;
+        matchLabel?: string;
+        scheduledAt?: string;
+        status?: "scheduled" | "live" | "completed" | "walkover" | "cancelled";
+        scoreA?: number;
+        scoreB?: number;
+        notes?: string;
         created?: string;
         updated?: string;
     };
