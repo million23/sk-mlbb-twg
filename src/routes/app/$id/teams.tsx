@@ -63,6 +63,10 @@ import {
   useParticipants,
 } from "@/hooks/use-participants";
 import { useTeams, useTeamMutations } from "@/hooks/use-teams";
+import {
+  matchesFuzzyQuery,
+  participantSearchHaystack,
+} from "@/lib/fuzzy-match";
 import type { Collections } from "@/types/pocketbase-types";
 import { createFileRoute } from "@tanstack/react-router";
 import {
@@ -89,6 +93,7 @@ type ParticipantSummary = {
   id: string;
   name?: string;
   gameID?: string;
+  area?: string;
 };
 
 function AddMembersContent({
@@ -105,12 +110,10 @@ function AddMembersContent({
   const [search, setSearch] = useState("");
   const filtered = useMemo(() => {
     if (!search.trim()) return unassignedParticipants;
-    const q = search.toLowerCase().trim();
-    return unassignedParticipants.filter((p) => {
-      const name = (p.name ?? "").toLowerCase();
-      const gameID = (p.gameID ?? "").toLowerCase();
-      return name.includes(q) || gameID.includes(q);
-    });
+    const q = search.trim();
+    return unassignedParticipants.filter((p) =>
+      matchesFuzzyQuery(participantSearchHaystack(p), q)
+    );
   }, [unassignedParticipants, search]);
 
   if (unassignedParticipants.length === 0) {
@@ -131,7 +134,7 @@ function AddMembersContent({
       <div className="relative shrink-0">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
         <Input
-          placeholder="Search by name or Game ID..."
+          placeholder="Search name, Game ID, or area…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-9"
@@ -144,8 +147,15 @@ function AddMembersContent({
               key={p.id}
               className="flex items-center justify-between gap-2 rounded-lg border px-3 py-2"
             >
-              <span className="truncate">
-                {p.name ?? p.gameID ?? p.id}
+              <span className="min-w-0 truncate">
+                <span className="block truncate font-medium">
+                  {p.name ?? p.gameID ?? p.id}
+                </span>
+                {p.area ? (
+                  <span className="block truncate text-xs text-muted-foreground">
+                    {p.area}
+                  </span>
+                ) : null}
               </span>
               <Button
                 size="sm"
