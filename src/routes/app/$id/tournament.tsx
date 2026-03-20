@@ -20,14 +20,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useIsMobile } from "@/hooks/use-mobile";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable } from "@/components/ui/data-table";
+import { getTournamentColumns } from "@/components/tables/tournament-columns";
 import {
   Empty,
   EmptyDescription,
@@ -327,48 +321,17 @@ function TournamentPage() {
               </Button>
             </Empty>
           ) : (isMobile ? "cards" : view) === "table" ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Venue</TableHead>
-                  <TableHead>Start</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-[100px]">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {tournaments.map((t) => (
-                  <TableRow key={t.id}>
-                    <TableCell className="font-medium">{t.title ?? "-"}</TableCell>
-                    <TableCell>{t.venue ?? "-"}</TableCell>
-                    <TableCell>{formatDate(t.startAt)}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{t.status ?? "draft"}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          onClick={() => openEdit(t)}
-                        >
-                          <Pencil className="size-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => setDeleteId(t.id)}
-                        >
-                          <Trash2 className="size-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <DataTable
+              columns={getTournamentColumns({
+                onEdit: openEdit,
+                onDelete: setDeleteId,
+              })}
+              data={tournaments ?? []}
+              filterColumn="title"
+              filterPlaceholder="Filter by title..."
+              emptyMessage="No tournaments."
+              pageSize={10}
+            />
           ) : (
             <div className="flex flex-col gap-3">
               {tournaments.map((t) => (

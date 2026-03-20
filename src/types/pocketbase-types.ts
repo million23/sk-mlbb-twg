@@ -50,9 +50,8 @@ export enum TournamentStatus {
 export interface Collections {
     admins: {
         id: string;
-        email?: string;
         name?: string;
-        role?: AdminRole;
+        role?: "superadmin" | "staff";
         isActive?: boolean;
         lastLoginAt?: string;
         created?: string;
@@ -67,9 +66,18 @@ export interface Collections {
         matchLabel?: string;
         gameNumber?: number;
         firstPickTeam?: string;
-        status?: MatchDraftStatus;
+        status?: "pending" | "active" | "completed";
         bans?: any;
         picks?: any;
+        created?: string;
+        updated?: string;
+    };
+
+    teams: {
+        id: string;
+        name?: string;
+        captain?: string;
+        status?: "forming" | "ready" | "incomplete" | "inactive";
         created?: string;
         updated?: string;
     };
@@ -83,18 +91,9 @@ export interface Collections {
         preferredRoles?: any;
         roleRankings?: any;
         performanceBasis?: any;
-        status?: ParticipantStatus;
+        status?: "unassigned" | "suggested" | "assigned" | "inactive";
         team?: string;
         birthdate?: string;
-        created?: string;
-        updated?: string;
-    };
-
-    teams: {
-        id: string;
-        name?: string;
-        captain?: string;
-        status?: TeamStatus;
         created?: string;
         updated?: string;
     };
@@ -120,9 +119,18 @@ export interface Collections {
         venue?: string;
         startAt?: string;
         endAt?: string;
-        status?: TournamentStatus;
+        status?: "draft" | "upcoming" | "live" | "completed" | "archived";
         created?: string;
         updated?: string;
+    };
+
+    audit_log: {
+        id: string;
+        table_name?: any;
+        record_id?: any;
+        key_field?: any;
+        created?: any;
+        updated?: any;
     };
 
     draft_suggestions: {
@@ -142,11 +150,11 @@ export interface Collections {
         id: string;
         participantId?: string;
         participantGameID?: string;
-        participantStatus?: ParticipantStatus;
+        participantStatus?: "unassigned" | "suggested" | "assigned" | "inactive";
         participantHasTeam?: any;
         suggestedTeamId?: string;
         suggestedTeamName?: string;
-        suggestedTeamStatus?: TeamStatus;
+        suggestedTeamStatus?: "forming" | "ready" | "incomplete" | "inactive";
         roleFit?: any;
         preferredRole1?: any;
         preferredRole2?: any;

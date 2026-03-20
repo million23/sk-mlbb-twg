@@ -1,4 +1,4 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { GeneratedAvatar } from "@/components/ui/avatar";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,8 +29,9 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
+import { DataTable } from "@/components/ui/data-table";
 import { ParticipantCard } from "@/components/participants/participant-card";
-import { ParticipantTableRow } from "@/components/participants/participant-table-row";
+import { getParticipantsColumns } from "@/components/tables/participants-columns";
 import {
   Empty,
   EmptyDescription,
@@ -49,13 +50,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { AGE_BRACKETS } from "@/config/age-brackets";
 import { formatBirthdateDisplay, getAge, getAgeBracketLabel } from "@/lib/age";
@@ -102,26 +96,15 @@ function ParticipantForm({
   onSubmit: () => void;
   isMobile?: boolean;
 }) {
-  const getInitials = (name?: string, gameID?: string) => {
-    if (name?.trim()) {
-      return name
-        .split(/\s+/)
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2);
-    }
-    return gameID?.slice(0, 2).toUpperCase() ?? "??";
-  };
-
   return (
     <div className="w-full space-y-4 px-4 pb-4">
       {editingId && (
         <div className="flex justify-center pb-2">
-          <Avatar className="size-16">
-            <AvatarImage src={getAvatarUrl(editingId)} alt={form.name ?? ""} />
-            <AvatarFallback>{getInitials(form.name, form.gameID)}</AvatarFallback>
-          </Avatar>
+          <GeneratedAvatar
+            className="size-16"
+            src={getAvatarUrl(editingId)}
+            alt={form.name ?? ""}
+          />
         </div>
       )}
       <div className="space-y-2">
@@ -264,6 +247,9 @@ function ParticipantsPage() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [removeFromTeamParticipant, setRemoveFromTeamParticipant] = useState<
+    (Collections["participants"] & { id: string }) | null
+  >(null);
   const [form, setForm] = useState<ParticipantFormData>({
     gameID: "",
     name: "",
@@ -335,13 +321,24 @@ function ParticipantsPage() {
     }
   };
 
-  const handleRemoveFromTeam = (p: Collections["participants"] & { id: string }) => {
-    mutations.update.mutate({ id: p.id, team: "" });
-    toast.success("Removed from team");
+  const handleRemoveFromTeamClick = (p: Collections["participants"] & { id: string }) => {
+    setRemoveFromTeamParticipant(p);
+  };
+
+  const handleRemoveFromTeamConfirm = () => {
+    if (removeFromTeamParticipant) {
+      mutations.update.mutate({
+        id: removeFromTeamParticipant.id,
+        team: "",
+        status: "unassigned",
+      });
+      toast.success("Removed from team");
+      setRemoveFromTeamParticipant(null);
+    }
   };
 
   const handleJoinTeam = (participantId: string, teamId: string) => {
-    mutations.update.mutateQueued({ id: participantId, team: teamId });
+    mutations.update.mutateQueued({ id: participantId, team: teamId, status: "assigned" });
     toast.success("Added to team");
   };
 
@@ -453,40 +450,23 @@ function ParticipantsPage() {
             </Empty>
           ) : (isMobile ? "cards" : view) === "table" ? (
             <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12" />
-                    <TableHead>Game ID</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Birthday</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Preferred lanes</TableHead>
-                    <TableHead>Team</TableHead>
-                    <TableHead className="w-[120px]">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredParticipants.map((p) => (
-                  <ParticipantTableRow
-                    key={p.id}
-                    participant={p}
-                    teamName={getTeamName(p.team)}
-                    suggestions={suggestionsByParticipant.get(p.id) ?? []}
-                    onEdit={openEdit}
-                    onDelete={setDeleteId}
-                    onRemoveFromTeam={handleRemoveFromTeam}
-                    onJoinTeam={handleJoinTeam}
-                  />
-                ))}
-                </TableBody>
-              </Table>
-              {filteredParticipants.length === 0 && search && (
-                <p className="py-4 text-center text-sm text-muted-foreground">
-                  No participants match &quot;{search}&quot;
-                </p>
-              )}
+              <DataTable
+                columns={getParticipantsColumns({
+                  getTeamName,
+                  suggestionsByParticipant,
+                  onEdit: openEdit,
+                  onDelete: setDeleteId,
+                  onRemoveFromTeam: handleRemoveFromTeamClick,
+                  onJoinTeam: handleJoinTeam,
+                })}
+                data={filteredParticipants}
+                emptyMessage={
+                  search
+                    ? `No participants match "${search}"`
+                    : "No participants."
+                }
+                pageSize={10}
+              />
             </>
           ) : (
             <>
@@ -499,7 +479,7 @@ function ParticipantsPage() {
                   suggestions={suggestionsByParticipant.get(p.id) ?? []}
                   onEdit={openEdit}
                   onDelete={setDeleteId}
-                  onRemoveFromTeam={handleRemoveFromTeam}
+                  onRemoveFromTeam={handleRemoveFromTeamClick}
                   onJoinTeam={handleJoinTeam}
                 />
               ))}
@@ -571,6 +551,31 @@ function ParticipantsPage() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!removeFromTeamParticipant}
+        onOpenChange={(o) => !o && setRemoveFromTeamParticipant(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove from team?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Remove {removeFromTeamParticipant?.name || removeFromTeamParticipant?.gameID || "this participant"}{" "}
+              from {removeFromTeamParticipant?.team ? getTeamName(removeFromTeamParticipant.team) : "their team"}? They
+              will become unassigned.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRemoveFromTeamConfirm}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Remove

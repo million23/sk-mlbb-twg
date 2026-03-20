@@ -1,5 +1,4 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import { GeneratedAvatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -11,6 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatBirthdateDisplay, getAge } from "@/lib/age";
+import { StatusBadge } from "./status-badge";
 import { getAvatarUrl } from "@/lib/avatar";
 import type { Collections, PlayerRole } from "@/types/pocketbase-types";
 import { CircleHelp, Pencil, Plus, Trash2, UserMinus } from "lucide-react";
@@ -39,18 +39,6 @@ function formatPreferredRoles(roles?: PlayerRole[]): string {
     .join(", ");
 }
 
-function getInitials(name?: string, gameID?: string) {
-  if (name?.trim()) {
-    return name
-      .split(/\s+/)
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  }
-  return gameID?.slice(0, 2).toUpperCase() ?? "??";
-}
-
 export function ParticipantTableRow({
   participant,
   teamName,
@@ -73,10 +61,11 @@ export function ParticipantTableRow({
   return (
     <TableRow>
       <TableCell>
-        <Avatar size="sm">
-          <AvatarImage src={getAvatarUrl(p.id)} alt={p.name} />
-          <AvatarFallback>{getInitials(p.name, p.gameID)}</AvatarFallback>
-        </Avatar>
+        <GeneratedAvatar
+          size="sm"
+          src={getAvatarUrl(p.id)}
+          alt={p.name ?? ""}
+        />
       </TableCell>
       <TableCell className="font-mono">{p.gameID ?? "-"}</TableCell>
       <TableCell>{p.name ?? "-"}</TableCell>
@@ -88,7 +77,7 @@ export function ParticipantTableRow({
         )}
       </TableCell>
       <TableCell>
-        <Badge variant="outline">{p.status ?? "unassigned"}</Badge>
+        <StatusBadge status={p.status ?? "unassigned"} />
       </TableCell>
       <TableCell className="text-muted-foreground text-sm">
         {formatPreferredRoles(p.preferredRoles)}
@@ -110,17 +99,17 @@ export function ParticipantTableRow({
           {!p.team && suggestions.length > 0 && onJoinTeam && (
             <Popover>
               <PopoverTrigger
-                asChild
                 aria-label="Team suggestions"
-              >
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  <CircleHelp className="size-4" />
-                </Button>
-              </PopoverTrigger>
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <CircleHelp className="size-4" />
+                  </Button>
+                }
+              />
               <PopoverContent
                 className="min-w-80 w-(--anchor-width) max-w-[calc(100vw-2rem)] p-2"
                 align="start"

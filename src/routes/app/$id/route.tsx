@@ -1,5 +1,14 @@
-import { createFileRoute, Link, Outlet, useParams, useLocation, redirect, useNavigate } from "@tanstack/react-router";
-import { pb } from "@/lib/pocketbase";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import {
   Sidebar,
   SidebarContent,
@@ -13,17 +22,28 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
+  useSidebar,
 } from "@/components/ui/sidebar";
+import { Spinner } from "@/components/ui/spinner";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { usePocketBaseAuth } from "@/hooks/use-pocketbase-auth";
+import { pb } from "@/lib/pocketbase";
+import { queryClient } from "@/lib/query-client";
+import { useIsMutating } from "@tanstack/react-query";
+import {
+  createFileRoute,
+  Link,
+  Outlet,
+  redirect,
+  type ToPathOption,
+  useLocation,
+  useNavigate,
+  useParams,
+} from "@tanstack/react-router";
 import {
   LayoutDashboard,
   LogOut,
@@ -34,17 +54,6 @@ import {
   Users,
   UsersRound,
 } from "lucide-react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { useIsMutating } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/spinner";
-import { usePocketBaseAuth } from "@/hooks/use-pocketbase-auth";
-import { queryClient } from "@/lib/query-client";
-import { useSidebar } from "@/components/ui/sidebar";
 import { useState } from "react";
 
 export const Route = createFileRoute("/app/$id")({
@@ -127,7 +136,7 @@ function AdminLayoutContent() {
                     <SidebarMenuButton
                       render={
                         <Link
-                          to={item.to}
+                          to={item.to as ToPathOption}
                           params={{ id }}
                           activeOptions={{ exact: item.to === "/app/$id/" }}
                           onClick={closeMobileSidebar}
@@ -148,11 +157,13 @@ function AdminLayoutContent() {
         <SidebarFooter className="border-t border-sidebar-border">
           <div className="flex min-w-0 flex-col gap-2 px-2 py-2">
             <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="max-w-48 truncate text-xs text-muted-foreground transition-[opacity,max-width] duration-250 ease-[cubic-bezier(0.4,0,0.2,1)] group-data-[collapsible=icon]:max-w-0 group-data-[collapsible=icon]:opacity-0">
-                  {(record as { name?: string } | null)?.name ?? "Signed in"}
-                </div>
-              </TooltipTrigger>
+              <TooltipTrigger
+                render={
+                  <div className="max-w-48 truncate text-xs text-muted-foreground transition-[opacity,max-width] duration-250 ease-[cubic-bezier(0.4,0,0.2,1)] group-data-[collapsible=icon]:max-w-0 group-data-[collapsible=icon]:opacity-0">
+                    {(record as { name?: string } | null)?.name ?? "Signed in"}
+                  </div>
+                }
+              />
               <TooltipContent side="right" sideOffset={8}>
                 {(record as { name?: string } | null)?.name ?? "Signed in"}
               </TooltipContent>
@@ -164,7 +175,9 @@ function AdminLayoutContent() {
               onClick={() => setSignOutOpen(true)}
             >
               <LogOut className="size-4" />
-              <span className="max-w-24 overflow-hidden transition-[opacity,max-width] duration-250 ease-[cubic-bezier(0.4,0,0.2,1)] group-data-[collapsible=icon]:max-w-0 group-data-[collapsible=icon]:opacity-0">Sign out</span>
+              <span className="max-w-24 overflow-hidden transition-[opacity,max-width] duration-250 ease-[cubic-bezier(0.4,0,0.2,1)] group-data-[collapsible=icon]:max-w-0 group-data-[collapsible=icon]:opacity-0">
+                Sign out
+              </span>
             </Button>
           </div>
         </SidebarFooter>
@@ -189,6 +202,7 @@ function AdminLayoutContent() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
       <SidebarInset>
         <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
           <MobileSidebarTrigger />
@@ -225,9 +239,6 @@ function SyncIndicator() {
   const isMutating = useIsMutating();
   if (isMutating === 0) return null;
   return (
-    <Spinner
-      className="size-4 text-muted-foreground"
-      aria-label="Saving..."
-    />
+    <Spinner className="size-4 text-muted-foreground" aria-label="Saving..." />
   );
 }

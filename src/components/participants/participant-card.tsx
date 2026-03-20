@@ -1,5 +1,4 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import { GeneratedAvatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -9,6 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { formatBirthdateDisplay, getAge } from "@/lib/age";
+import { StatusBadge } from "./status-badge";
 import { getAvatarUrl } from "@/lib/avatar";
 import type { Collections, PlayerRole } from "@/types/pocketbase-types";
 import {
@@ -46,18 +46,6 @@ function formatPreferredRoles(roles?: PlayerRole[]): string {
     .filter(Boolean)
     .map((r) => ROLE_LABELS[r] ?? r)
     .join(", ");
-}
-
-function getInitials(name?: string, gameID?: string) {
-  if (name?.trim()) {
-    return name
-      .split(/\s+/)
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  }
-  return gameID?.slice(0, 2).toUpperCase() ?? "??";
 }
 
 function InfoRow({
@@ -99,10 +87,12 @@ export function ParticipantCard({
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-3 min-w-0">
-            <Avatar size="lg" className="shrink-0">
-              <AvatarImage src={getAvatarUrl(p.id)} alt={p.name} />
-              <AvatarFallback>{getInitials(p.name, p.gameID)}</AvatarFallback>
-            </Avatar>
+            <GeneratedAvatar
+              size="lg"
+              className="shrink-0"
+              src={getAvatarUrl(p.id)}
+              alt={p.name ?? ""}
+            />
             <div className="min-w-0 flex-1">
               <CardTitle className="text-base truncate">{p.name ?? "-"}</CardTitle>
               <CardDescription className="font-mono text-xs mt-0.5">
@@ -155,9 +145,7 @@ export function ParticipantCard({
         <div className="flex flex-wrap items-center gap-2 pt-1">
           <div className="flex items-center gap-1.5">
             <UserCircle2 className="size-4 shrink-0 text-muted-foreground" />
-            <Badge variant="outline" className="font-normal">
-              {p.status ?? "unassigned"}
-            </Badge>
+            <StatusBadge status={p.status ?? "unassigned"} className="font-normal" />
           </div>
           <div className="flex items-center gap-1.5">
             {p.team && onRemoveFromTeam && (

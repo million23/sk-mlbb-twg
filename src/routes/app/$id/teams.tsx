@@ -50,15 +50,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable } from "@/components/ui/data-table";
 import { TeamCard } from "@/components/teams/team-card";
-import { TeamTableRow } from "@/components/teams/team-table-row";
+import {
+  getTeamsColumns,
+  renderTeamsExpandedRow,
+  type TeamWithSubRows,
+} from "@/components/tables/teams-columns";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   useParticipantMutations,
@@ -428,7 +426,7 @@ function TeamsPage() {
   const handleAddMember = (participantId: string, teamId: string) => {
     const currentCount = getTeamMemberCount(teamId);
     const newCount = currentCount + 1;
-    participantMutations.update.mutateQueued({ id: participantId, team: teamId });
+    participantMutations.update.mutateQueued({ id: participantId, team: teamId, status: "assigned" });
     if (newCount >= 5) {
       updatedForReady.current.add(teamId);
       mutations.update.mutate({ id: teamId, status: "ready" });
@@ -452,6 +450,20 @@ function TeamsPage() {
       return name.includes(q) || captainName.includes(q);
     });
   }, [teams, search, participants]);
+
+  const teamsWithSubRows: TeamWithSubRows[] = useMemo(
+    () =>
+      (filteredTeams ?? []).map((t) => ({
+        ...t,
+        subRows: [
+          {
+            _expandedContent: true as const,
+            members: getTeamMembers(t.id),
+          },
+        ],
+      })),
+    [filteredTeams, participants]
+  );
 
   return (
     <div className="space-y-6">
@@ -526,37 +538,29 @@ function TeamsPage() {
             </Empty>
           ) : (isMobile ? "cards" : view) === "table" ? (
             <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12" />
-                    <TableHead>Name</TableHead>
-                    <TableHead>Captain</TableHead>
-                    <TableHead>Members</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="w-[100px]">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredTeams.map((t) => (
-                  <TeamTableRow
-                    key={t.id}
-                    team={t}
-                    captainName={getCaptainName(t.captain)}
-                    memberCount={getTeamMemberCount(t.id)}
-                    members={getTeamMembers(t.id)}
-                    onEdit={openEdit}
-                    onDelete={setDeleteId}
-                    onAddMembers={(team) => setAddMembersTeamId(team.id)}
-                  />
-                ))}
-                </TableBody>
-              </Table>
-              {filteredTeams.length === 0 && search && (
-                <p className="py-4 text-center text-sm text-muted-foreground">
-                  No teams match &quot;{search}&quot;
-                </p>
-              )}
+              <DataTable
+                columns={getTeamsColumns({
+                  getCaptainName,
+                  getMemberCount: getTeamMemberCount,
+                  getMembers: getTeamMembers,
+                  onEdit: openEdit,
+                  onDelete: setDeleteId,
+                  onAddMembers: (team) => setAddMembersTeamId(team.id),
+                })}
+                data={teamsWithSubRows}
+                getSubRows={(row) => row.subRows}
+                renderExpandedRow={(row) =>
+                  renderTeamsExpandedRow(
+                    row as { _expandedContent: true; members: { id: string; name?: string; gameID?: string }[] }
+                  )
+                }
+                emptyMessage={
+                  search
+                    ? `No teams match "${search}"`
+                    : "No teams."
+                }
+                pageSize={10}
+              />
             </>
           ) : (
             <>

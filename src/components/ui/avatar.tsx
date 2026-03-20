@@ -5,6 +5,9 @@ import type * as React from "react";
 
 import { cn } from "@/lib/utils";
 
+const avatarFrameClass =
+  "group/avatar relative flex size-8 shrink-0 rounded-full select-none after:absolute after:inset-0 after:rounded-full after:border after:border-border after:mix-blend-darken data-[size=lg]:size-10 data-[size=sm]:size-6 dark:after:mix-blend-lighten";
+
 function Avatar({
   className,
   size = "default",
@@ -16,10 +19,7 @@ function Avatar({
     <AvatarPrimitive.Root
       data-slot="avatar"
       data-size={size}
-      className={cn(
-        "group/avatar relative flex size-8 shrink-0 rounded-full select-none after:absolute after:inset-0 after:rounded-full after:border after:border-border after:mix-blend-darken data-[size=lg]:size-10 data-[size=sm]:size-6 dark:after:mix-blend-lighten",
-        className,
-      )}
+      className={cn(avatarFrameClass, className)}
       {...props}
     />
   );
@@ -51,6 +51,44 @@ function AvatarFallback({
       )}
       {...props}
     />
+  );
+}
+
+/**
+ * Rounds avatar image for data-URL / inline sources (e.g. DiceBear).
+ * Skips Base UI AvatarImage loading state so initials fallback does not flash before paint.
+ */
+function GeneratedAvatar({
+  src,
+  alt = "",
+  size = "default",
+  className,
+  imgClassName,
+  ...props
+}: Omit<React.ComponentProps<"img">, "src" | "alt"> & {
+  src: string;
+  alt?: string;
+  size?: "default" | "sm" | "lg";
+  imgClassName?: string;
+}) {
+  return (
+    <span
+      data-slot="avatar"
+      data-size={size}
+      className={cn(avatarFrameClass, className)}
+    >
+      <img
+        data-slot="avatar-image"
+        src={src}
+        alt={alt}
+        decoding="sync"
+        className={cn(
+          "aspect-square size-full rounded-full object-cover",
+          imgClassName,
+        )}
+        {...props}
+      />
+    </span>
   );
 }
 
@@ -100,8 +138,12 @@ function AvatarGroupCount({
 }
 
 export {
-  Avatar, AvatarBadge, AvatarFallback,
+  Avatar,
+  AvatarBadge,
+  AvatarFallback,
   AvatarGroup,
-  AvatarGroupCount, AvatarImage
+  AvatarGroupCount,
+  AvatarImage,
+  GeneratedAvatar,
 };
 

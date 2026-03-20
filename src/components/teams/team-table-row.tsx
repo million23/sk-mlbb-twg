@@ -1,4 +1,4 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { GeneratedAvatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TableCell, TableRow } from "@/components/ui/table";
@@ -12,30 +12,6 @@ import { useState } from "react";
 type Team = Collections["teams"] & { id: string };
 
 type TeamMember = { id: string; name?: string; gameID?: string };
-
-function getInitials(name?: string) {
-  if (name?.trim()) {
-    return name
-      .split(/\s+/)
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  }
-  return "??";
-}
-
-function MemberInitials(name?: string, gameID?: string) {
-  if (name?.trim()) {
-    return name
-      .split(/\s+/)
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  }
-  return gameID?.slice(0, 2).toUpperCase() ?? "??";
-}
 
 export function TeamTableRow({
   team,
@@ -60,10 +36,11 @@ export function TeamTableRow({
     <>
       <TableRow>
         <TableCell>
-          <Avatar size="sm">
-            <AvatarImage src={getTeamAvatarUrl(t.id)} alt={t.name} />
-            <AvatarFallback>{getInitials(t.name)}</AvatarFallback>
-          </Avatar>
+          <GeneratedAvatar
+            size="sm"
+            src={getTeamAvatarUrl(t.id)}
+            alt={t.name ?? ""}
+          />
         </TableCell>
         <TableCell className="font-medium">{t.name ?? "-"}</TableCell>
         <TableCell>{captainName}</TableCell>
@@ -131,12 +108,11 @@ export function TeamTableRow({
                   key={m.id}
                   className="flex items-center gap-2 rounded-md border bg-background px-2 py-1.5 text-sm"
                 >
-                  <Avatar size="sm">
-                    <AvatarImage src={getAvatarUrl(m.id)} alt={m.name} />
-                    <AvatarFallback>
-                      {MemberInitials(m.name, m.gameID)}
-                    </AvatarFallback>
-                  </Avatar>
+                  <GeneratedAvatar
+                    size="sm"
+                    src={getAvatarUrl(m.id)}
+                    alt={m.name ?? ""}
+                  />
                   <span className="truncate">
                     {m.name ?? m.gameID ?? m.id}
                   </span>

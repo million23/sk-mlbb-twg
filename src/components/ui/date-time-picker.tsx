@@ -123,25 +123,27 @@ export function DateTimePicker({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          id={id}
-          variant="outline"
-          data-empty={!date}
-          disabled={disabled}
-          className={cn(
-            "w-full justify-between font-normal",
-            !date && "text-muted-foreground",
-            className,
-          )}
-        >
-          <span className="flex items-center gap-2">
-            <CalendarIcon className="size-4" />
-            {date ? formatDateTime(date) : placeholder}
-          </span>
-          <ChevronDownIcon className="size-4 opacity-50" />
-        </Button>
-      </PopoverTrigger>
+      <PopoverTrigger
+        render={
+          <Button
+            id={id}
+            variant="outline"
+            data-empty={!date}
+            disabled={disabled}
+            className={cn(
+              "w-full justify-between font-normal",
+              !date && "text-muted-foreground",
+              className,
+            )}
+          >
+            <span className="flex items-center gap-2">
+              <CalendarIcon className="size-4" />
+              {date ? formatDateTime(date) : placeholder}
+            </span>
+            <ChevronDownIcon className="size-4 opacity-50" />
+          </Button>
+        }
+      />
       <PopoverContent
         className="w-auto overflow-hidden p-0"
         align="start"

@@ -46,21 +46,15 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable } from "@/components/ui/data-table";
+import { getAdminsColumns } from "@/components/tables/admins-columns";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { usePocketBaseAuth } from "@/hooks/use-pocketbase-auth";
 import { useAdminMutations } from "@/hooks/use-admin-mutations";
 import { useAdmins } from "@/hooks/use-admins";
 import type { AdminRole, Collections } from "@/types/pocketbase-types";
 import { createFileRoute } from "@tanstack/react-router";
-import { Pencil, Plus, ShieldCheck, Trash2 } from "lucide-react";
+import { Plus, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -372,64 +366,20 @@ function AdminsPage() {
               )}
             </Empty>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
-                  {isSuperadmin && (
-                    <TableHead className="w-[100px]">Actions</TableHead>
-                  )}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {admins.map((a) => (
-                  <TableRow key={a.id}>
-                    <TableCell className="font-medium">{a.email ?? "-"}</TableCell>
-                    <TableCell>{a.name ?? "-"}</TableCell>
-                    <TableCell>
-                      <span className="capitalize">{a.role ?? "staff"}</span>
-                    </TableCell>
-                    <TableCell>
-                      <span
-                        className={
-                          a.isActive
-                            ? "text-foreground"
-                            : "text-muted-foreground"
-                        }
-                      >
-                        {a.isActive ? "Active" : "Inactive"}
-                      </span>
-                    </TableCell>
-                    {isSuperadmin && (
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            onClick={() => openEdit(a as Admin)}
-                          >
-                            <Pencil className="size-4" />
-                          </Button>
-                          {canDelete(a as Admin) && (
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              className="text-destructive hover:text-destructive"
-                              onClick={() => setDeleteId(a.id)}
-                            >
-                              <Trash2 className="size-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    )}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <DataTable
+              columns={getAdminsColumns({
+                isSuperadmin,
+                currentUserId: currentUserId,
+                onEdit: openEdit,
+                onDelete: setDeleteId,
+                canDelete,
+              })}
+              data={admins ?? []}
+              filterColumn="email"
+              filterPlaceholder="Filter by email..."
+              emptyMessage="No admins."
+              pageSize={10}
+            />
           )}
         </CardContent>
       </Card>

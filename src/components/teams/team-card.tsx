@@ -1,4 +1,4 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { GeneratedAvatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,18 +30,6 @@ type Team = Collections["teams"] & { id: string };
 
 type TeamMember = { id: string; name?: string; gameID?: string };
 
-function getInitials(name?: string) {
-  if (name?.trim()) {
-    return name
-      .split(/\s+/)
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  }
-  return "??";
-}
-
 function InfoRow({
   icon: Icon,
   value,
@@ -55,18 +43,6 @@ function InfoRow({
       <span className="truncate">{value ?? "-"}</span>
     </div>
   );
-}
-
-function MemberInitials(name?: string, gameID?: string) {
-  if (name?.trim()) {
-    return name
-      .split(/\s+/)
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  }
-  return gameID?.slice(0, 2).toUpperCase() ?? "??";
 }
 
 export function TeamCard({
@@ -92,10 +68,12 @@ export function TeamCard({
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-3 min-w-0">
-            <Avatar size="lg" className="shrink-0">
-              <AvatarImage src={getTeamAvatarUrl(t.id)} alt={t.name} />
-              <AvatarFallback>{getInitials(t.name)}</AvatarFallback>
-            </Avatar>
+            <GeneratedAvatar
+              size="lg"
+              className="shrink-0"
+              src={getTeamAvatarUrl(t.id)}
+              alt={t.name ?? ""}
+            />
             <div className="min-w-0 flex-1">
               <CardTitle className="text-base truncate">{t.name ?? "-"}</CardTitle>
               <CardDescription className="mt-0.5">
@@ -131,16 +109,18 @@ export function TeamCard({
         <InfoRow icon={Users} value={`${memberCount} member${memberCount !== 1 ? "s" : ""}`} />
         {members.length > 0 && (
           <Collapsible>
-            <CollapsibleTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="group/members w-full justify-between -ml-2"
-              >
-                View members
-                <ChevronDown className="size-4 shrink-0 transition-transform group-aria-expanded/members:rotate-180" />
-              </Button>
-            </CollapsibleTrigger>
+            <CollapsibleTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="group/members w-full justify-between -ml-2"
+                >
+                  View members
+                  <ChevronDown className="size-4 shrink-0 transition-transform group-aria-expanded/members:rotate-180" />
+                </Button>
+              }
+            />
             <CollapsibleContent>
               <ul className="mt-2 space-y-1.5 pl-1">
                 {members.map((m) => (
@@ -148,12 +128,11 @@ export function TeamCard({
                     key={m.id}
                     className="flex items-center gap-2 rounded-md border px-2 py-1.5 text-sm"
                   >
-                    <Avatar size="sm">
-                      <AvatarImage src={getAvatarUrl(m.id)} alt={m.name} />
-                      <AvatarFallback>
-                        {MemberInitials(m.name, m.gameID)}
-                      </AvatarFallback>
-                    </Avatar>
+                    <GeneratedAvatar
+                      size="sm"
+                      src={getAvatarUrl(m.id)}
+                      alt={m.name ?? ""}
+                    />
                     <span className="truncate">
                       {m.name ?? m.gameID ?? m.id}
                     </span>
