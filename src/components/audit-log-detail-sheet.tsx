@@ -14,7 +14,7 @@ import { pb } from "@/lib/pocketbase";
 import { rateLimited } from "@/lib/rate-limited-api";
 import { cn } from "@/lib/utils";
 import { formatAuditActor } from "@/lib/audit-actor-display";
-import { format } from "date-fns";
+import { formatAuditDate } from "@/lib/audit-log-display";
 import { useQuery } from "@tanstack/react-query";
 import { ClientResponseError } from "pocketbase";
 import { PanelRight } from "lucide-react";
@@ -54,16 +54,6 @@ export function resolveFetchableAuditCollection(
 
 export function resolveAuditRecordId(recordId: unknown): string | null {
   return asNonEmptyString(recordId);
-}
-
-function formatAuditDate(value: unknown): string {
-  if (value == null || value === "") return "—";
-  const s = typeof value === "string" ? value : String(value);
-  try {
-    return format(new Date(s), "MMM d, yyyy HH:mm:ss");
-  } catch {
-    return s;
-  }
 }
 
 function AuditDetailField({
@@ -188,9 +178,9 @@ export function AuditLogDetailOpenButton(props: {
     <Button
       type="button"
       variant="ghost"
-      size="sm"
+      size="icon"
       className={cn(
-        "h-8 w-full min-w-0 max-w-full gap-1.5 px-2 font-normal",
+        "size-8 shrink-0 font-normal",
         "text-muted-foreground hover:bg-muted hover:text-foreground",
         props.className,
       )}
@@ -198,8 +188,7 @@ export function AuditLogDetailOpenButton(props: {
       aria-label="View audit entry details"
       onClick={() => props.onOpen(props.row)}
     >
-      <PanelRight className="size-3.5 shrink-0 opacity-90" aria-hidden />
-      <span className="truncate">View</span>
+      <PanelRight className="size-4 opacity-90" />
     </Button>
   );
 }

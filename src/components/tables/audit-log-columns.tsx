@@ -14,32 +14,14 @@ export type AuditLogTableMeta = {
 
 /** Exported for loading skeleton layout to match DataTable columns. */
 export const AUDIT_LOG_ACTIONS_HEAD_CLASS =
-  "sticky right-0 z-20 w-[6.75rem] min-w-[6.75rem] border-l border-border bg-background text-left text-xs font-medium text-muted-foreground";
+  "sticky right-0 z-20 w-12 min-w-12 border-l border-border bg-background p-0 text-center";
 export const AUDIT_LOG_ACTIONS_CELL_CLASS =
-  "sticky right-0 z-20 w-[6.75rem] min-w-[6.75rem] border-l border-border bg-background transition-colors group-hover:bg-muted/50";
+  "sticky right-0 z-20 w-12 min-w-12 border-l border-border bg-background px-1 text-center transition-colors group-hover:bg-muted/50";
 
 export function getAuditLogColumns(
   meta: AuditLogTableMeta,
 ): ColumnDef<AuditLogRow>[] {
   return [
-    {
-      accessorKey: "table_name",
-      header: "Table",
-      cell: ({ row }) => (
-        <span className="font-mono text-xs">
-          {String(row.original.table_name ?? "—")}
-        </span>
-      ),
-    },
-    {
-      accessorKey: "record_id",
-      header: "Record",
-      cell: ({ row }) => (
-        <span className="break-all font-mono text-xs">
-          {String(row.original.record_id ?? "—")}
-        </span>
-      ),
-    },
     {
       id: "summary",
       accessorFn: (r) =>
@@ -76,7 +58,9 @@ export function getAuditLogColumns(
     },
     {
       id: "actions",
-      header: "View",
+      header: () => (
+        <span className="sr-only">Details</span>
+      ),
       cell: ({ row }) => (
         <AuditLogDetailOpenButton
           row={row.original}

@@ -127,17 +127,17 @@ function AdminLayoutContent() {
   return (
     <>
       <Sidebar variant="inset" collapsible="icon">
-        <SidebarHeader className="border-b border-sidebar-border">
-          <div className="flex h-12 items-center gap-2 px-2">
+        <SidebarHeader className="gap-0 border-b border-border p-0">
+          <div className="flex h-12 shrink-0 items-center gap-2 px-4">
             <MobileSidebarTrigger />
             <SyncIndicator />
-            <span className="font-semibold text-sidebar-foreground max-w-48 overflow-hidden transition-[opacity,max-width] duration-250 ease-[cubic-bezier(0.4,0,0.2,1)] group-data-[collapsible=icon]:max-w-0 group-data-[collapsible=icon]:opacity-0">
+            <span className="max-w-48 truncate font-semibold tracking-tight text-sidebar-foreground transition-[opacity,max-width] duration-250 ease-in-out group-data-[collapsible=icon]:max-w-0 group-data-[collapsible=icon]:opacity-0">
               SK MLBB Tracker
             </span>
           </div>
         </SidebarHeader>
         <SidebarContent>
-          <SidebarGroup>
+          <SidebarGroup className="px-4 py-3">
             <SidebarGroupLabel>Management</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
@@ -164,12 +164,12 @@ function AdminLayoutContent() {
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>
-        <SidebarFooter className="border-t border-sidebar-border">
-          <div className="flex min-w-0 flex-col gap-2 px-2 py-2">
+        <SidebarFooter className="border-t border-border">
+          <div className="flex min-w-0 flex-col gap-2 px-4 py-3">
             <Tooltip>
               <TooltipTrigger
                 render={
-                  <div className="max-w-48 truncate text-xs text-muted-foreground transition-[opacity,max-width] duration-250 ease-[cubic-bezier(0.4,0,0.2,1)] group-data-[collapsible=icon]:max-w-0 group-data-[collapsible=icon]:opacity-0">
+                  <div className="max-w-48 truncate text-xs text-muted-foreground transition-[opacity,max-width] duration-250 ease-in-out group-data-[collapsible=icon]:max-w-0 group-data-[collapsible=icon]:opacity-0">
                     {(record as { name?: string } | null)?.name ?? "Signed in"}
                   </div>
                 }
@@ -185,7 +185,7 @@ function AdminLayoutContent() {
               onClick={() => setSignOutOpen(true)}
             >
               <LogOut className="size-4" />
-              <span className="max-w-24 overflow-hidden transition-[opacity,max-width] duration-250 ease-[cubic-bezier(0.4,0,0.2,1)] group-data-[collapsible=icon]:max-w-0 group-data-[collapsible=icon]:opacity-0">
+              <span className="max-w-24 overflow-hidden transition-[opacity,max-width] duration-250 ease-in-out group-data-[collapsible=icon]:max-w-0 group-data-[collapsible=icon]:opacity-0">
                 Sign out
               </span>
             </Button>
@@ -214,7 +214,7 @@ function AdminLayoutContent() {
       </AlertDialog>
 
       <SidebarInset>
-        <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
+        <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-4">
           <MobileSidebarTrigger />
           <SyncIndicator />
         </header>

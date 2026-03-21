@@ -26,6 +26,7 @@ import { useAdmins } from "@/hooks/use-admins";
 import { buildAdminNameByIdMap } from "@/lib/audit-actor-display";
 import { canViewAuditLog } from "@/lib/admin-permissions";
 import { formatAuditLogSummaryLine } from "@/lib/audit-log-summary";
+import { cn } from "@/lib/utils";
 import { pb } from "@/lib/pocketbase";
 import {
   AUDIT_LOG_ACTIONS_CELL_CLASS,
@@ -37,7 +38,7 @@ import { ClientResponseError } from "pocketbase";
 import {
   AuditLogDetailSheet,
 } from "@/components/audit-log-detail-sheet";
-import { Loader2, ScrollText, Search } from "lucide-react";
+import { Loader2, RefreshCw, ScrollText, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 export const Route = createFileRoute("/app/$id/audit-logs")({
@@ -65,50 +66,71 @@ const SKELETON_ROW_KEYS = [
   "sk-8",
   "sk-9",
   "sk-10",
+  "sk-11",
+  "sk-12",
 ] as const;
+
+/** Matches loaded search row: icon + full-width control */
+function AuditLogSearchSkeleton() {
+  return (
+    <div className="relative mt-2" aria-hidden>
+      <div className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2">
+        <Skeleton className="size-4 rounded-sm" />
+      </div>
+      <Skeleton className="h-10 w-full rounded-md" />
+    </div>
+  );
+}
 
 function AuditLogTableSkeleton() {
   return (
-    <div className="overflow-x-auto rounded-md border" aria-busy="true">
+    <section
+      className="overflow-x-auto rounded-md border border-border bg-card"
+      aria-live="polite"
+      aria-busy="true"
+      aria-label="Loading audit log entries"
+    >
       <Table className={AUDIT_TABLE}>
         <TableHeader>
-          <TableRow>
-            <TableHead className="whitespace-nowrap">Table</TableHead>
-            <TableHead className="whitespace-nowrap">Record</TableHead>
+          <TableRow className="border-b hover:bg-transparent">
             <TableHead>Summary</TableHead>
             <TableHead className="whitespace-nowrap">Updated</TableHead>
             <TableHead className="whitespace-nowrap">Created</TableHead>
             <TableHead className={AUDIT_LOG_ACTIONS_HEAD_CLASS}>
-              View
+              <span className="sr-only">Details</span>
             </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {SKELETON_ROW_KEYS.map((rowKey) => (
-            <TableRow key={rowKey}>
-              <TableCell className="align-middle">
-                <Skeleton className="h-4 w-20" />
-              </TableCell>
-              <TableCell className="align-middle">
-                <Skeleton className="h-4 w-28" />
-              </TableCell>
+          {SKELETON_ROW_KEYS.map((rowKey, i) => (
+            <TableRow key={rowKey} className="hover:bg-transparent">
               <TableCell className="align-middle max-w-[min(28rem,50vw)]">
-                <Skeleton className="h-4 w-full max-w-64" />
+                <div className="flex flex-col gap-1.5 py-0.5">
+                  <Skeleton
+                    className={cn(
+                      "h-3.5 max-w-full",
+                      i % 4 === 0 ? "w-[92%]" : "w-[88%]",
+                    )}
+                  />
+                  {i % 5 === 0 ? (
+                    <Skeleton className="h-3.5 w-[55%] max-w-full" />
+                  ) : null}
+                </div>
               </TableCell>
               <TableCell className="align-middle">
-                <Skeleton className="h-4 w-36" />
+                <Skeleton className="h-4 w-29" />
               </TableCell>
               <TableCell className="align-middle">
-                <Skeleton className="h-4 w-36" />
+                <Skeleton className="h-4 w-29" />
               </TableCell>
               <TableCell className={AUDIT_LOG_ACTIONS_CELL_CLASS}>
-                <Skeleton className="mx-auto h-8 w-full max-w-22 rounded-md" />
+                <Skeleton className="mx-auto size-8 rounded-md" />
               </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
-    </div>
+    </section>
   );
 }
 
@@ -116,6 +138,7 @@ function AuditLogsPage() {
   const {
     data,
     isLoading,
+    isFetching,
     isFetchingNextPage,
     hasNextPage,
     fetchNextPage,
@@ -123,6 +146,9 @@ function AuditLogsPage() {
     error,
     refetch,
   } = useAuditLogInfinite();
+
+  const isRefreshingAudit =
+    isFetching && !isFetchingNextPage && !isLoading;
 
   const { data: admins } = useAdmins();
   const adminNameById = useMemo(
@@ -198,7 +224,7 @@ function AuditLogsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <h1 className="text-2xl font-bold tracking-tight">Audit log</h1>
           <p className="text-muted-foreground">
@@ -206,6 +232,21 @@ function AuditLogsPage() {
             details and related records.
           </p>
         </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="shrink-0 gap-2 self-start sm:mt-0.5"
+          disabled={isLoading}
+          aria-busy={isRefreshingAudit}
+          onClick={() => void refetch()}
+        >
+          <RefreshCw
+            className={cn("size-4", isRefreshingAudit && "animate-spin")}
+            aria-hidden
+          />
+          Refresh
+        </Button>
       </div>
 
       {collectionMissing ? (
@@ -233,7 +274,7 @@ function AuditLogsPage() {
                     className="size-4 shrink-0 animate-spin text-primary"
                     aria-hidden
                   />
-                  Fetching activity log…
+                  <span>Loading entries…</span>
                 </span>
               ) : (
                 <>
@@ -248,9 +289,7 @@ function AuditLogsPage() {
               )}
             </CardDescription>
             {isLoading ? (
-              <div className="relative mt-2" aria-hidden>
-                <Skeleton className="h-10 w-full rounded-md" />
-              </div>
+              <AuditLogSearchSkeleton />
             ) : totalItems > 0 ? (
               <div className="relative mt-2">
                 <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
