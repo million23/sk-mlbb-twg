@@ -3,6 +3,10 @@ import { queryCollectionOptions } from "@tanstack/query-db-collection";
 import { getCollection } from "@/lib/pocketbase";
 import { rateLimited } from "@/lib/rate-limited-api";
 import { queryClient } from "@/lib/query-client";
+import {
+  withCreatedAuditFields,
+  withUpdatedAuditField,
+} from "@/lib/mutation-authors";
 import { normalizeParticipantForCreate } from "@/lib/utils";
 import type { Collections } from "@/types/pocketbase-types";
 
@@ -38,7 +42,9 @@ export const participantsCollection = createCollection(
     onInsert: async ({ transaction }) => {
       for (const m of transaction.mutations) {
         const { id: _id, ...rest } = m.modified as Record<string, unknown>;
-        const payload = normalizeParticipantForCreate(rest);
+        const payload = withCreatedAuditFields(
+          normalizeParticipantForCreate(rest),
+        );
         await rateLimited(() =>
           getCollection("participants").create(payload)
         );
@@ -50,7 +56,9 @@ export const participantsCollection = createCollection(
         await rateLimited(() =>
           getCollection("participants").update(
             m.key as string,
-            m.changes as Record<string, unknown>
+            withUpdatedAuditField(
+              m.changes as Record<string, unknown>,
+            ) as Record<string, unknown>,
           )
         );
       }
@@ -80,7 +88,9 @@ export const teamsCollection = createCollection(
     onInsert: async ({ transaction }) => {
       for (const m of transaction.mutations) {
         const { id: _id, ...rest } = m.modified as Record<string, unknown>;
-        await rateLimited(() => getCollection("teams").create(rest));
+        await rateLimited(() =>
+          getCollection("teams").create(withCreatedAuditFields(rest)),
+        );
       }
       refetchTeams();
     },
@@ -89,7 +99,9 @@ export const teamsCollection = createCollection(
         await rateLimited(() =>
           getCollection("teams").update(
             m.key as string,
-            m.changes as Record<string, unknown>
+            withUpdatedAuditField(
+              m.changes as Record<string, unknown>,
+            ) as Record<string, unknown>,
           )
         );
       }
@@ -120,7 +132,7 @@ export const tournamentsCollection = createCollection(
       for (const m of transaction.mutations) {
         const { id: _id, ...rest } = m.modified as Record<string, unknown>;
         await rateLimited(() =>
-          getCollection("tournaments").create(rest)
+          getCollection("tournaments").create(withCreatedAuditFields(rest)),
         );
       }
       refetchTournaments();
@@ -130,7 +142,9 @@ export const tournamentsCollection = createCollection(
         await rateLimited(() =>
           getCollection("tournaments").update(
             m.key as string,
-            m.changes as Record<string, unknown>
+            withUpdatedAuditField(
+              m.changes as Record<string, unknown>,
+            ) as Record<string, unknown>,
           )
         );
       }

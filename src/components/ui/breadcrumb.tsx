@@ -115,5 +115,3 @@ export {
   BreadcrumbLink, BreadcrumbList, BreadcrumbPage,
   BreadcrumbSeparator
 };
-eadcrumbEllipsis,
-};

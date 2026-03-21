@@ -38,6 +38,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
+
+type ColumnDefMeta = {
+  className?: string;
+  thClassName?: string;
+  tdClassName?: string;
+};
+
+function columnThClassName(columnDef: ColumnDef<unknown, unknown>): string {
+  const m = columnDef.meta as ColumnDefMeta | undefined;
+  return cn(m?.className, m?.thClassName);
+}
+
+function columnTdClassName(columnDef: ColumnDef<unknown, unknown>): string {
+  const m = columnDef.meta as ColumnDefMeta | undefined;
+  return cn(m?.className, m?.tdClassName);
+}
 
 export interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -54,6 +71,15 @@ export interface DataTableProps<TData, TValue> {
   meta?: Record<string, unknown>;
   getSubRows?: (row: TData) => TData[] | undefined;
   renderExpandedRow?: (row: TData) => React.ReactNode;
+  /** Passed to `<table>` (e.g. `border-collapse`). */
+  tableClassName?: string;
+  /** Passed to each body `<tr>` (e.g. `group` for row hover). */
+  tableRowClassName?: string;
+  /**
+   * Outer wrapper around the table. Defaults to `overflow-hidden`; use
+   * `overflow-x-auto` for wide tables that scroll horizontally.
+   */
+  tableWrapperClassName?: string;
 }
 
 export function DataTable<TData, TValue>({
@@ -70,6 +96,9 @@ export function DataTable<TData, TValue>({
   meta,
   getSubRows,
   renderExpandedRow,
+  tableClassName,
+  tableRowClassName,
+  tableWrapperClassName,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -130,13 +159,21 @@ export function DataTable<TData, TValue>({
           />
         </div>
       )}
-      <div className="overflow-hidden rounded-md border">
-        <Table>
+      <div
+        className={cn(
+          "rounded-md border",
+          tableWrapperClassName ?? "overflow-hidden",
+        )}
+      >
+        <Table className={tableClassName}>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
+                  <TableHead
+                    key={header.id}
+                    className={columnThClassName(header.column.columnDef)}
+                  >
                     {header.isPlaceholder
                       ? null
                       : flexRender(
@@ -167,10 +204,14 @@ export function DataTable<TData, TValue>({
                 return (
                   <TableRow
                     key={row.id}
+                    className={tableRowClassName}
                     data-state={row.getIsSelected() && "selected"}
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
+                      <TableCell
+                        key={cell.id}
+                        className={columnTdClassName(cell.column.columnDef)}
+                      >
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext()

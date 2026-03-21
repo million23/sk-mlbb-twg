@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { DataTable } from "@/components/ui/data-table";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -17,31 +18,98 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useInView } from "@/hooks/use-in-view";
-import { useAuditLogInfinite, type AuditLogRow } from "@/hooks/use-audit-log";
-import { createFileRoute } from "@tanstack/react-router";
-import { format } from "date-fns";
+import {
+  useAuditLogInfinite,
+  type AuditLogRow,
+} from "@/hooks/use-audit-log";
+import { useAdmins } from "@/hooks/use-admins";
+import { buildAdminNameByIdMap } from "@/lib/audit-actor-display";
+import { canViewAuditLog } from "@/lib/admin-permissions";
+import { formatAuditLogSummaryLine } from "@/lib/audit-log-summary";
+import { pb } from "@/lib/pocketbase";
+import {
+  AUDIT_LOG_ACTIONS_CELL_CLASS,
+  AUDIT_LOG_ACTIONS_HEAD_CLASS,
+  getAuditLogColumns,
+} from "@/components/tables/audit-log-columns";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { ClientResponseError } from "pocketbase";
+import {
+  AuditLogDetailSheet,
+} from "@/components/audit-log-detail-sheet";
 import { Loader2, ScrollText, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 export const Route = createFileRoute("/app/$id/audit-logs")({
+  beforeLoad: ({ params }) => {
+    if (typeof window === "undefined") return;
+    const id = (params as { id?: string }).id;
+    if (!id) return;
+    if (!canViewAuditLog(pb.authStore.record as { role?: string } | null)) {
+      throw redirect({ to: "/app/$id/", params: { id } } as never);
+    }
+  },
   component: AuditLogsPage,
 });
 
-function formatAuditDate(value: string | undefined): string {
-  if (!value) return "—";
-  try {
-    return format(new Date(value), "MMM d, yyyy HH:mm:ss");
-  } catch {
-    return value;
-  }
-}
+const AUDIT_TABLE = "border-collapse";
 
-/** View may expose key_field as string, number, or JSON — never assume .trim exists. */
-function auditKeyFieldLabel(value: unknown): string {
-  if (value == null) return "—";
-  if (typeof value === "string") return value.trim() || "—";
-  return String(value);
+const SKELETON_ROW_KEYS = [
+  "sk-1",
+  "sk-2",
+  "sk-3",
+  "sk-4",
+  "sk-5",
+  "sk-6",
+  "sk-7",
+  "sk-8",
+  "sk-9",
+  "sk-10",
+] as const;
+
+function AuditLogTableSkeleton() {
+  return (
+    <div className="overflow-x-auto rounded-md border" aria-busy="true">
+      <Table className={AUDIT_TABLE}>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="whitespace-nowrap">Table</TableHead>
+            <TableHead className="whitespace-nowrap">Record</TableHead>
+            <TableHead>Summary</TableHead>
+            <TableHead className="whitespace-nowrap">Updated</TableHead>
+            <TableHead className="whitespace-nowrap">Created</TableHead>
+            <TableHead className={AUDIT_LOG_ACTIONS_HEAD_CLASS}>
+              View
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {SKELETON_ROW_KEYS.map((rowKey) => (
+            <TableRow key={rowKey}>
+              <TableCell className="align-middle">
+                <Skeleton className="h-4 w-20" />
+              </TableCell>
+              <TableCell className="align-middle">
+                <Skeleton className="h-4 w-28" />
+              </TableCell>
+              <TableCell className="align-middle max-w-[min(28rem,50vw)]">
+                <Skeleton className="h-4 w-full max-w-64" />
+              </TableCell>
+              <TableCell className="align-middle">
+                <Skeleton className="h-4 w-36" />
+              </TableCell>
+              <TableCell className="align-middle">
+                <Skeleton className="h-4 w-36" />
+              </TableCell>
+              <TableCell className={AUDIT_LOG_ACTIONS_CELL_CLASS}>
+                <Skeleton className="mx-auto h-8 w-full max-w-22 rounded-md" />
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
 }
 
 function AuditLogsPage() {
@@ -55,6 +123,24 @@ function AuditLogsPage() {
     error,
     refetch,
   } = useAuditLogInfinite();
+
+  const { data: admins } = useAdmins();
+  const adminNameById = useMemo(
+    () => buildAdminNameByIdMap(admins),
+    [admins],
+  );
+
+  const [search, setSearch] = useState("");
+  const [detailRow, setDetailRow] = useState<AuditLogRow | null>(null);
+
+  const columns = useMemo(
+    () =>
+      getAuditLogColumns({
+        adminNameById,
+        onOpenDetail: setDetailRow,
+      }),
+    [adminNameById],
+  );
 
   const rows = useMemo(
     () => data?.pages.flatMap((p) => p.items as AuditLogRow[]) ?? [],
@@ -73,11 +159,11 @@ function AuditLogsPage() {
     }
   }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const [search, setSearch] = useState("");
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return rows;
     return rows.filter((r) => {
+      const row = r as AuditLogRow;
       const hay = [
         r.table_name,
         r.record_id,
@@ -85,13 +171,14 @@ function AuditLogsPage() {
         r.id,
         r.created,
         r.updated,
+        formatAuditLogSummaryLine(row, adminNameById),
       ]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
       return hay.includes(q);
     });
-  }, [rows, search]);
+  }, [rows, search, adminNameById]);
 
   const errMsg =
     error instanceof ClientResponseError
@@ -115,7 +202,8 @@ function AuditLogsPage() {
         <div className="min-w-0">
           <h1 className="text-2xl font-bold tracking-tight">Audit log</h1>
           <p className="text-muted-foreground">
-            Record activity across linked tables (staff and admins can view).
+            Each summary line describes who changed what. Open an entry for full
+            details and related records.
           </p>
         </div>
       </div>
@@ -139,33 +227,45 @@ function AuditLogsPage() {
           <CardHeader>
             <CardTitle>Activity</CardTitle>
             <CardDescription>
-              {isLoading
-                ? "…"
-                : `${totalItems} entr${totalItems === 1 ? "y" : "ies"}`}
-              {!isLoading &&
-              totalItems > 0 &&
-              rows.length < totalItems ? (
-                <span className="text-muted-foreground">
-                  {" "}
-                  · {rows.length} loaded — scroll the table for more
+              {isLoading ? (
+                <span className="inline-flex items-center gap-2 text-muted-foreground">
+                  <Loader2
+                    className="size-4 shrink-0 animate-spin text-primary"
+                    aria-hidden
+                  />
+                  Fetching activity log…
                 </span>
-              ) : null}
+              ) : (
+                <>
+                  {`${totalItems} entr${totalItems === 1 ? "y" : "ies"}`}
+                  {totalItems > 0 && rows.length < totalItems ? (
+                    <span className="text-muted-foreground">
+                      {" "}
+                      · {rows.length} loaded — scroll the table for more
+                    </span>
+                  ) : null}
+                </>
+              )}
             </CardDescription>
-            {!isLoading && totalItems > 0 && (
+            {isLoading ? (
+              <div className="relative mt-2" aria-hidden>
+                <Skeleton className="h-10 w-full rounded-md" />
+              </div>
+            ) : totalItems > 0 ? (
               <div className="relative mt-2">
                 <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Filter loaded rows (table, id, label, dates)…"
+                  placeholder="Filter (table, record, summary, who, dates)…"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-9"
                 />
               </div>
-            )}
+            ) : null}
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <Skeleton className="h-64 w-full" />
+              <AuditLogTableSkeleton />
             ) : initialQueryFailed ? (
               <div className="flex flex-col items-center gap-3 py-8">
                 <p className="text-center text-sm text-destructive">{errMsg}</p>
@@ -185,60 +285,20 @@ function AuditLogsPage() {
               </div>
             ) : (
               <>
-                <div className="overflow-x-auto rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="whitespace-nowrap">Table</TableHead>
-                        <TableHead className="whitespace-nowrap">Record</TableHead>
-                        <TableHead>Summary</TableHead>
-                        <TableHead className="whitespace-nowrap">
-                          Updated
-                        </TableHead>
-                        <TableHead className="whitespace-nowrap">
-                          Created
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredRows.length === 0 ? (
-                        <TableRow>
-                          <TableCell
-                            colSpan={5}
-                            className="h-24 text-center text-muted-foreground"
-                          >
-                            No rows match your filter.
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        filteredRows.map((r) => (
-                          <TableRow key={r.id}>
-                            <TableCell className="align-top font-mono text-xs">
-                              {r.table_name ?? "—"}
-                            </TableCell>
-                            <TableCell className="align-top font-mono text-xs">
-                              {r.record_id ?? "—"}
-                            </TableCell>
-                            <TableCell className="align-top text-sm max-w-[min(28rem,50vw)] break-words">
-                              {auditKeyFieldLabel(r.key_field)}
-                            </TableCell>
-                            <TableCell className="align-top whitespace-nowrap text-xs text-muted-foreground">
-                              {formatAuditDate(r.updated)}
-                            </TableCell>
-                            <TableCell className="align-top whitespace-nowrap text-xs text-muted-foreground">
-                              {formatAuditDate(r.created)}
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
+                <DataTable
+                  columns={columns}
+                  data={filteredRows}
+                  showPagination={false}
+                  emptyMessage="No rows match your filter."
+                  tableClassName={AUDIT_TABLE}
+                  tableRowClassName="group"
+                  tableWrapperClassName="overflow-x-auto"
+                />
 
                 {(hasNextPage || isFetchingNextPage || isError) && (
-                  <div className="flex flex-col items-center gap-3 py-6">
+                  <div className="flex flex-col gap-0">
                     {isError && data ? (
-                      <>
+                      <div className="flex flex-col items-center gap-3 border-t py-6">
                         <p className="text-center text-sm text-destructive">
                           {loadMoreErrorMessage}
                         </p>
@@ -250,7 +310,7 @@ function AuditLogsPage() {
                         >
                           Try again
                         </Button>
-                      </>
+                      </div>
                     ) : (
                       <>
                         <div
@@ -259,10 +319,16 @@ function AuditLogsPage() {
                           aria-hidden
                         />
                         {isFetchingNextPage ? (
-                          <Loader2
-                            className="size-6 animate-spin text-muted-foreground"
-                            aria-label="Loading more"
-                          />
+                          <p
+                            aria-live="polite"
+                            className="flex items-center justify-center gap-2.5 border-t bg-muted/30 py-4 text-sm text-muted-foreground"
+                          >
+                            <Loader2
+                              className="size-4 shrink-0 animate-spin text-primary"
+                              aria-hidden
+                            />
+                            <span>Loading more entries…</span>
+                          </p>
                         ) : null}
                       </>
                     )}
@@ -273,6 +339,15 @@ function AuditLogsPage() {
           </CardContent>
         </Card>
       )}
+
+      <AuditLogDetailSheet
+        open={detailRow != null}
+        onOpenChange={(next) => {
+          if (!next) setDetailRow(null);
+        }}
+        row={detailRow}
+        adminNameById={adminNameById}
+      />
     </div>
   );
 }

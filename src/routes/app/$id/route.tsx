@@ -31,6 +31,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { usePocketBaseAuth } from "@/hooks/use-pocketbase-auth";
+import { canViewAuditLog } from "@/lib/admin-permissions";
 import { pb } from "@/lib/pocketbase";
 import { queryClient } from "@/lib/query-client";
 import { useIsMutating } from "@tanstack/react-query";
@@ -95,6 +96,11 @@ function AdminLayoutContent() {
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut, record } = usePocketBaseAuth();
+  const visibleNavItems = navItems.filter(
+    (item) =>
+      item.to !== "/app/$id/audit-logs" ||
+      canViewAuditLog(record as { role?: string }),
+  );
   const { setOpenMobile, isMobile } = useSidebar();
   const [signOutOpen, setSignOutOpen] = useState(false);
   const id = (params as { id?: string })?.id ?? "main";
@@ -135,7 +141,7 @@ function AdminLayoutContent() {
             <SidebarGroupLabel>Management</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {navItems.map((item) => (
+                {visibleNavItems.map((item) => (
                   <SidebarMenuItem key={item.to}>
                     <SidebarMenuButton
                       render={

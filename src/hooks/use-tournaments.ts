@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { withCreatedAuditFields, withUpdatedAuditField } from "@/lib/mutation-authors";
 import { getCollection } from "@/lib/pocketbase";
 import { rateLimited } from "@/lib/rate-limited-api";
 import { queryKeys } from "@/lib/query-keys";
@@ -58,7 +59,7 @@ export function useTournamentMutations() {
     mutationFn: async (data: TournamentInput) => {
       return rateLimited(async () => {
         const col = getCollection("tournaments");
-        return col.create(data);
+        return col.create(withCreatedAuditFields(data));
       });
     },
     onMutate: async (data) => {
@@ -92,7 +93,7 @@ export function useTournamentMutations() {
       const { id, ...patch } = data;
       return rateLimited(async () => {
         const col = getCollection("tournaments");
-        return col.update(id, patch);
+        return col.update(id, withUpdatedAuditField(patch));
       });
     },
     onMutate: async (data) => {

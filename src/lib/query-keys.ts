@@ -1,6 +1,8 @@
 export const queryKeys = {
   admins: ["admins"] as const,
   auditLog: ["audit_log"] as const,
+  auditRelatedRecord: (collection: string, id: string) =>
+    ["audit_related_record", collection, id] as const,
   participants: ["participants"] as const,
   teams: ["teams"] as const,
   tournaments: ["tournaments"] as const,

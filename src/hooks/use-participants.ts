@@ -8,6 +8,10 @@ import { createMutationQueue } from "@/lib/mutation-queue";
 import { getCollection } from "@/lib/pocketbase";
 import { rateLimited } from "@/lib/rate-limited-api";
 import {
+  withCreatedAuditFields,
+  withUpdatedAuditField,
+} from "@/lib/mutation-authors";
+import {
   normalizeParticipantContactIfPresent,
   normalizeParticipantForCreate,
 } from "@/lib/utils";
@@ -63,7 +67,9 @@ export function useParticipantMutations() {
 
   const createMutation = useMutation({
     mutationFn: async (data: ParticipantInput) => {
-      const payload = normalizeParticipantForCreate(data);
+      const payload = withCreatedAuditFields(
+        normalizeParticipantForCreate(data),
+      );
       return rateLimited(async () => {
         const col = getCollection("participants");
         return col.create(payload);
@@ -80,7 +86,7 @@ export function useParticipantMutations() {
       const { id, ...patch } = normalizeParticipantContactIfPresent(data);
       return rateLimited(async () => {
         const col = getCollection("participants");
-        return col.update(id, patch);
+        return col.update(id, withUpdatedAuditField(patch));
       });
     },
     onSettled: () => {
@@ -108,7 +114,7 @@ export function useParticipantMutations() {
       try {
         await rateLimited(async () => {
           const col = getCollection("participants");
-          return col.update(id, patch);
+          return col.update(id, withUpdatedAuditField(patch));
         });
       } finally {
         invalidateParticipants();

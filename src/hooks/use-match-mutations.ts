@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { withCreatedAuditFields, withUpdatedAuditField } from "@/lib/mutation-authors";
 import { getCollection } from "@/lib/pocketbase";
 import { queryKeys } from "@/lib/query-keys";
 import { rateLimited } from "@/lib/rate-limited-api";
@@ -28,7 +29,7 @@ export function useMatchMutations() {
     mutationFn: async (data: MatchInput) => {
       return rateLimited(async () => {
         const col = getCollection("matches");
-        return col.create(data);
+        return col.create(withCreatedAuditFields(data));
       });
     },
     onMutate: async (data) => {
@@ -91,7 +92,7 @@ export function useMatchMutations() {
       const { id, ...patch } = data;
       return rateLimited(async () => {
         const col = getCollection("matches");
-        return col.update(id, patch);
+        return col.update(id, withUpdatedAuditField(patch));
       });
     },
     onMutate: async (data) => {
