@@ -2,7 +2,7 @@ import { GeneratedAvatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TableCell, TableRow } from "@/components/ui/table";
-import { cn } from "@/lib/utils";
+import { cn, formatParticipantNameDisplay } from "@/lib/utils";
 import { getAvatarUrl, getTeamAvatarUrl } from "@/lib/avatar";
 import { getTeamStatusStyle } from "@/lib/team-status";
 import type { Collections } from "@/types/pocketbase-types";
@@ -111,10 +111,12 @@ export function TeamTableRow({
                   <GeneratedAvatar
                     size="sm"
                     src={getAvatarUrl(m.id)}
-                    alt={m.name ?? ""}
+                    alt={
+                      formatParticipantNameDisplay(m.name) || m.gameID || ""
+                    }
                   />
                   <span className="truncate">
-                    {m.name ?? m.gameID ?? m.id}
+                    {(formatParticipantNameDisplay(m.name) || m.gameID) ?? m.id}
                   </span>
                 </li>
               ))}

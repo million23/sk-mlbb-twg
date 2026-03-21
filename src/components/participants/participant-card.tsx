@@ -8,6 +8,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { formatBirthdateDisplay, getAge } from "@/lib/age";
+import { cn, formatParticipantNameDisplay } from "@/lib/utils";
+import { ParticipantContactWithBadge } from "@/components/participants/participant-contact-with-badge";
 import { StatusBadge } from "./status-badge";
 import { getAvatarUrl } from "@/lib/avatar";
 import type { Collections, PlayerRole } from "@/types/pocketbase-types";
@@ -51,14 +53,16 @@ function formatPreferredRoles(roles?: PlayerRole[]): string {
 function InfoRow({
   icon: Icon,
   value,
+  valueClassName,
 }: {
   icon: React.ElementType;
   value: string;
+  valueClassName?: string;
 }) {
   return (
     <div className="flex items-center gap-2 text-sm">
       <Icon className="size-4 shrink-0 text-muted-foreground" />
-      <span className="truncate">{value || "-"}</span>
+      <span className={cn("truncate", valueClassName)}>{value || "-"}</span>
     </div>
   );
 }
@@ -91,12 +95,15 @@ export function ParticipantCard({
               size="lg"
               className="shrink-0"
               src={getAvatarUrl(p.id)}
-              alt={p.name ?? ""}
+              alt={formatParticipantNameDisplay(p.name) || p.gameID || ""}
             />
             <div className="min-w-0 flex-1">
-              <CardTitle className="text-base truncate">{p.name ?? "-"}</CardTitle>
-              <CardDescription className="font-mono text-xs mt-0.5">
-                ID {p.gameID ?? "-"}
+              <CardTitle className="text-base truncate">
+                {formatParticipantNameDisplay(p.name) || p.gameID || "-"}
+              </CardTitle>
+              <CardDescription className="text-xs mt-0.5">
+                ID{" "}
+                <span className="font-mono tabular-nums">{p.gameID ?? "-"}</span>
               </CardDescription>
             </div>
           </div>
@@ -127,7 +134,13 @@ export function ParticipantCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-2.5 pt-0">
-        <InfoRow icon={Phone} value={p.contactNumber ?? ""} />
+        <div className="flex items-center gap-2 text-sm min-w-0">
+          <Phone className="size-4 shrink-0 text-muted-foreground" />
+          <ParticipantContactWithBadge
+            contactNumber={p.contactNumber}
+            className="min-w-0 flex-1"
+          />
+        </div>
         <InfoRow icon={MapPin} value={p.area ?? ""} />
         <div className="flex items-center gap-2 text-sm">
           <Cake className="size-4 shrink-0 text-muted-foreground" />

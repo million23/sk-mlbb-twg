@@ -4,7 +4,6 @@ import * as React from "react";
 import {
   type ColumnDef,
   type ColumnFiltersState,
-  type Row,
   type SortingState,
   type VisibilityState,
   flexRender,
@@ -49,6 +48,8 @@ export interface DataTableProps<TData, TValue> {
   onSearchChange?: (value: string) => void;
   pageSize?: number;
   pageSizeOptions?: number[];
+  /** When false, all rows render and footer pagination is hidden (e.g. infinite scroll). */
+  showPagination?: boolean;
   emptyMessage?: string;
   meta?: Record<string, unknown>;
   getSubRows?: (row: TData) => TData[] | undefined;
@@ -64,6 +65,7 @@ export function DataTable<TData, TValue>({
   onSearchChange,
   pageSize = 10,
   pageSizeOptions = [10, 20, 25, 30, 40, 50],
+  showPagination = true,
   emptyMessage = "No results.",
   meta,
   getSubRows,
@@ -83,7 +85,7 @@ export function DataTable<TData, TValue>({
     meta,
     getSubRows,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    ...(showPagination ? { getPaginationRowModel: getPaginationRowModel() } : {}),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     ...(getSubRows && { getExpandedRowModel: getExpandedRowModel() }),
@@ -97,11 +99,13 @@ export function DataTable<TData, TValue>({
       columnVisibility,
       rowSelection,
     },
-    initialState: {
-      pagination: {
-        pageSize,
-      },
-    },
+    initialState: showPagination
+      ? {
+          pagination: {
+            pageSize,
+          },
+        }
+      : {},
   });
 
   const filterCol = filterColumn ? table.getColumn(filterColumn) : null;
@@ -189,7 +193,7 @@ export function DataTable<TData, TValue>({
           </TableBody>
         </Table>
       </div>
-      {data.length > pageSize && (
+      {showPagination && data.length > pageSize && (
         <DataTablePagination
           table={table}
           pageSizeOptions={pageSizeOptions}

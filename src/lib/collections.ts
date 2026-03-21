@@ -3,6 +3,7 @@ import { queryCollectionOptions } from "@tanstack/query-db-collection";
 import { getCollection } from "@/lib/pocketbase";
 import { rateLimited } from "@/lib/rate-limited-api";
 import { queryClient } from "@/lib/query-client";
+import { normalizeParticipantForCreate } from "@/lib/utils";
 import type { Collections } from "@/types/pocketbase-types";
 
 type Participant = Collections["participants"] & { id: string };
@@ -37,8 +38,9 @@ export const participantsCollection = createCollection(
     onInsert: async ({ transaction }) => {
       for (const m of transaction.mutations) {
         const { id: _id, ...rest } = m.modified as Record<string, unknown>;
+        const payload = normalizeParticipantForCreate(rest);
         await rateLimited(() =>
-          getCollection("participants").create(rest)
+          getCollection("participants").create(payload)
         );
       }
       refetchParticipants();

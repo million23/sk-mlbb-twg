@@ -54,16 +54,28 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { AGE_BRACKETS } from "@/config/age-brackets";
 import { formatBirthdateDisplay, getAge, getAgeBracketLabel } from "@/lib/age";
 import { getAvatarUrl } from "@/lib/avatar";
+import { sanitizePhilippineMobileInput } from "@/lib/philippine-mobile";
+import {
+  formatParticipantNameDisplay,
+  toTitleCaseWords,
+} from "@/lib/utils";
+import { useInView } from "@/hooks/use-in-view";
 import {
   useParticipantMutations,
-  useParticipants,
+  useParticipantsInfinite,
 } from "@/hooks/use-participants";
 import { useTeamSuggestions } from "@/hooks/use-team-suggestions";
 import { useTeams } from "@/hooks/use-teams";
 import type { Collections, PlayerRole } from "@/types/pocketbase-types";
 import { createFileRoute } from "@tanstack/react-router";
-import { LayoutGrid, LayoutList, Plus, Search, Users } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { LayoutGrid, LayoutList, Loader2, Plus, Search, Users } from "lucide-react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type RefObject,
+} from "react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/$id/participants")({
@@ -103,7 +115,7 @@ function ParticipantForm({
           <GeneratedAvatar
             className="size-16"
             src={getAvatarUrl(editingId)}
-            alt={form.name ?? ""}
+            alt={formatParticipantNameDisplay(form.name) || form.gameID || ""}
           />
         </div>
       )}
@@ -122,6 +134,12 @@ function ParticipantForm({
           id="name"
           value={form.name ?? ""}
           onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+          onBlur={() =>
+            setForm((f) => ({
+              ...f,
+              name: toTitleCaseWords(f.name ?? ""),
+            }))
+          }
           placeholder="Full name"
         />
       </div>
@@ -129,11 +147,18 @@ function ParticipantForm({
         <Label htmlFor="contact">Contact number</Label>
         <Input
           id="contact"
+          type="tel"
+          inputMode="tel"
+          autoComplete="tel"
           value={form.contactNumber ?? ""}
           onChange={(e) =>
-            setForm((f) => ({ ...f, contactNumber: e.target.value }))
+            setForm((f) => ({
+              ...f,
+              contactNumber: sanitizePhilippineMobileInput(e.target.value),
+            }))
           }
-          placeholder="09XX XXX XXXX"
+          placeholder="09XX-XXX-XXXX"
+          className="tabular-nums"
         />
       </div>
       <div className="space-y-2">
@@ -212,8 +237,83 @@ type TeamSuggestion = {
   suggestionPriority?: string;
 };
 
+function ParticipantsInfiniteFooter({
+  loadMoreRef,
+  hasNextPage,
+  isFetchingNextPage,
+  isError,
+  errorMessage,
+  onRetry,
+}: {
+  loadMoreRef: RefObject<HTMLDivElement | null>;
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
+  isError: boolean;
+  errorMessage: string | null;
+  onRetry: () => void;
+}) {
+  if (!hasNextPage && !isFetchingNextPage && !isError) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-3 py-6">
+      {isError ? (
+        <>
+          <p className="text-center text-sm text-destructive">
+            {errorMessage ?? "Could not load more participants."}
+          </p>
+          <Button variant="outline" size="sm" type="button" onClick={onRetry}>
+            Try again
+          </Button>
+        </>
+      ) : (
+        <>
+          <div
+            ref={loadMoreRef}
+            className="pointer-events-none h-1 w-full shrink-0"
+            aria-hidden
+          />
+          {isFetchingNextPage ? (
+            <Loader2
+              className="size-6 animate-spin text-muted-foreground"
+              aria-label="Loading more participants"
+            />
+          ) : null}
+        </>
+      )}
+    </div>
+  );
+}
+
 function ParticipantsPage() {
-  const { data: participants, isLoading } = useParticipants();
+  const {
+    data,
+    isLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    isError,
+    error,
+    refetch,
+  } = useParticipantsInfinite();
+
+  const participants = useMemo(
+    () => data?.pages.flatMap((p) => p.items) ?? [],
+    [data],
+  );
+
+  const totalRegistered = data?.pages[0]?.totalItems ?? 0;
+
+  const { ref: loadMoreRef, inView } = useInView({
+    enabled: Boolean(hasNextPage),
+  });
+
+  useEffect(() => {
+    if (inView && hasNextPage && !isFetchingNextPage) {
+      void fetchNextPage();
+    }
+  }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
   const { data: teams } = useTeams();
   const { data: teamSuggestions } = useTeamSuggestions();
 
@@ -280,7 +380,7 @@ function ParticipantsPage() {
     setForm({
       gameID: p.gameID ?? "",
       name: p.name ?? "",
-      contactNumber: p.contactNumber ?? "",
+      contactNumber: sanitizePhilippineMobileInput(p.contactNumber ?? ""),
       area: p.area ?? "",
       birthdate: p.birthdate ?? undefined,
       preferredRoles: p.preferredRoles ?? [],
@@ -299,6 +399,7 @@ function ParticipantsPage() {
     }
     const payload = {
       ...form,
+      contactNumber: sanitizePhilippineMobileInput(form.contactNumber ?? ""),
       preferredRoles: (form.preferredRoles ?? [])
         .filter((r): r is PlayerRole => Boolean(r))
         .slice(0, 3),
@@ -350,12 +451,14 @@ function ParticipantsPage() {
 
   const [search, setSearch] = useState("");
   const filteredParticipants = useMemo(() => {
-    if (!search.trim()) return participants ?? [];
+    if (!search.trim()) return participants;
     const q = search.toLowerCase().trim();
-    return (participants ?? []).filter((p) => {
+    return participants.filter((p) => {
       const name = (p.name ?? "").toLowerCase();
       const gameID = (p.gameID ?? "").toLowerCase();
       const contact = (p.contactNumber ?? "").toLowerCase();
+      const contactDigits = (p.contactNumber ?? "").replace(/\D/g, "");
+      const qDigits = q.replace(/\D/g, "");
       const area = (p.area ?? "").toLowerCase();
       const teamName = getTeamName(p.team).toLowerCase();
       const age = getAge(p.birthdate);
@@ -366,6 +469,7 @@ function ParticipantsPage() {
         name.includes(q) ||
         gameID.includes(q) ||
         contact.includes(q) ||
+        (qDigits.length > 0 && contactDigits.includes(qDigits)) ||
         area.includes(q) ||
         teamName.includes(q) ||
         ageStr.includes(q) ||
@@ -374,6 +478,11 @@ function ParticipantsPage() {
       );
     });
   }, [participants, search, getTeamName]);
+
+  const showEmptyState = !isLoading && !isError && totalRegistered === 0;
+  const loadMoreErrorMessage =
+    error instanceof Error ? error.message : error ? String(error) : null;
+  const initialQueryFailed = isError && !data;
 
   return (
     <div className="space-y-6">
@@ -416,9 +525,17 @@ function ParticipantsPage() {
         <CardHeader>
           <CardTitle>All participants</CardTitle>
           <CardDescription>
-            {participants?.length ?? 0} registered
+            {isLoading ? "…" : `${totalRegistered} registered`}
+            {!isLoading &&
+            totalRegistered > 0 &&
+            participants.length < totalRegistered ? (
+              <span className="text-muted-foreground">
+                {" "}
+                · {participants.length} loaded — scroll for more
+              </span>
+            ) : null}
           </CardDescription>
-          {participants && participants.length > 0 && (
+          {!isLoading && totalRegistered > 0 && (
             <div className="relative mt-2">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <Input
@@ -433,7 +550,21 @@ function ParticipantsPage() {
         <CardContent>
           {isLoading ? (
             <Skeleton className="h-64 w-full" />
-          ) : !participants?.length ? (
+          ) : initialQueryFailed ? (
+            <div className="flex flex-col items-center gap-3 py-8">
+              <p className="text-center text-sm text-destructive">
+                {loadMoreErrorMessage ?? "Could not load participants."}
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                type="button"
+                onClick={() => void refetch()}
+              >
+                Retry
+              </Button>
+            </div>
+          ) : showEmptyState ? (
             <Empty>
               <EmptyHeader>
                 <EmptyMedia variant="icon">
@@ -462,33 +593,50 @@ function ParticipantsPage() {
                 data={filteredParticipants}
                 emptyMessage={
                   search
-                    ? `No participants match "${search}"`
+                    ? `No participants match "${search}" in loaded rows`
                     : "No participants."
                 }
                 pageSize={10}
+                showPagination={false}
+              />
+              <ParticipantsInfiniteFooter
+                loadMoreRef={loadMoreRef}
+                hasNextPage={hasNextPage}
+                isFetchingNextPage={isFetchingNextPage}
+                isError={isError}
+                errorMessage={loadMoreErrorMessage}
+                onRetry={() => void refetch()}
               />
             </>
           ) : (
             <>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {filteredParticipants.map((p) => (
-                <ParticipantCard
-                  key={p.id}
-                  participant={p}
-                  teamName={getTeamName(p.team)}
-                  suggestions={suggestionsByParticipant.get(p.id) ?? []}
-                  onEdit={openEdit}
-                  onDelete={setDeleteId}
-                  onRemoveFromTeam={handleRemoveFromTeamClick}
-                  onJoinTeam={handleJoinTeam}
-                />
-              ))}
+                  <ParticipantCard
+                    key={p.id}
+                    participant={p}
+                    teamName={getTeamName(p.team)}
+                    suggestions={suggestionsByParticipant.get(p.id) ?? []}
+                    onEdit={openEdit}
+                    onDelete={setDeleteId}
+                    onRemoveFromTeam={handleRemoveFromTeamClick}
+                    onJoinTeam={handleJoinTeam}
+                  />
+                ))}
               </div>
               {filteredParticipants.length === 0 && search && (
                 <p className="py-4 text-center text-sm text-muted-foreground">
-                  No participants match &quot;{search}&quot;
+                  No participants match &quot;{search}&quot; in loaded rows
                 </p>
               )}
+              <ParticipantsInfiniteFooter
+                loadMoreRef={loadMoreRef}
+                hasNextPage={hasNextPage}
+                isFetchingNextPage={isFetchingNextPage}
+                isError={isError}
+                errorMessage={loadMoreErrorMessage}
+                onRetry={() => void refetch()}
+              />
             </>
           )}
         </CardContent>
@@ -567,7 +715,10 @@ function ParticipantsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Remove from team?</AlertDialogTitle>
             <AlertDialogDescription>
-              Remove {removeFromTeamParticipant?.name || removeFromTeamParticipant?.gameID || "this participant"}{" "}
+              Remove{" "}
+              {(formatParticipantNameDisplay(removeFromTeamParticipant?.name) ||
+                removeFromTeamParticipant?.gameID) ??
+                "this participant"}{" "}
               from {removeFromTeamParticipant?.team ? getTeamName(removeFromTeamParticipant.team) : "their team"}? They
               will become unassigned.
             </AlertDialogDescription>

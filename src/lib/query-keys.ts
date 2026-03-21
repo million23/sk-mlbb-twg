@@ -1,5 +1,6 @@
 export const queryKeys = {
   admins: ["admins"] as const,
+  auditLog: ["audit_log"] as const,
   participants: ["participants"] as const,
   teams: ["teams"] as const,
   tournaments: ["tournaments"] as const,

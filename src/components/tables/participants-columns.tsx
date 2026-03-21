@@ -8,7 +8,9 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { formatParticipantNameDisplay } from "@/lib/utils";
 import { formatBirthdateDisplay, getAge } from "@/lib/age";
+import { ParticipantContactWithBadge } from "@/components/participants/participant-contact-with-badge";
 import { StatusBadge } from "@/components/participants/status-badge";
 import { getAvatarUrl } from "@/lib/avatar";
 import type { Collections, PlayerRole } from "@/types/pocketbase-types";
@@ -60,7 +62,7 @@ export function getParticipantsColumns(
           <GeneratedAvatar
             size="sm"
             src={getAvatarUrl(p.id)}
-            alt={p.name ?? ""}
+            alt={formatParticipantNameDisplay(p.name) || p.gameID || ""}
           />
         );
       },
@@ -70,18 +72,29 @@ export function getParticipantsColumns(
       accessorKey: "gameID",
       header: "Game ID",
       cell: ({ row }) => (
-        <span className="font-mono">{row.original.gameID ?? "-"}</span>
+        <span className="font-mono tabular-nums">
+          {row.original.gameID ?? "-"}
+        </span>
       ),
     },
     {
       accessorKey: "name",
       header: "Name",
-      cell: ({ row }) => row.original.name ?? "-",
+      cell: ({ row }) => {
+        const p = row.original;
+        return (
+          formatParticipantNameDisplay(p.name) || p.gameID || "-"
+        );
+      },
     },
     {
       accessorKey: "contactNumber",
       header: "Contact",
-      cell: ({ row }) => row.original.contactNumber ?? "-",
+      cell: ({ row }) => (
+        <ParticipantContactWithBadge
+          contactNumber={row.original.contactNumber}
+        />
+      ),
     },
     {
       accessorKey: "birthdate",

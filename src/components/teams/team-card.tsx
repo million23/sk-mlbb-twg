@@ -13,7 +13,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { cn } from "@/lib/utils";
+import { cn, formatParticipantNameDisplay } from "@/lib/utils";
 import { getAvatarUrl, getTeamAvatarUrl } from "@/lib/avatar";
 import { getTeamStatusStyle } from "@/lib/team-status";
 import type { Collections } from "@/types/pocketbase-types";
@@ -131,10 +131,13 @@ export function TeamCard({
                     <GeneratedAvatar
                       size="sm"
                       src={getAvatarUrl(m.id)}
-                      alt={m.name ?? ""}
+                      alt={
+                        formatParticipantNameDisplay(m.name) || m.gameID || ""
+                      }
                     />
                     <span className="truncate">
-                      {m.name ?? m.gameID ?? m.id}
+                      {(formatParticipantNameDisplay(m.name) || m.gameID) ??
+                        m.id}
                     </span>
                   </li>
                 ))}

@@ -67,6 +67,7 @@ import {
   matchesFuzzyQuery,
   participantSearchHaystack,
 } from "@/lib/fuzzy-match";
+import { formatParticipantNameDisplay } from "@/lib/utils";
 import type { Collections } from "@/types/pocketbase-types";
 import { createFileRoute } from "@tanstack/react-router";
 import {
@@ -149,7 +150,7 @@ function AddMembersContent({
             >
               <span className="min-w-0 truncate">
                 <span className="block truncate font-medium">
-                  {p.name ?? p.gameID ?? p.id}
+                  {(formatParticipantNameDisplay(p.name) || p.gameID) ?? p.id}
                 </span>
                 {p.area ? (
                   <span className="block truncate text-xs text-muted-foreground">
@@ -226,7 +227,7 @@ function CaptainPopover({
                 setOpen(false);
               }}
             >
-              {p.name ?? p.gameID ?? p.id}
+              {(formatParticipantNameDisplay(p.name) || p.gameID) ?? p.id}
             </Button>
           ))}
         </div>
@@ -252,11 +253,12 @@ function TeamForm({
   onSubmit: () => void;
   isMobile?: boolean;
 }) {
+  const captainMember = teamMembers?.find((p) => p.id === form.captain);
   const captainLabel =
     form.captain === ""
       ? "Select captain (team members only)"
-      : teamMembers?.find((p) => p.id === form.captain)?.name ??
-        teamMembers?.find((p) => p.id === form.captain)?.gameID ??
+      : (formatParticipantNameDisplay(captainMember?.name) ||
+          captainMember?.gameID) ??
         "Select captain (team members only)";
 
   return (
@@ -296,7 +298,7 @@ function TeamForm({
                 ...Object.fromEntries(
                   (teamMembers ?? []).map((p) => [
                     p.id,
-                    p.name ?? p.gameID ?? p.id,
+                    (formatParticipantNameDisplay(p.name) || p.gameID) ?? p.id,
                   ]),
                 ),
               }}
@@ -306,7 +308,11 @@ function TeamForm({
                   {(value) => {
                     if (value == null || value === "") return null;
                     const p = teamMembers?.find((m) => m.id === value);
-                    return p?.name ?? p?.gameID ?? String(value);
+                    return (
+                      formatParticipantNameDisplay(p?.name) ||
+                      p?.gameID ||
+                      String(value)
+                    );
                   }}
                 </SelectValue>
               </SelectTrigger>
@@ -314,7 +320,7 @@ function TeamForm({
                 <SelectItem value="">No captain</SelectItem>
                 {teamMembers?.map((p) => (
                   <SelectItem key={p.id} value={p.id}>
-                    {p.name ?? p.gameID ?? p.id}
+                    {(formatParticipantNameDisplay(p.name) || p.gameID) ?? p.id}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -390,8 +396,11 @@ function TeamsPage() {
     }
   };
 
-  const getCaptainName = (captainId: string | undefined) =>
-    participants?.find((p) => p.id === captainId)?.name ?? "-";
+  const getCaptainName = (captainId: string | undefined) => {
+    const p = participants?.find((x) => x.id === captainId);
+    if (!p) return "-";
+    return formatParticipantNameDisplay(p.name) || p.gameID || "-";
+  };
 
   const getTeamMemberCount = (teamId: string) =>
     participants?.filter((p) => p.team === teamId).length ?? 0;

@@ -154,11 +154,11 @@ export interface Collections {
 
     audit_log: {
         id: string;
-        table_name?: any;
-        record_id?: any;
-        key_field?: any;
-        created?: any;
-        updated?: any;
+        table_name?: string;
+        record_id?: string;
+        key_field?: string;
+        created?: string;
+        updated?: string;
     };
 
     draft_suggestions: {

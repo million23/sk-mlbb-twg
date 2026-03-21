@@ -1,7 +1,16 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { createMutationQueue } from "@/lib/mutation-queue";
 import { getCollection } from "@/lib/pocketbase";
 import { rateLimited } from "@/lib/rate-limited-api";
+import {
+  normalizeParticipantContactIfPresent,
+  normalizeParticipantForCreate,
+} from "@/lib/utils";
 import { queryKeys } from "@/lib/query-keys";
 import type { Collections } from "@/types/pocketbase-types";
 import { useRef } from "react";
@@ -10,6 +19,9 @@ type ParticipantInput = Partial<
   Omit<Collections["participants"], "id" | "created" | "updated">
 >;
 type Participant = Collections["participants"];
+
+/** Page size for {@link useParticipantsInfinite}. */
+export const PARTICIPANTS_PAGE_SIZE = 30;
 
 export function useParticipants() {
   return useQuery({
@@ -23,74 +35,56 @@ export function useParticipants() {
   });
 }
 
+export function useParticipantsInfinite(pageSize = PARTICIPANTS_PAGE_SIZE) {
+  return useInfiniteQuery({
+    queryKey: [...queryKeys.participants, "infinite", pageSize] as const,
+    queryFn: ({ pageParam }) =>
+      rateLimited(async () => {
+        const col = getCollection("participants");
+        return col.getList(pageParam, pageSize, { sort: "-created" });
+      }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) =>
+      lastPage.page < lastPage.totalPages ? lastPage.page + 1 : undefined,
+  });
+}
+
 const ADD_MEMBER_QUEUE_INTERVAL_MS = 400;
 
 export function useParticipantMutations() {
   const queryClient = useQueryClient();
   const addMemberQueue = useRef(
-    createMutationQueue(ADD_MEMBER_QUEUE_INTERVAL_MS)
+    createMutationQueue(ADD_MEMBER_QUEUE_INTERVAL_MS),
   ).current;
+
+  const invalidateParticipants = () => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.participants });
+  };
 
   const createMutation = useMutation({
     mutationFn: async (data: ParticipantInput) => {
+      const payload = normalizeParticipantForCreate(data);
       return rateLimited(async () => {
         const col = getCollection("participants");
-        return col.create(data);
+        return col.create(payload);
       });
     },
-    onMutate: async (data) => {
-      await queryClient.cancelQueries({ queryKey: queryKeys.participants });
-      const prev = queryClient.getQueryData<Participant[]>(queryKeys.participants);
-      const temp: Participant = {
-        id: `temp-${Date.now()}`,
-        ...data,
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      };
-      queryClient.setQueryData<Participant[]>(queryKeys.participants, (old) =>
-        old ? [temp, ...old] : [temp]
-      );
-      return { prev };
-    },
-    onError: (_err, _data, ctx) => {
-      if (ctx?.prev != null) {
-        queryClient.setQueryData(queryKeys.participants, ctx.prev);
-      }
-    },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.participants });
+      invalidateParticipants();
       queryClient.invalidateQueries({ queryKey: queryKeys.teamSuggestions });
     },
   });
 
   const updateMutation = useMutation({
     mutationFn: async (data: ParticipantInput & { id: string }) => {
-      const { id, ...patch } = data;
+      const { id, ...patch } = normalizeParticipantContactIfPresent(data);
       return rateLimited(async () => {
         const col = getCollection("participants");
         return col.update(id, patch);
       });
     },
-    onMutate: async (data) => {
-      await queryClient.cancelQueries({ queryKey: queryKeys.participants });
-      const prev = queryClient.getQueryData<Participant[]>(queryKeys.participants);
-      const { id, ...patch } = data;
-      queryClient.setQueryData<Participant[]>(queryKeys.participants, (old) =>
-        old?.map((p) =>
-          p.id === id
-            ? { ...p, ...patch, updated: new Date().toISOString() }
-            : p
-        ) ?? old
-      );
-      return { prev };
-    },
-    onError: (_err, _data, ctx) => {
-      if (ctx?.prev != null) {
-        queryClient.setQueryData(queryKeys.participants, ctx.prev);
-      }
-    },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.participants });
+      invalidateParticipants();
       queryClient.invalidateQueries({ queryKey: queryKeys.teamSuggestions });
     },
   });
@@ -102,50 +96,22 @@ export function useParticipantMutations() {
         return col.delete(id);
       });
     },
-    onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: queryKeys.participants });
-      const prev = queryClient.getQueryData<Participant[]>(queryKeys.participants);
-      queryClient.setQueryData<Participant[]>(queryKeys.participants, (old) =>
-        old?.filter((p) => p.id !== id) ?? old
-      );
-      return { prev };
-    },
-    onError: (_err, _data, ctx) => {
-      if (ctx?.prev != null) {
-        queryClient.setQueryData(queryKeys.participants, ctx.prev);
-      }
-    },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.participants });
+      invalidateParticipants();
       queryClient.invalidateQueries({ queryKey: queryKeys.teamSuggestions });
     },
   });
 
   const updateQueued = (data: ParticipantInput & { id: string }) => {
-    const { id, ...patch } = data;
-    queryClient.cancelQueries({ queryKey: queryKeys.participants });
-    const prev =
-      queryClient.getQueryData<Participant[]>(queryKeys.participants);
-    queryClient.setQueryData<Participant[]>(queryKeys.participants, (old) =>
-      old?.map((p) =>
-        p.id === id
-          ? { ...p, ...patch, updated: new Date().toISOString() }
-          : p
-      ) ?? old
-    );
+    const { id, ...patch } = normalizeParticipantContactIfPresent(data);
     addMemberQueue.enqueue(async () => {
       try {
         await rateLimited(async () => {
           const col = getCollection("participants");
           return col.update(id, patch);
         });
-      } catch (err) {
-        if (prev != null) {
-          queryClient.setQueryData(queryKeys.participants, prev);
-        }
-        throw err;
       } finally {
-        queryClient.invalidateQueries({ queryKey: queryKeys.participants });
+        invalidateParticipants();
         queryClient.invalidateQueries({ queryKey: queryKeys.teamSuggestions });
       }
     });

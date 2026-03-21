@@ -12,7 +12,7 @@ import { useParticipants } from "@/hooks/use-participants";
 import { useTeams } from "@/hooks/use-teams";
 import { useUpcomingTournaments } from "@/hooks/use-tournaments";
 import { getTeamStatusStyle } from "@/lib/team-status";
-import { cn } from "@/lib/utils";
+import { cn, formatParticipantNameDisplay } from "@/lib/utils";
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { ChevronRight, Trophy, User, Users, UsersRound } from "lucide-react";
 
@@ -151,7 +151,8 @@ function DashboardPage() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-medium text-sm">
-                        {p.name ?? p.gameID ?? "-"}
+                        {(formatParticipantNameDisplay(p.name) || p.gameID) ??
+                          "-"}
                       </p>
                       <p className="truncate text-muted-foreground font-mono text-xs">
                         {p.gameID ?? "—"}

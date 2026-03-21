@@ -49,6 +49,7 @@ import {
   LogOut,
   Menu,
   PanelLeft,
+  ScrollText,
   ShieldCheck,
   Swords,
   Trophy,
@@ -77,6 +78,7 @@ const navItems = [
   { to: "/app/$id/teams", label: "Teams", icon: UsersRound },
   { to: "/app/$id/tournament", label: "Tournament", icon: Trophy },
   { to: "/app/$id/matches", label: "Matches", icon: Swords },
+  { to: "/app/$id/audit-logs", label: "Audit log", icon: ScrollText },
   { to: "/app/$id/admins", label: "Admins", icon: ShieldCheck },
 ] as const;
 

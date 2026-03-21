@@ -9,7 +9,9 @@ import {
   TableCell,
   TableRow,
 } from "@/components/ui/table";
+import { formatParticipantNameDisplay } from "@/lib/utils";
 import { formatBirthdateDisplay, getAge } from "@/lib/age";
+import { ParticipantContactWithBadge } from "@/components/participants/participant-contact-with-badge";
 import { StatusBadge } from "./status-badge";
 import { getAvatarUrl } from "@/lib/avatar";
 import type { Collections, PlayerRole } from "@/types/pocketbase-types";
@@ -64,12 +66,16 @@ export function ParticipantTableRow({
         <GeneratedAvatar
           size="sm"
           src={getAvatarUrl(p.id)}
-          alt={p.name ?? ""}
+          alt={formatParticipantNameDisplay(p.name) || p.gameID || ""}
         />
       </TableCell>
-      <TableCell className="font-mono">{p.gameID ?? "-"}</TableCell>
-      <TableCell>{p.name ?? "-"}</TableCell>
-      <TableCell>{p.contactNumber ?? "-"}</TableCell>
+      <TableCell className="font-mono tabular-nums">{p.gameID ?? "-"}</TableCell>
+      <TableCell>
+        {formatParticipantNameDisplay(p.name) || p.gameID || "-"}
+      </TableCell>
+      <TableCell>
+        <ParticipantContactWithBadge contactNumber={p.contactNumber} />
+      </TableCell>
       <TableCell className="text-sm tabular-nums">
         {formatBirthdateDisplay(p.birthdate) ?? "-"}
         {age !== null && (
