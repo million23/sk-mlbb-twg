@@ -81,7 +81,7 @@ export type TournamentAgeGroupKey = "under18" | "18+" | "unknown";
 
 const TOURNAMENT_AGE_LABELS: Record<TournamentAgeGroupKey, string> = {
   under18: "Under 18",
-  "18+": "18+",
+  "18+": "18 and above",
   unknown: "No birthdate",
 };
 
@@ -119,7 +119,7 @@ export function groupParticipantsByTournamentAge<
     }));
 }
 
-/** One-line counts for team cards / table, e.g. "Under 18: 2 · 18+: 3". */
+/** One-line counts for team cards / table, e.g. "Under 18: 2 · 18 and above: 3". */
 export function summarizeTeamAgeBracketCounts(
   members: { birthdate?: string }[]
 ): string {
@@ -134,7 +134,8 @@ export function summarizeTeamAgeBracketCounts(
   }
   const parts: string[] = [];
   if (buckets.under18) parts.push(`Under 18: ${buckets.under18}`);
-  if (buckets["18+"]) parts.push(`18+: ${buckets["18+"]}`);
+  if (buckets["18+"])
+    parts.push(`18 and above: ${buckets["18+"]}`);
   if (buckets.unknown) parts.push(`No birthdate: ${buckets.unknown}`);
   return parts.join(" · ");
 }

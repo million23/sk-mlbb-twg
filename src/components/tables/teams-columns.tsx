@@ -5,6 +5,11 @@ import { TeamMembersByAgeGroup } from "@/components/teams/team-members-by-age-gr
 import { GeneratedAvatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { summarizeTeamAgeBracketCounts } from "@/lib/age";
 import { getTeamAvatarUrl } from "@/lib/avatar";
 import { getTeamStatusStyle } from "@/lib/team-status";
@@ -25,13 +30,9 @@ export type TeamsTableMeta = {
   onAddMembers?: (t: Team) => void;
 };
 
-export type TeamWithSubRows = Team & {
-  subRows?: { _expandedContent: true; members: TeamMember[] }[];
-};
-
 export function getTeamsColumns(
   meta: TeamsTableMeta
-): ColumnDef<TeamWithSubRows>[] {
+): ColumnDef<Team>[] {
   return [
     {
       accessorKey: "id",
@@ -68,26 +69,40 @@ export function getTeamsColumns(
         const t = row.original;
         const members = meta.getMembers(t.id);
         const count = meta.getMemberCount(t.id);
+        const ageSummary = summarizeTeamAgeBracketCounts(members);
         return (
-          <div className="flex flex-col items-start gap-0.5">
+          <div className="flex min-w-0 max-w-[min(22rem,100%)] flex-nowrap items-center gap-2">
             {members.length > 0 ? (
               <>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-auto py-1 -ml-1"
-                  onClick={() => row.toggleExpanded()}
-                >
-                  {count} members
-                  <ChevronDown
-                    className={cn(
-                      "ml-0.5 size-4 transition-transform",
-                      row.getIsExpanded() && "rotate-180"
-                    )}
+                <Popover>
+                  <PopoverTrigger
+                    aria-label="View team members"
+                    render={
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-auto shrink-0 py-1 -ml-1"
+                      >
+                        {count} members
+                        <ChevronDown className="ml-0.5 size-4 shrink-0" />
+                      </Button>
+                    }
                   />
-                </Button>
-                <span className="max-w-56 text-xs text-muted-foreground">
-                  {summarizeTeamAgeBracketCounts(members)}
+                  <PopoverContent
+                    align="start"
+                    className="w-[min(calc(100vw-2rem),22rem)] max-h-[min(70vh,24rem)] overflow-y-auto p-3"
+                  >
+                    <p className="mb-2 text-xs font-medium text-muted-foreground">
+                      Team members
+                    </p>
+                    <TeamMembersByAgeGroup members={members} />
+                  </PopoverContent>
+                </Popover>
+                <span
+                  className="min-w-0 flex-1 truncate text-xs text-muted-foreground"
+                  title={ageSummary}
+                >
+                  {ageSummary}
                 </span>
               </>
             ) : (
@@ -95,6 +110,9 @@ export function getTeamsColumns(
             )}
           </div>
         );
+      },
+      meta: {
+        tdClassName: "align-middle min-w-0",
       },
     },
     {
@@ -146,15 +164,4 @@ export function getTeamsColumns(
       meta: { className: "w-[100px]" },
     },
   ];
-}
-
-export function renderTeamsExpandedRow(row: TeamWithSubRows | { _expandedContent: true; members: TeamMember[] }) {
-  const expanded = row as { _expandedContent?: true; members?: TeamMember[] };
-  const members = expanded.members ?? [];
-  if (members.length === 0) return null;
-  return (
-    <div className="px-4 py-3">
-      <TeamMembersByAgeGroup members={members} />
-    </div>
-  );
 }
