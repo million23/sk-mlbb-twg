@@ -13,11 +13,14 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { cn, formatParticipantNameDisplay } from "@/lib/utils";
-import { getAvatarUrl, getTeamAvatarUrl } from "@/lib/avatar";
+import { TeamMembersByAgeGroup } from "@/components/teams/team-members-by-age-group";
+import { summarizeTeamAgeBracketCounts } from "@/lib/age";
+import { cn } from "@/lib/utils";
+import { getTeamAvatarUrl } from "@/lib/avatar";
 import { getTeamStatusStyle } from "@/lib/team-status";
 import type { Collections } from "@/types/pocketbase-types";
 import {
+  CalendarDays,
   ChevronDown,
   Pencil,
   Trash2,
@@ -28,7 +31,7 @@ import {
 
 type Team = Collections["teams"] & { id: string };
 
-type TeamMember = { id: string; name?: string; gameID?: string };
+type TeamMember = { id: string; name?: string; gameID?: string; birthdate?: string };
 
 function InfoRow({
   icon: Icon,
@@ -108,6 +111,12 @@ export function TeamCard({
         <InfoRow icon={UserCircle2} value={captainName} />
         <InfoRow icon={Users} value={`${memberCount} member${memberCount !== 1 ? "s" : ""}`} />
         {members.length > 0 && (
+          <InfoRow
+            icon={CalendarDays}
+            value={summarizeTeamAgeBracketCounts(members)}
+          />
+        )}
+        {members.length > 0 && (
           <Collapsible>
             <CollapsibleTrigger
               render={
@@ -122,26 +131,9 @@ export function TeamCard({
               }
             />
             <CollapsibleContent>
-              <ul className="mt-2 space-y-1.5 pl-1">
-                {members.map((m) => (
-                  <li
-                    key={m.id}
-                    className="flex items-center gap-2 rounded-md border px-2 py-1.5 text-sm"
-                  >
-                    <GeneratedAvatar
-                      size="sm"
-                      src={getAvatarUrl(m.id)}
-                      alt={
-                        formatParticipantNameDisplay(m.name) || m.gameID || ""
-                      }
-                    />
-                    <span className="truncate">
-                      {(formatParticipantNameDisplay(m.name) || m.gameID) ??
-                        m.id}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <div className="mt-2 pl-1">
+                <TeamMembersByAgeGroup members={members} />
+              </div>
             </CollapsibleContent>
           </Collapsible>
         )}

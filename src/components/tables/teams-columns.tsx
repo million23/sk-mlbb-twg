@@ -1,18 +1,20 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
+import { TeamMembersByAgeGroup } from "@/components/teams/team-members-by-age-group";
 import { GeneratedAvatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { cn, formatParticipantNameDisplay } from "@/lib/utils";
-import { getAvatarUrl, getTeamAvatarUrl } from "@/lib/avatar";
+import { summarizeTeamAgeBracketCounts } from "@/lib/age";
+import { getTeamAvatarUrl } from "@/lib/avatar";
 import { getTeamStatusStyle } from "@/lib/team-status";
+import { cn } from "@/lib/utils";
 import type { Collections } from "@/types/pocketbase-types";
 import { ChevronDown, Pencil, Trash2, UserPlus } from "lucide-react";
 
 type Team = Collections["teams"] & { id: string };
 
-type TeamMember = { id: string; name?: string; gameID?: string };
+type TeamMember = { id: string; name?: string; gameID?: string; birthdate?: string };
 
 export type TeamsTableMeta = {
   getCaptainName: (captainId: string | undefined) => string;
@@ -67,22 +69,27 @@ export function getTeamsColumns(
         const members = meta.getMembers(t.id);
         const count = meta.getMemberCount(t.id);
         return (
-          <div className="flex items-center gap-1">
+          <div className="flex flex-col items-start gap-0.5">
             {members.length > 0 ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-auto py-1 -ml-1"
-                onClick={() => row.toggleExpanded()}
-              >
-                {count} members
-                <ChevronDown
-                  className={cn(
-                    "ml-0.5 size-4 transition-transform",
-                    row.getIsExpanded() && "rotate-180"
-                  )}
-                />
-              </Button>
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-auto py-1 -ml-1"
+                  onClick={() => row.toggleExpanded()}
+                >
+                  {count} members
+                  <ChevronDown
+                    className={cn(
+                      "ml-0.5 size-4 transition-transform",
+                      row.getIsExpanded() && "rotate-180"
+                    )}
+                  />
+                </Button>
+                <span className="max-w-56 text-xs text-muted-foreground">
+                  {summarizeTeamAgeBracketCounts(members)}
+                </span>
+              </>
             ) : (
               count
             )}
@@ -147,25 +154,7 @@ export function renderTeamsExpandedRow(row: TeamWithSubRows | { _expandedContent
   if (members.length === 0) return null;
   return (
     <div className="px-4 py-3">
-      <ul className="flex flex-wrap gap-2">
-        {members.map((m) => (
-          <li
-            key={m.id}
-            className="flex items-center gap-2 rounded-md border bg-background px-2 py-1.5 text-sm"
-          >
-            <GeneratedAvatar
-              size="sm"
-              src={getAvatarUrl(m.id)}
-              alt={
-                formatParticipantNameDisplay(m.name) || m.gameID || ""
-              }
-            />
-            <span className="truncate">
-              {(formatParticipantNameDisplay(m.name) || m.gameID) ?? m.id}
-            </span>
-          </li>
-        ))}
-      </ul>
+      <TeamMembersByAgeGroup members={members} />
     </div>
   );
 }

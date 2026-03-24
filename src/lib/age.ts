@@ -75,3 +75,66 @@ export function getAgeBracketLabel(
   const bracket = getAgeBracket(age, brackets);
   return bracket?.label ?? "-";
 }
+
+/** Tournament roster: under 18 vs 18+ (unknown birthdate tracked separately). */
+export type TournamentAgeGroupKey = "under18" | "18+" | "unknown";
+
+const TOURNAMENT_AGE_LABELS: Record<TournamentAgeGroupKey, string> = {
+  under18: "Under 18",
+  "18+": "18+",
+  unknown: "No birthdate",
+};
+
+export function tournamentAgeGroupFromBirthdate(
+  birthdate: string | undefined
+): TournamentAgeGroupKey {
+  const age = getAge(birthdate);
+  if (age === null) return "unknown";
+  if (age < 18) return "under18";
+  return "18+";
+}
+
+export function tournamentAgeGroupLabel(key: TournamentAgeGroupKey): string {
+  return TOURNAMENT_AGE_LABELS[key];
+}
+
+export function groupParticipantsByTournamentAge<
+  T extends { birthdate?: string },
+>(members: T[]): { key: TournamentAgeGroupKey; label: string; items: T[] }[] {
+  const buckets: Record<TournamentAgeGroupKey, T[]> = {
+    under18: [],
+    "18+": [],
+    unknown: [],
+  };
+  for (const m of members) {
+    buckets[tournamentAgeGroupFromBirthdate(m.birthdate)].push(m);
+  }
+  const order: TournamentAgeGroupKey[] = ["under18", "18+", "unknown"];
+  return order
+    .filter((k) => buckets[k].length > 0)
+    .map((key) => ({
+      key,
+      label: tournamentAgeGroupLabel(key),
+      items: buckets[key],
+    }));
+}
+
+/** One-line counts for team cards / table, e.g. "Under 18: 2 · 18+: 3". */
+export function summarizeTeamAgeBracketCounts(
+  members: { birthdate?: string }[]
+): string {
+  if (members.length === 0) return "";
+  const buckets: Record<TournamentAgeGroupKey, number> = {
+    under18: 0,
+    "18+": 0,
+    unknown: 0,
+  };
+  for (const m of members) {
+    buckets[tournamentAgeGroupFromBirthdate(m.birthdate)]++;
+  }
+  const parts: string[] = [];
+  if (buckets.under18) parts.push(`Under 18: ${buckets.under18}`);
+  if (buckets["18+"]) parts.push(`18+: ${buckets["18+"]}`);
+  if (buckets.unknown) parts.push(`No birthdate: ${buckets.unknown}`);
+  return parts.join(" · ");
+}
