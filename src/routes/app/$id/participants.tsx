@@ -68,7 +68,15 @@ import { useTeamSuggestions } from "@/hooks/use-team-suggestions";
 import { useTeams } from "@/hooks/use-teams";
 import type { Collections, PlayerRole } from "@/types/pocketbase-types";
 import { createFileRoute } from "@tanstack/react-router";
-import { LayoutGrid, LayoutList, Loader2, Plus, Search, Users } from "lucide-react";
+import {
+  ArrowDownWideNarrow,
+  LayoutGrid,
+  LayoutList,
+  Loader2,
+  Plus,
+  Search,
+  Users,
+} from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -236,6 +244,44 @@ type TeamSuggestion = {
   suggestedTeamName?: string;
   suggestionPriority?: string;
 };
+
+type ParticipantRow = Collections["participants"] & { id: string };
+
+function compareParticipantName(a: ParticipantRow, b: ParticipantRow): number {
+  const na = (
+    formatParticipantNameDisplay(a.name) ||
+    a.gameID ||
+    ""
+  ).toLowerCase();
+  const nb = (
+    formatParticipantNameDisplay(b.name) ||
+    b.gameID ||
+    ""
+  ).toLowerCase();
+  return na.localeCompare(nb, undefined, { sensitivity: "base" });
+}
+
+function sortParticipantsByTeam(
+  list: ParticipantRow[],
+  getTeamName: (teamId: string | undefined) => string
+): ParticipantRow[] {
+  return [...list].sort((a, b) => {
+    const aId = a.team?.trim() || "";
+    const bId = b.team?.trim() || "";
+    const aUn = !aId;
+    const bUn = !bId;
+    if (aUn !== bUn) return aUn ? 1 : -1;
+    if (aUn && bUn) return compareParticipantName(a, b);
+    const teamNameCmp = getTeamName(aId).localeCompare(
+      getTeamName(bId),
+      undefined,
+      { sensitivity: "base" }
+    );
+    if (teamNameCmp !== 0) return teamNameCmp;
+    if (aId !== bId) return aId.localeCompare(bId);
+    return compareParticipantName(a, b);
+  });
+}
 
 function ParticipantsInfiniteFooter({
   loadMoreRef,
@@ -450,6 +496,10 @@ function ParticipantsPage() {
   );
 
   const [search, setSearch] = useState("");
+  const [participantSort, setParticipantSort] = useState<
+    "default" | "team"
+  >("default");
+
   const filteredParticipants = useMemo(() => {
     if (!search.trim()) return participants;
     const q = search.toLowerCase().trim();
@@ -478,6 +528,11 @@ function ParticipantsPage() {
       );
     });
   }, [participants, search, getTeamName]);
+
+  const displayedParticipants = useMemo(() => {
+    if (participantSort !== "team") return filteredParticipants;
+    return sortParticipantsByTeam(filteredParticipants, getTeamName);
+  }, [filteredParticipants, participantSort, getTeamName]);
 
   const showEmptyState = !isLoading && !isError && totalRegistered === 0;
   const loadMoreErrorMessage =
@@ -536,14 +591,42 @@ function ParticipantsPage() {
             ) : null}
           </CardDescription>
           {!isLoading && totalRegistered > 0 && (
-            <div className="relative mt-2">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by name, Game ID, contact, area, age..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9"
-              />
+            <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-3">
+              <div className="relative min-w-0 flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by name, Game ID, contact, area, age..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <div className="flex w-full shrink-0 flex-col gap-1.5 sm:w-[min(100%,14rem)]">
+                <Label
+                  htmlFor="participant-sort"
+                  className="text-xs text-muted-foreground"
+                >
+                  Sort
+                </Label>
+                <Select
+                  value={participantSort}
+                  onValueChange={(v) =>
+                    setParticipantSort(v as "default" | "team")
+                  }
+                >
+                  <SelectTrigger id="participant-sort" className="w-full">
+                    <ArrowDownWideNarrow
+                      className="size-4 shrink-0 text-muted-foreground"
+                      aria-hidden
+                    />
+                    <SelectValue placeholder="Order" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="default">Default order</SelectItem>
+                    <SelectItem value="team">By team</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           )}
         </CardHeader>
@@ -590,7 +673,7 @@ function ParticipantsPage() {
                   onRemoveFromTeam: handleRemoveFromTeamClick,
                   onJoinTeam: handleJoinTeam,
                 })}
-                data={filteredParticipants}
+                data={displayedParticipants}
                 emptyMessage={
                   search
                     ? `No participants match "${search}" in loaded rows`
@@ -611,7 +694,7 @@ function ParticipantsPage() {
           ) : (
             <>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {filteredParticipants.map((p) => (
+                {displayedParticipants.map((p) => (
                   <ParticipantCard
                     key={p.id}
                     participant={p}
