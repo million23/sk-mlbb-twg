@@ -147,11 +147,11 @@ export function useMatchMutations() {
     onSettled: () => invalidateMatches(queryClient),
   });
 
-  const deleteMutation = useMutation({
+  const archiveMutation = useMutation({
     mutationFn: async (id: string) => {
       return rateLimited(async () => {
         const col = getCollection("matches");
-        return col.delete(id);
+        return col.update(id, withUpdatedAuditField({ archived: true }));
       });
     },
     onMutate: async (id) => {
@@ -181,6 +181,16 @@ export function useMatchMutations() {
     onSettled: () => invalidateMatches(queryClient),
   });
 
+  const restoreMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return rateLimited(async () => {
+        const col = getCollection("matches");
+        return col.update(id, withUpdatedAuditField({ archived: false }));
+      });
+    },
+    onSettled: () => invalidateMatches(queryClient),
+  });
+
   return {
     create: {
       mutate: createMutation.mutate,
@@ -192,10 +202,15 @@ export function useMatchMutations() {
       mutateAsync: updateMutation.mutateAsync,
       isPending: updateMutation.isPending,
     },
-    delete: {
-      mutate: deleteMutation.mutate,
-      mutateAsync: deleteMutation.mutateAsync,
-      isPending: deleteMutation.isPending,
+    archive: {
+      mutate: archiveMutation.mutate,
+      mutateAsync: archiveMutation.mutateAsync,
+      isPending: archiveMutation.isPending,
+    },
+    restore: {
+      mutate: restoreMutation.mutate,
+      mutateAsync: restoreMutation.mutateAsync,
+      isPending: restoreMutation.isPending,
     },
   };
 }

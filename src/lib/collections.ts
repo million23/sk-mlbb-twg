@@ -10,18 +10,27 @@ import {
 import { normalizeParticipantForCreate } from "@/lib/utils";
 import type { Collections } from "@/types/pocketbase-types";
 
+const PARTICIPANTS_ACTIVE_FILTER = "archived != true";
+const TEAMS_ACTIVE_FILTER = "archived != true";
+const TOURNAMENTS_ACTIVE_FILTER = "archived != true";
+
 type Participant = Collections["participants"] & { id: string };
 type Team = Collections["teams"] & { id: string };
 type Tournament = Collections["tournaments"] & { id: string };
 
-const refetchParticipants = () =>
+const refetchParticipants = () => {
   queryClient.invalidateQueries({ queryKey: ["participants"] });
+  queryClient.invalidateQueries({ queryKey: ["participants", "archived"] });
+  queryClient.invalidateQueries({ queryKey: ["team_suggestions"] });
+  queryClient.invalidateQueries({ queryKey: ["draft_suggestions"] });
+};
 const refetchTeams = () => {
   queryClient.invalidateQueries({ queryKey: ["teams"] });
   queryClient.invalidateQueries({ queryKey: ["team_suggestions"] });
 };
 const refetchTournaments = () => {
   queryClient.invalidateQueries({ queryKey: ["tournaments"] });
+  queryClient.invalidateQueries({ queryKey: ["tournaments", "archived"] });
   queryClient.invalidateQueries({ queryKey: ["public", "upcoming"] });
   queryClient.invalidateQueries({ queryKey: ["public", "current"] });
   queryClient.invalidateQueries({ queryKey: ["draft_suggestions"] });
@@ -35,7 +44,10 @@ export const participantsCollection = createCollection(
     queryFn: () =>
       rateLimited(async () => {
         const col = getCollection("participants");
-        const list = await col.getFullList({ sort: "-created" });
+        const list = await col.getFullList({
+          sort: "-created",
+          filter: PARTICIPANTS_ACTIVE_FILTER,
+        });
         return list as Participant[];
       }),
     getKey: (item) => item.id,
@@ -66,7 +78,16 @@ export const participantsCollection = createCollection(
     },
     onDelete: async ({ transaction }) => {
       for (const m of transaction.mutations) {
-        await rateLimited(() => getCollection("participants").delete(m.key as string));
+        await rateLimited(() =>
+          getCollection("participants").update(
+            m.key as string,
+            withUpdatedAuditField({
+              archived: true,
+              team: "",
+              status: "unassigned",
+            }),
+          ),
+        );
       }
       refetchParticipants();
     },
@@ -81,7 +102,10 @@ export const teamsCollection = createCollection(
     queryFn: () =>
       rateLimited(async () => {
         const col = getCollection("teams");
-        const list = await col.getFullList({ sort: "-created" });
+        const list = await col.getFullList({
+          sort: "-created",
+          filter: TEAMS_ACTIVE_FILTER,
+        });
         return list as Team[];
       }),
     getKey: (item) => item.id,
@@ -109,7 +133,28 @@ export const teamsCollection = createCollection(
     },
     onDelete: async ({ transaction }) => {
       for (const m of transaction.mutations) {
-        await rateLimited(() => getCollection("teams").delete(m.key as string));
+        const id = m.key as string;
+        const participantsCol = getCollection("participants");
+        const members = await rateLimited(() =>
+          participantsCol.getFullList({ filter: `team = "${id}"` }),
+        );
+        for (const p of members) {
+          await rateLimited(() =>
+            participantsCol.update(
+              p.id,
+              withUpdatedAuditField({
+                team: "",
+                status: "unassigned",
+              }),
+            ),
+          );
+        }
+        await rateLimited(() =>
+          getCollection("teams").update(
+            id,
+            withUpdatedAuditField({ archived: true }),
+          ),
+        );
       }
       refetchTeams();
     },
@@ -124,7 +169,10 @@ export const tournamentsCollection = createCollection(
     queryFn: () =>
       rateLimited(async () => {
         const col = getCollection("tournaments");
-        const list = await col.getFullList({ sort: "-created" });
+        const list = await col.getFullList({
+          sort: "-created",
+          filter: TOURNAMENTS_ACTIVE_FILTER,
+        });
         return list as Tournament[];
       }),
     getKey: (item) => item.id,
@@ -153,7 +201,10 @@ export const tournamentsCollection = createCollection(
     onDelete: async ({ transaction }) => {
       for (const m of transaction.mutations) {
         await rateLimited(() =>
-          getCollection("tournaments").delete(m.key as string)
+          getCollection("tournaments").update(
+            m.key as string,
+            withUpdatedAuditField({ archived: true }),
+          ),
         );
       }
       refetchTournaments();

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { getTournamentStatusLabel } from "@/lib/tournament-status";
 import type { Collections } from "@/types/pocketbase-types";
 import { format } from "date-fns";
-import { Pencil, Trash2 } from "lucide-react";
+import { Archive, Pencil } from "lucide-react";
 
 type Tournament = Collections["tournaments"] & { id: string };
 
@@ -69,8 +69,9 @@ export function getTournamentColumns(
               size="icon-sm"
               className="text-destructive hover:text-destructive"
               onClick={() => meta.onDelete(t.id)}
+              aria-label="Archive tournament"
             >
-              <Trash2 className="size-4" />
+              <Archive className="size-4" />
             </Button>
           </div>
         );

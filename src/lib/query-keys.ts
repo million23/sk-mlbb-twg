@@ -4,8 +4,11 @@ export const queryKeys = {
   auditRelatedRecord: (collection: string, id: string) =>
     ["audit_related_record", collection, id] as const,
   participants: ["participants"] as const,
+  participantsArchived: ["participants", "archived"] as const,
   teams: ["teams"] as const,
+  teamsArchived: ["teams", "archived"] as const,
   tournaments: ["tournaments"] as const,
+  tournamentsArchived: ["tournaments", "archived"] as const,
   tournamentDrafts: ["tournament_drafts"] as const,
   matchDrafts: ["match_drafts"] as const,
   matches: ["matches"] as const,

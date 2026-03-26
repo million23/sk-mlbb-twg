@@ -14,13 +14,13 @@ import { StatusBadge } from "./status-badge";
 import { getAvatarUrl } from "@/lib/avatar";
 import type { Collections, PlayerRole } from "@/types/pocketbase-types";
 import {
+  Archive,
   Cake,
   Gamepad2,
   MapPin,
   Pencil,
   Phone,
   Plus,
-  Trash2,
   UserMinus,
   Users,
   UserCircle2,
@@ -127,8 +127,9 @@ export function ParticipantCard({
               size="icon-sm"
               className="text-destructive hover:text-destructive"
               onClick={() => onDelete(p.id)}
+              aria-label="Archive participant"
             >
-              <Trash2 className="size-4" />
+              <Archive className="size-4" />
             </Button>
           </div>
         </div>

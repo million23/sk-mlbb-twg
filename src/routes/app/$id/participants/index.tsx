@@ -1,21 +1,3 @@
-import { createFileRoute } from "@tanstack/react-router";
-import {
-	ArrowDownWideNarrow,
-	LayoutGrid,
-	LayoutList,
-	Loader2,
-	Plus,
-	Search,
-	Users,
-} from "lucide-react";
-import {
-	type RefObject,
-	useCallback,
-	useEffect,
-	useMemo,
-	useState,
-} from "react";
-import { toast } from "sonner";
 import { ParticipantCard } from "@/components/participants/participant-card";
 import { getParticipantsColumns } from "@/components/tables/participants-columns";
 import {
@@ -30,7 +12,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { GeneratedAvatar } from "@/components/ui/avatar";
 import { BirthdayPicker } from "@/components/ui/birthday-picker";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -94,8 +76,27 @@ import {
 	toTitleCaseWords,
 } from "@/lib/utils";
 import type { Collections, PlayerRole } from "@/types/pocketbase-types";
+import { createFileRoute, Link, useParams } from "@tanstack/react-router";
+import {
+	Archive,
+	ArrowDownWideNarrow,
+	LayoutGrid,
+	LayoutList,
+	Loader2,
+	Plus,
+	Search,
+	Users,
+} from "lucide-react";
+import {
+	type RefObject,
+	useCallback,
+	useEffect,
+	useMemo,
+	useState,
+} from "react";
+import { toast } from "sonner";
 
-export const Route = createFileRoute("/app/$id/participants")({
+export const Route = createFileRoute("/app/$id/participants/")({
 	component: ParticipantsPage,
 });
 
@@ -208,7 +209,7 @@ function ParticipantForm({
 								key={i}
 								value={roles[i] ?? ""}
 								onValueChange={(v) => {
-									const next = [...roles];
+									const next = [...roles]
 									next[i] = (v || "") as PlayerRole;
 									setForm((f) => ({ ...f, preferredRoles: next }));
 								}}
@@ -218,7 +219,7 @@ function ParticipantForm({
 										{(value: string | null) =>
 											value
 												? (PREFERRED_ROLES.find((r) => r.value === value)
-														?.label ?? value)
+													?.label ?? value)
 												: null
 										}
 									</SelectValue>
@@ -234,7 +235,7 @@ function ParticipantForm({
 									)}
 								</SelectContent>
 							</Select>
-						);
+						)
 					})}
 				</div>
 			</div>
@@ -247,7 +248,7 @@ function ParticipantForm({
 				</Button>
 			</div>
 		</div>
-	);
+	)
 }
 
 type TeamSuggestion = {
@@ -287,7 +288,7 @@ function sortParticipantsByTeam(
 			getTeamName(bId),
 			undefined,
 			{ sensitivity: "base" },
-		);
+		)
 		if (teamNameCmp !== 0) return teamNameCmp;
 		if (aId !== bId) return aId.localeCompare(bId);
 		return compareParticipantName(a, b);
@@ -340,7 +341,7 @@ function ParticipantsInfiniteFooter({
 				</>
 			)}
 		</div>
-	);
+	)
 }
 
 const PARTICIPANTS_CARD_SKELETON_KEYS = [
@@ -400,7 +401,7 @@ function ParticipantsLoadingSkeleton({
 					</div>
 				))}
 			</div>
-		);
+		)
 	}
 
 	return (
@@ -481,7 +482,7 @@ function ParticipantsLoadingSkeleton({
 				</TableBody>
 			</Table>
 		</div>
-	);
+	)
 }
 
 function ParticipantsPage() {
@@ -499,7 +500,7 @@ function ParticipantsPage() {
 	const participants = useMemo(
 		() => data?.pages.flatMap((p) => p.items) ?? [],
 		[data],
-	);
+	)
 
 	const totalRegistered = data?.pages[0]?.totalItems ?? 0;
 
@@ -514,6 +515,8 @@ function ParticipantsPage() {
 	}, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
 	const { data: teams } = useTeams();
 	const { data: teamSuggestions } = useTeamSuggestions();
+	const params = useParams({ strict: false });
+	const appId = (params as { id?: string })?.id ?? "";
 
 	const suggestionsByParticipant = useMemo(() => {
 		const map = new Map<string, TeamSuggestion[]>();
@@ -523,18 +526,18 @@ function ParticipantsPage() {
 				typeof participantRef === "string"
 					? participantRef
 					: participantRef &&
-							typeof participantRef === "object" &&
-							"id" in participantRef &&
-							typeof (participantRef as { id?: unknown }).id === "string"
+						typeof participantRef === "object" &&
+						"id" in participantRef &&
+						typeof (participantRef as { id?: unknown }).id === "string"
 						? (participantRef as { id: string }).id
-						: undefined;
+						: undefined
 			if (!pid) continue;
 			const list = map.get(pid) ?? [];
 			list.push({
 				suggestedTeamId: s.suggestedTeamId,
 				suggestedTeamName: s.suggestedTeamName,
 				suggestionPriority: s.suggestionPriority,
-			});
+			})
 			map.set(pid, list);
 		}
 		return map;
@@ -544,7 +547,9 @@ function ParticipantsPage() {
 	const [view, setView] = useState<"table" | "cards">("table");
 	const [sheetOpen, setSheetOpen] = useState(false);
 	const [editingId, setEditingId] = useState<string | null>(null);
-	const [deleteId, setDeleteId] = useState<string | null>(null);
+	const [archiveConfirmId, setArchiveConfirmId] = useState<string | null>(
+		null,
+	)
 	const [removeFromTeamParticipant, setRemoveFromTeamParticipant] = useState<
 		(Collections["participants"] & { id: string }) | null
 	>(null);
@@ -569,9 +574,9 @@ function ParticipantsPage() {
 			preferredRoles: [],
 			status: "unassigned",
 			team: undefined,
-		});
+		})
 		setSheetOpen(true);
-	};
+	}
 
 	const openEdit = (p: Collections["participants"] & { id: string }) => {
 		setEditingId(p.id);
@@ -584,16 +589,16 @@ function ParticipantsPage() {
 			preferredRoles: p.preferredRoles ?? [],
 			status: p.status ?? "unassigned",
 			team: p.team,
-		});
+		})
 		setSheetOpen(true);
-	};
+	}
 
 	const handleSubmit = () => {
 		const name = (form.name ?? "").trim();
 		const gameID = (form.gameID ?? "").trim();
 		if (!name && !gameID) {
 			toast.error("Enter at least a name or Game ID");
-			return;
+			return
 		}
 		const payload = {
 			...form,
@@ -601,7 +606,7 @@ function ParticipantsPage() {
 			preferredRoles: (form.preferredRoles ?? [])
 				.filter((r): r is PlayerRole => Boolean(r))
 				.slice(0, 3),
-		};
+		}
 		if (editingId) {
 			mutations.update.mutate({ id: editingId, ...payload });
 			toast.success("Participant updated");
@@ -610,21 +615,21 @@ function ParticipantsPage() {
 			toast.success("Participant added");
 		}
 		setSheetOpen(false);
-	};
+	}
 
-	const handleDelete = () => {
-		if (deleteId) {
-			mutations.delete.mutate(deleteId);
-			toast.success("Participant removed");
-			setDeleteId(null);
+	const handleArchiveConfirm = () => {
+		if (archiveConfirmId) {
+			mutations.archive.mutate(archiveConfirmId);
+			toast.success("Participant archived");
+			setArchiveConfirmId(null);
 		}
-	};
+	}
 
 	const handleRemoveFromTeamClick = (
 		p: Collections["participants"] & { id: string },
 	) => {
 		setRemoveFromTeamParticipant(p);
-	};
+	}
 
 	const handleRemoveFromTeamConfirm = () => {
 		if (removeFromTeamParticipant) {
@@ -632,31 +637,31 @@ function ParticipantsPage() {
 				id: removeFromTeamParticipant.id,
 				team: "",
 				status: "unassigned",
-			});
+			})
 			toast.success("Removed from team");
 			setRemoveFromTeamParticipant(null);
 		}
-	};
+	}
 
 	const handleJoinTeam = (participantId: string, teamId: string) => {
 		mutations.update.mutateQueued({
 			id: participantId,
 			team: teamId,
 			status: "assigned",
-		});
+		})
 		toast.success("Added to team");
-	};
+	}
 
 	const getTeamName = useCallback(
 		(teamId: string | undefined) =>
 			teams?.find((t) => t.id === teamId)?.name ?? "-",
 		[teams],
-	);
+	)
 
 	const [search, setSearch] = useState("");
 	const [participantSort, setParticipantSort] = useState<"default" | "team">(
 		"default",
-	);
+	)
 
 	const filteredParticipants = useMemo(() => {
 		if (!search.trim()) return participants;
@@ -685,8 +690,8 @@ function ParticipantsPage() {
 				ageStr.includes(q) ||
 				bracket.includes(q) ||
 				birthdateStr.includes(q)
-			);
-		});
+			)
+		})
 	}, [participants, search, getTeamName]);
 
 	const displayedParticipants = useMemo(() => {
@@ -703,7 +708,9 @@ function ParticipantsPage() {
 		<div className="space-y-6">
 			<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 				<div className="min-w-0">
-					<h1 className="text-2xl font-bold tracking-tight">Participants</h1>
+					<h1 className="text-2xl font-bold tracking-tight text-balance">
+						Participants
+					</h1>
 					<p className="text-muted-foreground">
 						Manage registered players for the tournament
 					</p>
@@ -729,6 +736,17 @@ function ParticipantsPage() {
 							<LayoutGrid className="size-4" />
 						</Button>
 					</div>
+					<Link
+						to="/app/$id/participants/archived"
+						params={{ id: appId }}
+						className={cn(
+							buttonVariants({ variant: "outline", size: "default" }),
+							"gap-2",
+						)}
+					>
+						<Archive className="size-4 shrink-0" aria-hidden />
+						Archived
+					</Link>
 					<Button onClick={openCreate}>
 						<Plus className="size-4" />
 						Add participant
@@ -749,7 +767,7 @@ function ParticipantsPage() {
 							<>
 								{`${totalRegistered} registered`}
 								{totalRegistered > 0 &&
-								participants.length < totalRegistered ? (
+									participants.length < totalRegistered ? (
 									<span className="text-muted-foreground">
 										{" "}
 										· {participants.length} loaded — scroll for more
@@ -853,7 +871,7 @@ function ParticipantsPage() {
 									getTeamName,
 									suggestionsByParticipant,
 									onEdit: openEdit,
-									onDelete: setDeleteId,
+									onDelete: setArchiveConfirmId,
 									onRemoveFromTeam: handleRemoveFromTeamClick,
 									onJoinTeam: handleJoinTeam,
 								})}
@@ -885,7 +903,7 @@ function ParticipantsPage() {
 										teamName={getTeamName(p.team)}
 										suggestions={suggestionsByParticipant.get(p.id) ?? []}
 										onEdit={openEdit}
-										onDelete={setDeleteId}
+										onDelete={setArchiveConfirmId}
 										onRemoveFromTeam={handleRemoveFromTeamClick}
 										onJoinTeam={handleJoinTeam}
 									/>
@@ -951,24 +969,25 @@ function ParticipantsPage() {
 			)}
 
 			<AlertDialog
-				open={!!deleteId}
-				onOpenChange={(o) => !o && setDeleteId(null)}
+				open={!!archiveConfirmId}
+				onOpenChange={(o) => !o && setArchiveConfirmId(null)}
 			>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>Remove participant?</AlertDialogTitle>
+						<AlertDialogTitle>Archive participant?</AlertDialogTitle>
 						<AlertDialogDescription>
-							This will remove the participant from the list. This action cannot
-							be undone.
+							This will hide the participant from active lists and remove them
+							from any team. The record stays in the database with archived set
+							to true. You can restore them from the Archived participants page.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
 						<AlertDialogCancel>Cancel</AlertDialogCancel>
 						<AlertDialogAction
-							onClick={handleDelete}
+							onClick={handleArchiveConfirm}
 							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
 						>
-							Remove
+							Archive
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>
@@ -1005,5 +1024,5 @@ function ParticipantsPage() {
 				</AlertDialogContent>
 			</AlertDialog>
 		</div>
-	);
+	)
 }

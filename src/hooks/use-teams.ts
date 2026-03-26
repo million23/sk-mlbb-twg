@@ -10,13 +10,41 @@ type TeamInput = Partial<
 >;
 type Team = Collections["teams"];
 
+/** PocketBase filter: not soft-deleted. */
+export const TEAMS_ACTIVE_FILTER = "archived != true";
+
+const TEAMS_ARCHIVED_FILTER = "archived = true";
+
+function invalidateTeamQueries(queryClient: ReturnType<typeof useQueryClient>) {
+  queryClient.invalidateQueries({ queryKey: queryKeys.teams });
+  queryClient.invalidateQueries({ queryKey: queryKeys.teamsArchived });
+}
+
 export function useTeams() {
   return useQuery({
     queryKey: queryKeys.teams,
     queryFn: () =>
       rateLimited(async () => {
         const col = getCollection("teams");
-        const list = await col.getFullList({ sort: "-created" });
+        const list = await col.getFullList({
+          sort: "-created",
+          filter: TEAMS_ACTIVE_FILTER,
+        });
+        return list as Team[];
+      }),
+  });
+}
+
+export function useArchivedTeams() {
+  return useQuery({
+    queryKey: queryKeys.teamsArchived,
+    queryFn: () =>
+      rateLimited(async () => {
+        const col = getCollection("teams");
+        const list = await col.getFullList({
+          sort: "-updated",
+          filter: TEAMS_ARCHIVED_FILTER,
+        });
         return list as Team[];
       }),
   });
@@ -52,7 +80,7 @@ export function useTeamMutations() {
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.teams });
+      invalidateTeamQueries(queryClient);
     },
   });
 
@@ -83,16 +111,33 @@ export function useTeamMutations() {
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.teams });
+      invalidateTeamQueries(queryClient);
     },
   });
 
-  const deleteMutation = useMutation({
+  const archiveMutation = useMutation({
     mutationFn: async (id: string) => {
-      return rateLimited(async () => {
-        const col = getCollection("teams");
-        return col.delete(id);
-      });
+      const teamsCol = getCollection("teams");
+      const participantsCol = getCollection("participants");
+      const members = await rateLimited(() =>
+        participantsCol.getFullList({
+          filter: `team = "${id}"`,
+        }),
+      );
+      for (const p of members) {
+        await rateLimited(() =>
+          participantsCol.update(
+            p.id,
+            withUpdatedAuditField({
+              team: "",
+              status: "unassigned",
+            }),
+          ),
+        );
+      }
+      return rateLimited(() =>
+        teamsCol.update(id, withUpdatedAuditField({ archived: true })),
+      );
     },
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.teams });
@@ -108,7 +153,22 @@ export function useTeamMutations() {
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.teams });
+      invalidateTeamQueries(queryClient);
+      queryClient.invalidateQueries({ queryKey: queryKeys.participants });
+      queryClient.invalidateQueries({ queryKey: queryKeys.teamSuggestions });
+    },
+  });
+
+  const restoreMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return rateLimited(async () => {
+        const col = getCollection("teams");
+        return col.update(id, withUpdatedAuditField({ archived: false }));
+      });
+    },
+    onSettled: () => {
+      invalidateTeamQueries(queryClient);
+      queryClient.invalidateQueries({ queryKey: queryKeys.teamSuggestions });
     },
   });
 
@@ -123,9 +183,13 @@ export function useTeamMutations() {
       mutateAsync: (data: TeamInput & { id: string }) =>
         updateMutation.mutateAsync(data),
     },
-    delete: {
-      mutate: (id: string) => deleteMutation.mutate(id),
-      mutateAsync: (id: string) => deleteMutation.mutateAsync(id),
+    archive: {
+      mutate: (id: string) => archiveMutation.mutate(id),
+      mutateAsync: (id: string) => archiveMutation.mutateAsync(id),
+    },
+    restore: {
+      mutate: (id: string) => restoreMutation.mutate(id),
+      mutateAsync: (id: string) => restoreMutation.mutateAsync(id),
     },
   };
 }

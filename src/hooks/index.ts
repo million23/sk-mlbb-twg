@@ -1,30 +1,35 @@
-export { useIsMobile } from "./use-mobile";
-export { usePocketBaseAuth } from "./use-pocketbase-auth";
 export { useAdminMutations } from "./use-admin-mutations";
 export { useAdmins } from "./use-admins";
 export {
-  AUDIT_LOG_PAGE_SIZE,
-  useAuditLogInfinite,
-  type AuditLogRow,
+  AUDIT_LOG_PAGE_SIZE, useAuditLogInfinite, type AuditLogRow
 } from "./use-audit-log";
-export {
-  PARTICIPANTS_PAGE_SIZE,
-  useParticipants,
-  useParticipantsInfinite,
-  useParticipantMutations,
-} from "./use-participants";
+export { useDraftSuggestions } from "./use-draft-suggestions";
 export { useInView } from "./use-in-view";
-export { useTeams, useTeamMutations } from "./use-teams";
-export {
-  useTournaments,
-  useUpcomingTournaments,
-  useCurrentTournaments,
-  useTournamentMutations,
-} from "./use-tournaments";
-export { useTournamentDrafts } from "./use-tournament-drafts";
 export { useMatchDrafts } from "./use-match-drafts";
 export {
+  useArchivedMatchesForTournament,
+  useMatchesForTournament
+} from "./use-matches";
+export { useIsMobile } from "./use-mobile";
+export {
+  PARTICIPANTS_PAGE_SIZE,
+  useArchivedParticipants,
+  useParticipantMutations,
+  useParticipants,
+  useParticipantsInfinite
+} from "./use-participants";
+export { usePocketBaseAuth } from "./use-pocketbase-auth";
+export {
   useTeamSuggestions,
-  useTeamSuggestionsByParticipant,
+  useTeamSuggestionsByParticipant
 } from "./use-team-suggestions";
-export { useDraftSuggestions } from "./use-draft-suggestions";
+export { useArchivedTeams, useTeamMutations, useTeams } from "./use-teams";
+export { useTournamentDrafts } from "./use-tournament-drafts";
+export {
+  useArchivedTournaments,
+  useCurrentTournaments,
+  useTournamentMutations,
+  useTournaments,
+  useUpcomingTournaments
+} from "./use-tournaments";
+

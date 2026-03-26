@@ -15,7 +15,7 @@ import { getTeamAvatarUrl } from "@/lib/avatar";
 import { getTeamStatusStyle } from "@/lib/team-status";
 import { cn } from "@/lib/utils";
 import type { Collections } from "@/types/pocketbase-types";
-import { ChevronDown, Pencil, Trash2, UserPlus } from "lucide-react";
+import { Archive, ChevronDown, Pencil, UserPlus } from "lucide-react";
 
 type Team = Collections["teams"] & { id: string };
 
@@ -155,8 +155,9 @@ export function getTeamsColumns(
               size="icon-sm"
               className="text-destructive hover:text-destructive"
               onClick={() => meta.onDelete(t.id)}
+              aria-label="Archive team"
             >
-              <Trash2 className="size-4" />
+              <Archive className="size-4" />
             </Button>
           </div>
         );

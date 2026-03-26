@@ -10,13 +10,31 @@ type TournamentInput = Partial<
 >;
 type Tournament = Collections["tournaments"];
 
+/** PocketBase filter: not soft-deleted. */
+export const TOURNAMENTS_ACTIVE_FILTER = "archived != true";
+
+const TOURNAMENTS_ARCHIVED_FILTER = "archived = true";
+
+function invalidateTournamentQueries(
+  queryClient: ReturnType<typeof useQueryClient>,
+) {
+  queryClient.invalidateQueries({ queryKey: queryKeys.tournaments });
+  queryClient.invalidateQueries({ queryKey: queryKeys.tournamentsArchived });
+  queryClient.invalidateQueries({ queryKey: queryKeys.publicUpcoming });
+  queryClient.invalidateQueries({ queryKey: queryKeys.publicCurrent });
+  queryClient.invalidateQueries({ queryKey: queryKeys.draftSuggestions });
+}
+
 export function useTournaments() {
   return useQuery({
     queryKey: queryKeys.tournaments,
     queryFn: () =>
       rateLimited(async () => {
         const col = getCollection("tournaments");
-        const list = await col.getFullList({ sort: "-created" });
+        const list = await col.getFullList({
+          sort: "-created",
+          filter: TOURNAMENTS_ACTIVE_FILTER,
+        });
         return list as Tournament[];
       }),
   });
@@ -29,7 +47,7 @@ export function useUpcomingTournaments() {
       rateLimited(async () => {
         const col = getCollection("tournaments");
         const list = await col.getFullList({
-          filter: 'status = "upcoming"',
+          filter: `${TOURNAMENTS_ACTIVE_FILTER} && status = "upcoming"`,
           sort: "startAt",
         });
         return list as Tournament[];
@@ -44,8 +62,23 @@ export function useCurrentTournaments() {
       rateLimited(async () => {
         const col = getCollection("tournaments");
         const list = await col.getFullList({
-          filter: 'status = "live"',
+          filter: `${TOURNAMENTS_ACTIVE_FILTER} && status = "live"`,
           sort: "startAt",
+        });
+        return list as Tournament[];
+      }),
+  });
+}
+
+export function useArchivedTournaments() {
+  return useQuery({
+    queryKey: queryKeys.tournamentsArchived,
+    queryFn: () =>
+      rateLimited(async () => {
+        const col = getCollection("tournaments");
+        const list = await col.getFullList({
+          sort: "-updated",
+          filter: TOURNAMENTS_ARCHIVED_FILTER,
         });
         return list as Tournament[];
       }),
@@ -82,9 +115,7 @@ export function useTournamentMutations() {
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.tournaments });
-      queryClient.invalidateQueries({ queryKey: queryKeys.publicUpcoming });
-      queryClient.invalidateQueries({ queryKey: queryKeys.publicCurrent });
+      invalidateTournamentQueries(queryClient);
     },
   });
 
@@ -115,17 +146,15 @@ export function useTournamentMutations() {
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.tournaments });
-      queryClient.invalidateQueries({ queryKey: queryKeys.publicUpcoming });
-      queryClient.invalidateQueries({ queryKey: queryKeys.publicCurrent });
+      invalidateTournamentQueries(queryClient);
     },
   });
 
-  const deleteMutation = useMutation({
+  const archiveMutation = useMutation({
     mutationFn: async (id: string) => {
       return rateLimited(async () => {
         const col = getCollection("tournaments");
-        return col.delete(id);
+        return col.update(id, withUpdatedAuditField({ archived: true }));
       });
     },
     onMutate: async (id) => {
@@ -142,9 +171,19 @@ export function useTournamentMutations() {
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.tournaments });
-      queryClient.invalidateQueries({ queryKey: queryKeys.publicUpcoming });
-      queryClient.invalidateQueries({ queryKey: queryKeys.publicCurrent });
+      invalidateTournamentQueries(queryClient);
+    },
+  });
+
+  const restoreMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return rateLimited(async () => {
+        const col = getCollection("tournaments");
+        return col.update(id, withUpdatedAuditField({ archived: false }));
+      });
+    },
+    onSettled: () => {
+      invalidateTournamentQueries(queryClient);
     },
   });
 
@@ -159,9 +198,13 @@ export function useTournamentMutations() {
       mutateAsync: (data: TournamentInput & { id: string }) =>
         updateMutation.mutateAsync(data),
     },
-    delete: {
-      mutate: (id: string) => deleteMutation.mutate(id),
-      mutateAsync: (id: string) => deleteMutation.mutateAsync(id),
+    archive: {
+      mutate: (id: string) => archiveMutation.mutate(id),
+      mutateAsync: (id: string) => archiveMutation.mutateAsync(id),
+    },
+    restore: {
+      mutate: (id: string) => restoreMutation.mutate(id),
+      mutateAsync: (id: string) => restoreMutation.mutateAsync(id),
     },
   };
 }

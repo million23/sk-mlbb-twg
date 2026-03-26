@@ -6,7 +6,7 @@ import { cn, formatParticipantNameDisplay } from "@/lib/utils";
 import { getAvatarUrl, getTeamAvatarUrl } from "@/lib/avatar";
 import { getTeamStatusStyle } from "@/lib/team-status";
 import type { Collections } from "@/types/pocketbase-types";
-import { ChevronDown, Pencil, Trash2, UserPlus } from "lucide-react";
+import { Archive, ChevronDown, Pencil, UserPlus } from "lucide-react";
 import { useState } from "react";
 
 type Team = Collections["teams"] & { id: string };
@@ -92,8 +92,9 @@ export function TeamTableRow({
             size="icon-sm"
             className="text-destructive hover:text-destructive"
             onClick={() => onDelete(t.id)}
+            aria-label="Archive team"
           >
-            <Trash2 className="size-4" />
+            <Archive className="size-4" />
           </Button>
         </div>
       </TableCell>

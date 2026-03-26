@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -49,12 +49,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useTournaments, useTournamentMutations } from "@/hooks/use-tournaments";
 import { getTournamentStatusLabel, TOURNAMENT_STATUS_OPTIONS } from "@/lib/tournament-status";
+import { cn } from "@/lib/utils";
 import type { Collections } from "@/types/pocketbase-types";
-import { LayoutGrid, LayoutList, MapPin, Plus, Pencil, Trash2, Trophy } from "lucide-react";
+import { Archive, LayoutGrid, LayoutList, MapPin, Plus, Pencil, Trophy } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
-export const Route = createFileRoute("/app/$id/tournament")({
+export const Route = createFileRoute("/app/$id/tournament/")({
   component: TournamentPage,
 });
 
@@ -181,17 +182,21 @@ function TournamentForm({
         </Button>
       </div>
     </div>
-  );
+  )
 }
 
 function TournamentPage() {
+  const params = useParams({ strict: false });
+  const appId = (params as { id?: string })?.id ?? "";
   const { data: tournaments, isLoading } = useTournaments();
   const mutations = useTournamentMutations();
   const isMobile = useIsMobile();
   const [view, setView] = useState<"table" | "cards">("table");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [archiveConfirmId, setArchiveConfirmId] = useState<string | null>(
+    null,
+  );
   const [form, setForm] = useState<TournamentFormData>({
     title: "",
     slug: "",
@@ -241,11 +246,11 @@ function TournamentPage() {
     setSheetOpen(false);
   };
 
-  const handleDelete = () => {
-    if (deleteId) {
-      mutations.delete.mutate(deleteId);
-      toast.success("Tournament removed");
-      setDeleteId(null);
+  const handleArchiveConfirm = () => {
+    if (archiveConfirmId) {
+      mutations.archive.mutate(archiveConfirmId);
+      toast.success("Tournament archived");
+      setArchiveConfirmId(null);
     }
   };
 
@@ -262,7 +267,9 @@ function TournamentPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold tracking-tight">Tournaments</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-balance">
+            Tournaments
+          </h1>
           <p className="text-muted-foreground">
             Manage tournament events
           </p>
@@ -288,6 +295,17 @@ function TournamentPage() {
               <LayoutGrid className="size-4" />
             </Button>
           </div>
+          <Link
+            to="/app/$id/tournament/archived"
+            params={{ id: appId }}
+            className={cn(
+              buttonVariants({ variant: "outline", size: "default" }),
+              "gap-2",
+            )}
+          >
+            <Archive className="size-4 shrink-0" aria-hidden />
+            Archived
+          </Link>
           <Button onClick={openCreate}>
             <Plus className="size-4" />
             Add tournament
@@ -322,7 +340,7 @@ function TournamentPage() {
             <DataTable
               columns={getTournamentColumns({
                 onEdit: openEdit,
-                onDelete: setDeleteId,
+                onDelete: setArchiveConfirmId,
               })}
               data={tournaments ?? []}
               filterColumn="title"
@@ -375,9 +393,10 @@ function TournamentPage() {
                           variant="ghost"
                           size="icon-sm"
                           className="text-destructive hover:text-destructive"
-                          onClick={() => setDeleteId(t.id)}
+                          onClick={() => setArchiveConfirmId(t.id)}
+                          aria-label="Archive tournament"
                         >
-                          <Trash2 className="size-4" />
+                          <Archive className="size-4" />
                         </Button>
                       </div>
                     </div>
@@ -429,21 +448,26 @@ function TournamentPage() {
         </Dialog>
       )}
 
-      <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+      <AlertDialog
+        open={!!archiveConfirmId}
+        onOpenChange={(o) => !o && setArchiveConfirmId(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove tournament?</AlertDialogTitle>
+            <AlertDialogTitle>Archive tournament?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will remove the tournament. This action cannot be undone.
+              This will hide the tournament from active lists. The record stays
+              in the database with archived set to true. You can restore from
+              the Archived tournaments page.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDelete}
+              onClick={handleArchiveConfirm}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Remove
+              Archive
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

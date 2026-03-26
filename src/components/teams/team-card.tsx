@@ -23,7 +23,7 @@ import {
   CalendarDays,
   ChevronDown,
   Pencil,
-  Trash2,
+  Archive,
   UserCircle2,
   UserPlus,
   Users,
@@ -101,8 +101,9 @@ export function TeamCard({
               size="icon-sm"
               className="text-destructive hover:text-destructive"
               onClick={() => onDelete(t.id)}
+              aria-label="Archive team"
             >
-              <Trash2 className="size-4" />
+              <Archive className="size-4" />
             </Button>
           </div>
         </div>

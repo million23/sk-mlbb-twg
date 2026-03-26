@@ -15,7 +15,7 @@ import { ParticipantContactWithBadge } from "@/components/participants/participa
 import { StatusBadge } from "./status-badge";
 import { getAvatarUrl } from "@/lib/avatar";
 import type { Collections, PlayerRole } from "@/types/pocketbase-types";
-import { CircleHelp, Pencil, Plus, Trash2, UserMinus } from "lucide-react";
+import { Archive, CircleHelp, Pencil, Plus, UserMinus } from "lucide-react";
 
 type Participant = Collections["participants"] & { id: string };
 
@@ -156,8 +156,9 @@ export function ParticipantTableRow({
             size="icon-sm"
             className="text-destructive hover:text-destructive"
             onClick={() => onDelete(p.id)}
+            aria-label="Archive participant"
           >
-            <Trash2 className="size-4" />
+            <Archive className="size-4" />
           </Button>
         </div>
       </TableCell>

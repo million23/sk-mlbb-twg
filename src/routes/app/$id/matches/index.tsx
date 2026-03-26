@@ -9,7 +9,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -62,13 +62,13 @@ import { humanizeSlug } from "@/lib/humanize-slug";
 import { getMatchStatusStyle } from "@/lib/match-status";
 import { cn } from "@/lib/utils";
 import type { Collections } from "@/types/pocketbase-types";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { ClientResponseError } from "pocketbase";
-import { Medal, Pencil, Plus, Swords, Trash2 } from "lucide-react";
+import { Archive, Medal, Pencil, Plus, Swords } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/app/$id/matches")({
+export const Route = createFileRoute("/app/$id/matches/")({
   component: MatchesPage,
 });
 
@@ -112,21 +112,44 @@ function tournamentLabel(t: Collections["tournaments"]): string {
 }
 
 function MatchesPage() {
+  const params = useParams({ strict: false });
+  const appId = (params as { id?: string })?.id ?? "";
   const { data: tournaments, isLoading: tournamentsLoading } = useTournaments();
   const { data: teams } = useTeams();
   const [tournamentId, setTournamentId] = useState<string>("");
+
+  const sortedTournaments = useMemo(
+    () =>
+      [...(tournaments ?? [])].sort((a, b) => {
+        const order = (s: string | undefined) =>
+          s === "live" ? 0 : s === "upcoming" ? 1 : s === "draft" ? 2 : 3;
+        return order(a.status) - order(b.status);
+      }),
+    [tournaments],
+  );
+
+  const selectedTournament = useMemo(
+    () => sortedTournaments.find((t) => t.id === tournamentId),
+    [sortedTournaments, tournamentId],
+  );
+
+  const tournamentEligible =
+    Boolean(selectedTournament) && selectedTournament?.archived !== true;
+
   const {
     data: matches,
     isLoading: matchesLoading,
     isError,
     error,
-  } = useMatchesForTournament(tournamentId || undefined);
+  } = useMatchesForTournament(tournamentId || undefined, {
+    enabled: tournamentEligible,
+  });
   const mutations = useMatchMutations();
 
   const [addOpen, setAddOpen] = useState(false);
   const [editMatch, setEditMatch] = useState<MatchRecord | null>(null);
   const [resultsMatch, setResultsMatch] = useState<MatchRecord | null>(null);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [archiveId, setArchiveId] = useState<string | null>(null);
 
   useEffect(() => {
     if (tournamentId || !tournaments?.length) return;
@@ -135,6 +158,13 @@ function MatchesPage() {
     const first = tournaments[0];
     const pick = live?.id ?? upcoming?.id ?? first?.id;
     if (pick) setTournamentId(pick);
+  }, [tournaments, tournamentId]);
+
+  useEffect(() => {
+    if (!tournaments || !tournamentId) return;
+    if (!tournaments.some((t) => t.id === tournamentId)) {
+      setTournamentId("");
+    }
   }, [tournaments, tournamentId]);
 
   const errMsg =
@@ -149,18 +179,8 @@ function MatchesPage() {
       errMsg.toLowerCase().includes("wasn't found") ||
       (error instanceof ClientResponseError && error.status === 404));
 
-  const sortedTournaments = useMemo(
-    () =>
-      [...(tournaments ?? [])].sort((a, b) => {
-        const order = (s: string | undefined) =>
-          s === "live" ? 0 : s === "upcoming" ? 1 : s === "draft" ? 2 : 3;
-        return order(a.status) - order(b.status);
-      }),
-    [tournaments]
-  );
-
   const groupedMatches = useMemo(() => {
-    if (!matches?.length) return [];
+    if (!tournamentEligible || !matches?.length) return [];
     const map = new Map<string, MatchRecord[]>();
     for (const m of matches) {
       const r = (m.round ?? "").trim() || "General";
@@ -172,7 +192,7 @@ function MatchesPage() {
       arr.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     }
     return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
-  }, [matches]);
+  }, [matches, tournamentEligible]);
 
   const tournamentIds = useMemo(
     () => sortedTournaments.map((t) => t.id),
@@ -183,18 +203,33 @@ function MatchesPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold tracking-tight">Matches</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-balance">
+            Matches
+          </h1>
           <p className="text-muted-foreground">
             Bracket and schedule for each tournament
           </p>
         </div>
-        <Button
-          onClick={() => setAddOpen(true)}
-          disabled={!tournamentId || collectionMissing}
-        >
-          <Plus className="size-4" />
-          Add match
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            to="/app/$id/matches/archived"
+            params={{ id: appId }}
+            className={cn(
+              buttonVariants({ variant: "outline", size: "default" }),
+              "gap-2",
+            )}
+          >
+            <Archive className="size-4 shrink-0" aria-hidden />
+            Archived
+          </Link>
+          <Button
+            onClick={() => setAddOpen(true)}
+            disabled={!tournamentEligible || collectionMissing}
+          >
+            <Plus className="size-4" />
+            Add match
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -303,13 +338,24 @@ function MatchesPage() {
             </CardDescription>
           </CardHeader>
         </Card>
-      ) : matchesLoading ? (
+      ) : tournamentId && !tournamentEligible ? (
+        <Card className="border-muted">
+          <CardHeader>
+            <CardTitle className="text-base">Tournament unavailable</CardTitle>
+            <CardDescription>
+              This tournament is archived or no longer in your list. Choose
+              another tournament above, or restore the event from archived
+              tournaments.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      ) : !tournamentId ? null : tournamentEligible && matchesLoading ? (
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-16 w-full rounded-lg" />
           ))}
         </div>
-      ) : !tournamentId ? null : matches?.length === 0 ? (
+      ) : tournamentEligible && matches?.length === 0 ? (
         <Empty>
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -321,12 +367,16 @@ function MatchesPage() {
               tool.
             </EmptyDescription>
           </EmptyHeader>
-          <Button variant="outline" onClick={() => setAddOpen(true)}>
+          <Button
+            variant="outline"
+            onClick={() => setAddOpen(true)}
+            disabled={!tournamentEligible}
+          >
             <Plus className="size-4" />
             Add first match
           </Button>
         </Empty>
-      ) : (
+      ) : tournamentEligible ? (
         <div className="space-y-6">
           {groupedMatches.map(([round, rows]) => (
             <div key={round}>
@@ -386,10 +436,10 @@ function MatchesPage() {
                           variant="ghost"
                           size="icon-sm"
                           className="text-destructive hover:text-destructive"
-                          onClick={() => setDeleteId(m.id)}
-                          title="Delete"
+                          onClick={() => setArchiveId(m.id)}
+                          title="Archive"
                         >
-                          <Trash2 className="size-4" />
+                          <Archive className="size-4" />
                         </Button>
                       </div>
                     </div>
@@ -399,7 +449,7 @@ function MatchesPage() {
             </div>
           ))}
         </div>
-      )}
+      ) : null}
 
       <MatchFormDialog
         open={addOpen}
@@ -461,12 +511,13 @@ function MatchesPage() {
         }}
       />
 
-      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+      <AlertDialog open={!!archiveId} onOpenChange={() => setArchiveId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete match?</AlertDialogTitle>
+            <AlertDialogTitle>Archive match?</AlertDialogTitle>
             <AlertDialogDescription>
-              This cannot be undone. Related{" "}
+              The match will be hidden from the schedule until you restore it from
+              Archived matches. Related{" "}
               <code className="text-xs">match_drafts</code> rows are not
               deleted automatically.
             </AlertDialogDescription>
@@ -476,19 +527,19 @@ function MatchesPage() {
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => {
-                if (!deleteId) return;
-                const id = deleteId;
-                setDeleteId(null);
-                mutations.delete.mutate(id, {
-                  onSuccess: () => toast.success("Match removed"),
+                if (!archiveId) return;
+                const id = archiveId;
+                setArchiveId(null);
+                mutations.archive.mutate(id, {
+                  onSuccess: () => toast.success("Match archived"),
                   onError: () => {
-                    toast.error("Could not delete match");
-                    setDeleteId(id);
+                    toast.error("Could not archive match");
+                    setArchiveId(id);
                   },
                 });
               }}
             >
-              Delete
+              Archive
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -1,5 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import {
+	Archive,
 	ChevronDown,
 	LayoutGrid,
 	LayoutList,
@@ -22,7 +23,7 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -76,10 +77,10 @@ import {
 	matchesFuzzyQuery,
 	participantSearchHaystack,
 } from "@/lib/fuzzy-match";
-import { formatParticipantNameDisplay } from "@/lib/utils";
+import { cn, formatParticipantNameDisplay } from "@/lib/utils";
 import type { Collections } from "@/types/pocketbase-types";
 
-export const Route = createFileRoute("/app/$id/teams")({
+export const Route = createFileRoute("/app/$id/teams/")({
 	component: TeamsPage,
 });
 
@@ -112,13 +113,13 @@ function AddMembersContent({
 		const q = search.trim();
 		return unassignedParticipants.filter((p) =>
 			matchesFuzzyQuery(participantSearchHaystack(p), q),
-		);
+		)
 	}, [unassignedParticipants, search]);
 
 	const filteredByAge = useMemo(
 		() => groupParticipantsByTournamentAge(filtered),
 		[filtered],
-	);
+	)
 
 	if (unassignedParticipants.length === 0) {
 		return (
@@ -131,7 +132,7 @@ function AddMembersContent({
 					Close
 				</Button>
 			</div>
-		);
+		)
 	}
 	return (
 		<div className="flex min-h-0 w-full min-w-0 flex-col gap-3">
@@ -193,7 +194,7 @@ function AddMembersContent({
 				Close
 			</Button>
 		</div>
-	);
+	)
 }
 
 function CaptainPopover({
@@ -227,8 +228,8 @@ function CaptainPopover({
 						variant="ghost"
 						className="h-auto w-full justify-start py-3 pl-3 text-left font-normal"
 						onClick={() => {
-							onChange("");
-							setOpen(false);
+							onChange("")
+							setOpen(false)
 						}}
 					>
 						No captain
@@ -240,8 +241,8 @@ function CaptainPopover({
 							variant="ghost"
 							className="h-auto w-full justify-start py-3 pl-3 text-left font-normal"
 							onClick={() => {
-								onChange(p.id);
-								setOpen(false);
+								onChange(p.id)
+								setOpen(false)
 							}}
 						>
 							{(formatParticipantNameDisplay(p.name) || p.gameID) ?? p.id}
@@ -250,7 +251,7 @@ function CaptainPopover({
 				</div>
 			</PopoverContent>
 		</Popover>
-	);
+	)
 }
 
 function TeamForm({
@@ -327,7 +328,7 @@ function TeamForm({
 											formatParticipantNameDisplay(p?.name) ||
 											p?.gameID ||
 											String(value)
-										);
+										)
 									}}
 								</SelectValue>
 							</SelectTrigger>
@@ -351,10 +352,12 @@ function TeamForm({
 				</Button>
 			</div>
 		</div>
-	);
+	)
 }
 
 function TeamsPage() {
+	const params = useParams({ strict: false });
+	const appId = (params as { id?: string })?.id ?? "";
 	const { data: teams, isLoading } = useTeams();
 	const { data: participants } = useParticipants();
 	const mutations = useTeamMutations();
@@ -364,7 +367,9 @@ function TeamsPage() {
 	const [sheetOpen, setSheetOpen] = useState(false);
 	const [addMembersTeamId, setAddMembersTeamId] = useState<string | null>(null);
 	const [editingId, setEditingId] = useState<string | null>(null);
-	const [deleteId, setDeleteId] = useState<string | null>(null);
+	const [archiveConfirmId, setArchiveConfirmId] = useState<string | null>(
+		null,
+	)
 	const [form, setForm] = useState<TeamFormData>({
 		name: "",
 		captain: "",
@@ -375,7 +380,7 @@ function TeamsPage() {
 		setEditingId(null);
 		setForm({ name: "", captain: "", status: "forming" });
 		setSheetOpen(true);
-	};
+	}
 
 	const openEdit = (t: (typeof teams)[number]) => {
 		setEditingId(t.id);
@@ -383,15 +388,15 @@ function TeamsPage() {
 			name: t.name ?? "",
 			captain: t.captain ?? "",
 			status: t.status ?? "forming",
-		});
+		})
 		setSheetOpen(true);
-	};
+	}
 
 	const handleSubmit = () => {
 		const name = (form.name ?? "").trim();
 		if (!name) {
 			toast.error("Enter a team name");
-			return;
+			return
 		}
 		if (editingId) {
 			mutations.update.mutate({ id: editingId, ...form });
@@ -401,21 +406,21 @@ function TeamsPage() {
 			toast.success("Team added");
 		}
 		setSheetOpen(false);
-	};
+	}
 
-	const handleDelete = () => {
-		if (deleteId) {
-			mutations.delete.mutate(deleteId);
-			toast.success("Team removed");
-			setDeleteId(null);
+	const handleArchiveConfirm = () => {
+		if (archiveConfirmId) {
+			mutations.archive.mutate(archiveConfirmId);
+			toast.success("Team archived");
+			setArchiveConfirmId(null);
 		}
-	};
+	}
 
 	const getCaptainName = (captainId: string | undefined) => {
 		const p = participants?.find((x) => x.id === captainId);
 		if (!p) return "-";
 		return formatParticipantNameDisplay(p.name) || p.gameID || "-";
-	};
+	}
 
 	const getTeamMemberCount = (teamId: string) =>
 		participants?.filter((p) => p.team === teamId).length ?? 0;
@@ -457,7 +462,7 @@ function TeamsPage() {
 						id: team.id,
 						...(needsStatusUpdate && { status: targetStatus }),
 						...(needsCaptainClear && { captain: "" }),
-					});
+					})
 				}
 			}
 		}
@@ -470,7 +475,7 @@ function TeamsPage() {
 			id: participantId,
 			team: teamId,
 			status: "assigned",
-		});
+		})
 		if (newCount >= 5) {
 			updatedForReady.current.add(teamId);
 			mutations.update.mutate({ id: teamId, status: "ready" });
@@ -478,7 +483,7 @@ function TeamsPage() {
 		} else {
 			toast.success("Member added to team");
 		}
-	};
+	}
 
 	const addMembersTeam = addMembersTeamId
 		? teams?.find((t) => t.id === addMembersTeamId)
@@ -492,14 +497,16 @@ function TeamsPage() {
 			const name = (t.name ?? "").toLowerCase();
 			const captainName = getCaptainName(t.captain).toLowerCase();
 			return name.includes(q) || captainName.includes(q);
-		});
+		})
 	}, [teams, search, participants]);
 
 	return (
 		<div className="space-y-6">
 			<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 				<div className="min-w-0">
-					<h1 className="text-2xl font-bold tracking-tight">Teams</h1>
+					<h1 className="text-2xl font-bold tracking-tight text-balance">
+						Teams
+					</h1>
 					<p className="text-muted-foreground">
 						Manage teams for the tournament
 					</p>
@@ -525,6 +532,17 @@ function TeamsPage() {
 							<LayoutGrid className="size-4" />
 						</Button>
 					</div>
+					<Link
+						to="/app/$id/teams/archived"
+						params={{ id: appId }}
+						className={cn(
+							buttonVariants({ variant: "outline", size: "default" }),
+							"gap-2",
+						)}
+					>
+						<Archive className="size-4 shrink-0" aria-hidden />
+						Archived
+					</Link>
 					<Button onClick={openCreate}>
 						<Plus className="size-4" />
 						Add team
@@ -574,12 +592,14 @@ function TeamsPage() {
 									getMemberCount: getTeamMemberCount,
 									getMembers: getTeamMembers,
 									onEdit: openEdit,
-									onDelete: setDeleteId,
+									onDelete: setArchiveConfirmId,
 									onAddMembers: (team) => setAddMembersTeamId(team.id),
 								})}
 								data={filteredTeams}
 								emptyMessage={
-									search ? `No teams match "${search}"` : "No teams."
+									search
+										? `No teams match "${search}"`
+										: "No teams."
 								}
 								pageSize={10}
 								tableWrapperClassName="overflow-x-auto"
@@ -596,7 +616,7 @@ function TeamsPage() {
 										memberCount={getTeamMemberCount(t.id)}
 										members={getTeamMembers(t.id)}
 										onEdit={openEdit}
-										onDelete={setDeleteId}
+										onDelete={setArchiveConfirmId}
 										onAddMembers={(team) => setAddMembersTeamId(team.id)}
 									/>
 								))}
@@ -700,28 +720,29 @@ function TeamsPage() {
 			)}
 
 			<AlertDialog
-				open={!!deleteId}
-				onOpenChange={(o) => !o && setDeleteId(null)}
+				open={!!archiveConfirmId}
+				onOpenChange={(o) => !o && setArchiveConfirmId(null)}
 			>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>Remove team?</AlertDialogTitle>
+						<AlertDialogTitle>Archive team?</AlertDialogTitle>
 						<AlertDialogDescription>
-							This will remove the team. Participants assigned to this team will
-							become unassigned. This action cannot be undone.
+							This will hide the team from active lists and unassign all members.
+							You can restore the team from the Archived teams page (members stay
+							unassigned until you add them again).
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
 						<AlertDialogCancel>Cancel</AlertDialogCancel>
 						<AlertDialogAction
-							onClick={handleDelete}
+							onClick={handleArchiveConfirm}
 							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
 						>
-							Remove
+							Archive
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>
 			</AlertDialog>
 		</div>
-	);
+	)
 }

@@ -99,30 +99,7 @@ export interface Collections {
         notes?: string;
         createdBy?: string;
         updatedBy?: string;
-        created?: string;
-        updated?: string;
-    };
-
-    teams: {
-        id: string;
-        name?: string;
-        captain?: string;
-        status?: "forming" | "ready" | "incomplete" | "inactive";
-        updatedBy?: string;
-        createdBy?: string;
-        created?: string;
-        updated?: string;
-    };
-
-    tournament_drafts: {
-        id: string;
-        title?: string;
-        format?: string;
-        rules?: string;
-        maxTeams?: number;
-        scheduledAt?: string;
-        notes?: string;
-        publishToTournament?: string;
+        archived?: boolean;
         created?: string;
         updated?: string;
     };
@@ -141,6 +118,32 @@ export interface Collections {
         birthdate?: string;
         createdBy?: string;
         updatedBy?: string;
+        archived?: boolean;
+        created?: string;
+        updated?: string;
+    };
+
+    teams: {
+        id: string;
+        name?: string;
+        captain?: string;
+        status?: "forming" | "ready" | "incomplete" | "inactive";
+        updatedBy?: string;
+        createdBy?: string;
+        archived?: boolean;
+        created?: string;
+        updated?: string;
+    };
+
+    tournament_drafts: {
+        id: string;
+        title?: string;
+        format?: string;
+        rules?: string;
+        maxTeams?: number;
+        scheduledAt?: string;
+        notes?: string;
+        publishToTournament?: string;
         created?: string;
         updated?: string;
     };
@@ -156,6 +159,7 @@ export interface Collections {
         status?: "draft" | "upcoming" | "live" | "completed" | "archived";
         createdBy?: string;
         updatedBy?: string;
+        archived?: boolean;
         created?: string;
         updated?: string;
     };
@@ -167,6 +171,19 @@ export interface Collections {
         key_field?: any;
         created_by?: any;
         updated_by?: any;
+        created?: any;
+        updated?: any;
+    };
+
+    draft_suggestions: {
+        id: string;
+        tournamentId?: string;
+        tournamentTitle?: string;
+        matchLabel?: any;
+        suggestedBans?: any;
+        suggestedPicks?: any;
+        notes?: any;
+        status?: any;
         created?: any;
         updated?: any;
     };
@@ -196,19 +213,6 @@ export interface Collections {
         suggestionPriority?: any;
         sortScore?: any;
         reason?: any;
-        status?: any;
-        created?: any;
-        updated?: any;
-    };
-
-    draft_suggestions: {
-        id: string;
-        tournamentId?: string;
-        tournamentTitle?: string;
-        matchLabel?: any;
-        suggestedBans?: any;
-        suggestedPicks?: any;
-        notes?: any;
         status?: any;
         created?: any;
         updated?: any;
