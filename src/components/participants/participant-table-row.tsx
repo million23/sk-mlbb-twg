@@ -14,10 +14,12 @@ import { formatBirthdateDisplay, getAge } from "@/lib/age";
 import { ParticipantContactWithBadge } from "@/components/participants/participant-contact-with-badge";
 import { StatusBadge } from "./status-badge";
 import { getAvatarUrl } from "@/lib/avatar";
+import { effectiveParticipantStatus } from "@/lib/participant-display-status";
 import type { Collections, PlayerRole } from "@/types/pocketbase-types";
 import { Archive, CircleHelp, Pencil, Plus, UserMinus } from "lucide-react";
 
 type Participant = Collections["participants"] & { id: string };
+type Team = Collections["teams"] & { id: string };
 
 type TeamSuggestion = {
   suggestedTeamId?: string;
@@ -44,6 +46,7 @@ function formatPreferredRoles(roles?: PlayerRole[]): string {
 export function ParticipantTableRow({
   participant,
   teamName,
+  teams,
   suggestions = [],
   onEdit,
   onDelete,
@@ -52,6 +55,7 @@ export function ParticipantTableRow({
 }: {
   participant: Participant;
   teamName: string;
+  teams?: Team[];
   suggestions?: TeamSuggestion[];
   onEdit: (p: Participant) => void;
   onDelete: (id: string) => void;
@@ -60,6 +64,7 @@ export function ParticipantTableRow({
 }) {
   const p = participant;
   const age = getAge(p.birthdate);
+  const displayStatus = effectiveParticipantStatus(p, teams);
   return (
     <TableRow>
       <TableCell>
@@ -83,7 +88,7 @@ export function ParticipantTableRow({
         )}
       </TableCell>
       <TableCell>
-        <StatusBadge status={p.status ?? "unassigned"} />
+        <StatusBadge status={displayStatus} />
       </TableCell>
       <TableCell className="text-muted-foreground text-sm">
         {formatPreferredRoles(p.preferredRoles)}

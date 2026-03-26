@@ -813,6 +813,7 @@ function ParticipantsPage() {
 						<>
 							<DataTable
 								columns={getParticipantsColumns({
+									teams,
 									getTeamName,
 									suggestionsByParticipant,
 									onEdit: openEdit,
@@ -836,6 +837,7 @@ function ParticipantsPage() {
 										key={p.id}
 										participant={p}
 										teamName={getTeamName(p.team)}
+										teams={teams}
 										suggestions={suggestionsByParticipant.get(p.id) ?? []}
 										onEdit={openEdit}
 										onDelete={setArchiveConfirmId}

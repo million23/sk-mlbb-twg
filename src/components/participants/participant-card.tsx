@@ -12,6 +12,7 @@ import { cn, formatParticipantNameDisplay } from "@/lib/utils";
 import { ParticipantContactWithBadge } from "@/components/participants/participant-contact-with-badge";
 import { StatusBadge } from "./status-badge";
 import { getAvatarUrl } from "@/lib/avatar";
+import { effectiveParticipantStatus } from "@/lib/participant-display-status";
 import type { Collections, PlayerRole } from "@/types/pocketbase-types";
 import {
   Archive,
@@ -70,6 +71,7 @@ function InfoRow({
 export function ParticipantCard({
   participant,
   teamName,
+  teams,
   suggestions = [],
   onEdit,
   onDelete,
@@ -78,6 +80,7 @@ export function ParticipantCard({
 }: {
   participant: Participant;
   teamName: string;
+  teams?: (Collections["teams"] & { id: string })[];
   suggestions?: TeamSuggestion[];
   onEdit: (p: Participant) => void;
   onDelete: (id: string) => void;
@@ -86,6 +89,7 @@ export function ParticipantCard({
 }) {
   const p = participant;
   const age = getAge(p.birthdate);
+  const displayStatus = effectiveParticipantStatus(p, teams);
   return (
     <Card className="overflow-hidden transition-shadow hover:shadow-md">
       <CardHeader className="pb-3">
@@ -159,7 +163,7 @@ export function ParticipantCard({
         <div className="flex flex-wrap items-center gap-2 pt-1">
           <div className="flex items-center gap-1.5">
             <UserCircle2 className="size-4 shrink-0 text-muted-foreground" />
-            <StatusBadge status={p.status ?? "unassigned"} className="font-normal" />
+            <StatusBadge status={displayStatus} className="font-normal" />
           </div>
           <div className="flex items-center gap-1.5">
             {p.team && onRemoveFromTeam && (

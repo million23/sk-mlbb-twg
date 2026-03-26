@@ -18,6 +18,7 @@ import { useParticipants } from "@/hooks/use-participants";
 import { useTeams } from "@/hooks/use-teams";
 import { useUpcomingTournaments } from "@/hooks/use-tournaments";
 import { getTeamStatusStyle } from "@/lib/team-status";
+import { effectiveParticipantStatus } from "@/lib/participant-display-status";
 import { cn, formatParticipantNameDisplay } from "@/lib/utils";
 import type { Collections } from "@/types/pocketbase-types";
 import {
@@ -348,7 +349,7 @@ function DashboardPage() {
                       </p>
                     </div>
                     <StatusBadge
-                      status={p.status ?? "unassigned"}
+                      status={effectiveParticipantStatus(p, teams)}
                       className="shrink-0 font-normal"
                     />
                   </div>

@@ -13,6 +13,7 @@ import { formatBirthdateDisplay, getAge } from "@/lib/age";
 import { ParticipantContactWithBadge } from "@/components/participants/participant-contact-with-badge";
 import { StatusBadge } from "@/components/participants/status-badge";
 import { getAvatarUrl } from "@/lib/avatar";
+import { effectiveParticipantStatus } from "@/lib/participant-display-status";
 import type { Collections, PlayerRole } from "@/types/pocketbase-types";
 import { Archive, CircleHelp, Pencil, Plus, UserMinus } from "lucide-react";
 
@@ -25,6 +26,7 @@ type TeamSuggestion = {
 };
 
 export type ParticipantsTableMeta = {
+  teams: (Collections["teams"] & { id: string })[] | undefined;
   getTeamName: (teamId: string | undefined) => string;
   suggestionsByParticipant: Map<string, TeamSuggestion[]>;
   onEdit: (p: Participant) => void;
@@ -115,9 +117,14 @@ export function getParticipantsColumns(
     {
       accessorKey: "status",
       header: "Status",
-      cell: ({ row }) => (
-        <StatusBadge status={row.original.status ?? "unassigned"} />
-      ),
+      cell: ({ row }) => {
+        const p = row.original;
+        return (
+          <StatusBadge
+            status={effectiveParticipantStatus(p, meta.teams)}
+          />
+        );
+      },
     },
     {
       accessorKey: "preferredRoles",
