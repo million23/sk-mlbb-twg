@@ -12,11 +12,9 @@ export {
 } from "./use-matches";
 export { useIsMobile } from "./use-mobile";
 export {
-  PARTICIPANTS_PAGE_SIZE,
   useArchivedParticipants,
   useParticipantMutations,
   useParticipants,
-  useParticipantsInfinite
 } from "./use-participants";
 export { usePocketBaseAuth } from "./use-pocketbase-auth";
 export {

@@ -59,11 +59,10 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { AGE_BRACKETS } from "@/config/age-brackets";
-import { useInView } from "@/hooks/use-in-view";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
 	useParticipantMutations,
-	useParticipantsInfinite,
+	useParticipants,
 } from "@/hooks/use-participants";
 import { useTeamSuggestions } from "@/hooks/use-team-suggestions";
 import { useTeams } from "@/hooks/use-teams";
@@ -80,6 +79,10 @@ import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import {
 	Archive,
 	ArrowDownWideNarrow,
+	ChevronLeft,
+	ChevronRight,
+	ChevronsLeft,
+	ChevronsRight,
 	LayoutGrid,
 	LayoutList,
 	Loader2,
@@ -87,13 +90,7 @@ import {
 	Search,
 	Users,
 } from "lucide-react";
-import {
-	type RefObject,
-	useCallback,
-	useEffect,
-	useMemo,
-	useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/$id/participants/")({
@@ -295,54 +292,7 @@ function sortParticipantsByTeam(
 	});
 }
 
-function ParticipantsInfiniteFooter({
-	loadMoreRef,
-	hasNextPage,
-	isFetchingNextPage,
-	isError,
-	errorMessage,
-	onRetry,
-}: {
-	loadMoreRef: RefObject<HTMLDivElement | null>;
-	hasNextPage: boolean;
-	isFetchingNextPage: boolean;
-	isError: boolean;
-	errorMessage: string | null;
-	onRetry: () => void;
-}) {
-	if (!hasNextPage && !isFetchingNextPage && !isError) {
-		return null;
-	}
-
-	return (
-		<div className="flex flex-col items-center gap-3 py-6">
-			{isError ? (
-				<>
-					<p className="text-center text-sm text-destructive">
-						{errorMessage ?? "Could not load more participants."}
-					</p>
-					<Button variant="outline" size="sm" type="button" onClick={onRetry}>
-						Try again
-					</Button>
-				</>
-			) : (
-				<>
-					<div
-						ref={loadMoreRef}
-						className="pointer-events-none h-1 w-full shrink-0"
-						aria-hidden
-					/>
-					{isFetchingNextPage ? (
-						<Loader2
-							className="size-6 animate-spin text-muted-foreground"
-							aria-label="Loading more participants"
-						/>
-					) : null}
-				</>
-			)}
-		</div>
-	)
-}
+const CARDS_PER_PAGE = 20;
 
 const PARTICIPANTS_CARD_SKELETON_KEYS = [
 	"pc1",
@@ -487,32 +437,16 @@ function ParticipantsLoadingSkeleton({
 
 function ParticipantsPage() {
 	const {
-		data,
+		data: participantsData,
 		isLoading,
-		isFetchingNextPage,
-		hasNextPage,
-		fetchNextPage,
 		isError,
 		error,
 		refetch,
-	} = useParticipantsInfinite();
+	} = useParticipants();
 
-	const participants = useMemo(
-		() => data?.pages.flatMap((p) => p.items) ?? [],
-		[data],
-	)
+	const participants = participantsData ?? [];
+	const totalRegistered = participants.length;
 
-	const totalRegistered = data?.pages[0]?.totalItems ?? 0;
-
-	const { ref: loadMoreRef, inView } = useInView({
-		enabled: Boolean(hasNextPage),
-	});
-
-	useEffect(() => {
-		if (inView && hasNextPage && !isFetchingNextPage) {
-			void fetchNextPage();
-		}
-	}, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
 	const { data: teams } = useTeams();
 	const { data: teamSuggestions } = useTeamSuggestions();
 	const params = useParams({ strict: false });
@@ -661,7 +595,8 @@ function ParticipantsPage() {
 	const [search, setSearch] = useState("");
 	const [participantSort, setParticipantSort] = useState<"default" | "team">(
 		"default",
-	)
+	);
+	const [cardPage, setCardPage] = useState(1);
 
 	const filteredParticipants = useMemo(() => {
 		if (!search.trim()) return participants;
@@ -699,10 +634,25 @@ function ParticipantsPage() {
 		return sortParticipantsByTeam(filteredParticipants, getTeamName);
 	}, [filteredParticipants, participantSort, getTeamName]);
 
+	const cardPageCount = Math.max(
+		1,
+		Math.ceil(displayedParticipants.length / CARDS_PER_PAGE),
+	);
+	const effectiveCardPage = Math.min(cardPage, cardPageCount);
+
+	useEffect(() => {
+		setCardPage((p) => Math.min(p, cardPageCount));
+	}, [cardPageCount]);
+
+	const pagedCardParticipants = useMemo(() => {
+		const start = (effectiveCardPage - 1) * CARDS_PER_PAGE;
+		return displayedParticipants.slice(start, start + CARDS_PER_PAGE);
+	}, [displayedParticipants, effectiveCardPage]);
+
 	const showEmptyState = !isLoading && !isError && totalRegistered === 0;
-	const loadMoreErrorMessage =
+	const loadErrorMessage =
 		error instanceof Error ? error.message : error ? String(error) : null;
-	const initialQueryFailed = isError && !data;
+	const initialQueryFailed = isError && !participantsData;
 
 	return (
 		<div className="space-y-6">
@@ -764,16 +714,7 @@ function ParticipantsPage() {
 								Loading participants…
 							</span>
 						) : (
-							<>
-								{`${totalRegistered} registered`}
-								{totalRegistered > 0 &&
-									participants.length < totalRegistered ? (
-									<span className="text-muted-foreground">
-										{" "}
-										· {participants.length} loaded — scroll for more
-									</span>
-								) : null}
-							</>
+							<>{`${totalRegistered} registered`}</>
 						)}
 					</CardDescription>
 					{isLoading ? (
@@ -792,7 +733,10 @@ function ParticipantsPage() {
 								<Input
 									placeholder="Search by name, Game ID, contact, area, age..."
 									value={search}
-									onChange={(e) => setSearch(e.target.value)}
+									onChange={(e) => {
+										setSearch(e.target.value);
+										setCardPage(1);
+									}}
 									className="pl-9"
 								/>
 							</div>
@@ -805,9 +749,10 @@ function ParticipantsPage() {
 								</Label>
 								<Select
 									value={participantSort}
-									onValueChange={(v) =>
-										setParticipantSort(v as "default" | "team")
-									}
+									onValueChange={(v) => {
+										setParticipantSort(v as "default" | "team");
+										setCardPage(1);
+									}}
 								>
 									<SelectTrigger id="participant-sort" className="w-full">
 										<ArrowDownWideNarrow
@@ -838,7 +783,7 @@ function ParticipantsPage() {
 					) : initialQueryFailed ? (
 						<div className="flex flex-col items-center gap-3 py-8">
 							<p className="text-center text-sm text-destructive">
-								{loadMoreErrorMessage ?? "Could not load participants."}
+								{loadErrorMessage ?? "Could not load participants."}
 							</p>
 							<Button
 								variant="outline"
@@ -878,25 +823,15 @@ function ParticipantsPage() {
 								data={displayedParticipants}
 								emptyMessage={
 									search
-										? `No participants match "${search}" in loaded rows`
+										? `No participants match "${search}"`
 										: "No participants."
 								}
-								pageSize={10}
-								showPagination={false}
-							/>
-							<ParticipantsInfiniteFooter
-								loadMoreRef={loadMoreRef}
-								hasNextPage={hasNextPage}
-								isFetchingNextPage={isFetchingNextPage}
-								isError={isError}
-								errorMessage={loadMoreErrorMessage}
-								onRetry={() => void refetch()}
 							/>
 						</>
 					) : (
 						<>
 							<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-								{displayedParticipants.map((p) => (
+								{pagedCardParticipants.map((p) => (
 									<ParticipantCard
 										key={p.id}
 										participant={p}
@@ -911,17 +846,65 @@ function ParticipantsPage() {
 							</div>
 							{filteredParticipants.length === 0 && search && (
 								<p className="py-4 text-center text-sm text-muted-foreground">
-									No participants match &quot;{search}&quot; in loaded rows
+									No participants match &quot;{search}&quot;
 								</p>
 							)}
-							<ParticipantsInfiniteFooter
-								loadMoreRef={loadMoreRef}
-								hasNextPage={hasNextPage}
-								isFetchingNextPage={isFetchingNextPage}
-								isError={isError}
-								errorMessage={loadMoreErrorMessage}
-								onRetry={() => void refetch()}
-							/>
+							{displayedParticipants.length > CARDS_PER_PAGE ? (
+								<div className="flex flex-col items-center gap-3 border-t border-border pt-4 sm:flex-row sm:justify-between">
+									<p className="text-sm text-muted-foreground">
+										Page {effectiveCardPage} of {cardPageCount} ·{" "}
+										{displayedParticipants.length} matching
+									</p>
+									<div className="flex items-center gap-2">
+										<Button
+											type="button"
+											variant="outline"
+											size="icon"
+											className="hidden size-8 sm:inline-flex"
+											aria-label="First page"
+											disabled={effectiveCardPage <= 1}
+											onClick={() => setCardPage(1)}
+										>
+											<ChevronsLeft className="size-4" />
+										</Button>
+										<Button
+											type="button"
+											variant="outline"
+											size="icon"
+											className="size-8"
+											aria-label="Previous page"
+											disabled={effectiveCardPage <= 1}
+											onClick={() => setCardPage((p) => Math.max(1, p - 1))}
+										>
+											<ChevronLeft className="size-4" />
+										</Button>
+										<Button
+											type="button"
+											variant="outline"
+											size="icon"
+											className="size-8"
+											aria-label="Next page"
+											disabled={effectiveCardPage >= cardPageCount}
+											onClick={() =>
+												setCardPage((p) => Math.min(cardPageCount, p + 1))
+											}
+										>
+											<ChevronRight className="size-4" />
+										</Button>
+										<Button
+											type="button"
+											variant="outline"
+											size="icon"
+											className="hidden size-8 sm:inline-flex"
+											aria-label="Last page"
+											disabled={effectiveCardPage >= cardPageCount}
+											onClick={() => setCardPage(cardPageCount)}
+										>
+											<ChevronsRight className="size-4" />
+										</Button>
+									</div>
+								</div>
+							) : null}
 						</>
 					)}
 				</CardContent>

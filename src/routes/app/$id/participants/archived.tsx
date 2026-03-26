@@ -2,7 +2,7 @@ import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { ArrowLeft, RotateCcw, Users } from "lucide-react";
 import { toast } from "sonner";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,

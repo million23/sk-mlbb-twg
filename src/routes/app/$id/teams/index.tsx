@@ -601,7 +601,6 @@ function TeamsPage() {
 										? `No teams match "${search}"`
 										: "No teams."
 								}
-								pageSize={10}
 								tableWrapperClassName="overflow-x-auto"
 							/>
 						</>

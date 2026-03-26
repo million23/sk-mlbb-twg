@@ -89,8 +89,8 @@ export function DataTable<TData, TValue>({
   filterPlaceholder = "Filter...",
   searchValue = "",
   onSearchChange,
-  pageSize = 10,
-  pageSizeOptions = [10, 20, 25, 30, 40, 50],
+  pageSize = 20,
+  pageSizeOptions = [20, 40, 60, 80, 100],
   showPagination = true,
   emptyMessage = "No results.",
   meta,
@@ -251,7 +251,7 @@ interface DataTablePaginationProps<TData> {
 
 export function DataTablePagination<TData>({
   table,
-  pageSizeOptions = [10, 20, 25, 30, 40, 50],
+  pageSizeOptions = [20, 40, 60, 80, 100],
 }: DataTablePaginationProps<TData>) {
   return (
     <div className="flex items-center justify-between px-2">

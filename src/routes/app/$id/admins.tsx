@@ -385,7 +385,6 @@ function AdminsPage() {
               filterColumn="email"
               filterPlaceholder="Filter by email..."
               emptyMessage="No admins."
-              pageSize={10}
             />
           )}
         </CardContent>

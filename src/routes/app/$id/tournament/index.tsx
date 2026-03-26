@@ -346,7 +346,6 @@ function TournamentPage() {
               filterColumn="title"
               filterPlaceholder="Filter by title..."
               emptyMessage="No tournaments."
-              pageSize={10}
             />
           ) : (
             <div className="flex flex-col gap-3">

@@ -11,12 +11,7 @@ import {
   normalizeParticipantForCreate,
 } from "@/lib/utils";
 import type { Collections } from "@/types/pocketbase-types";
-import {
-  useInfiniteQuery,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef } from "react";
 
 type ParticipantInput = Partial<
@@ -28,9 +23,6 @@ type Participant = Collections["participants"];
 export const PARTICIPANTS_ACTIVE_FILTER = "archived != true";
 
 const PARTICIPANTS_ARCHIVED_FILTER = "archived = true";
-
-/** Page size for {@link useParticipantsInfinite}. */
-export const PARTICIPANTS_PAGE_SIZE = 30;
 
 function invalidateParticipantQueries(
   queryClient: ReturnType<typeof useQueryClient>,
@@ -68,23 +60,6 @@ export function useArchivedParticipants() {
         });
         return list as Participant[];
       }),
-  });
-}
-
-export function useParticipantsInfinite(pageSize = PARTICIPANTS_PAGE_SIZE) {
-  return useInfiniteQuery({
-    queryKey: [...queryKeys.participants, "infinite", pageSize] as const,
-    queryFn: ({ pageParam }) =>
-      rateLimited(async () => {
-        const col = getCollection("participants");
-        return col.getList(pageParam, pageSize, {
-          sort: "-created",
-          filter: PARTICIPANTS_ACTIVE_FILTER,
-        });
-      }),
-    initialPageParam: 1,
-    getNextPageParam: (lastPage) =>
-      lastPage.page < lastPage.totalPages ? lastPage.page + 1 : undefined,
   });
 }
 
