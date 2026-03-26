@@ -2,6 +2,7 @@ import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { ArrowLeft, RotateCcw, Trophy } from "lucide-react";
 import { toast } from "sonner";
+import { ArchivedPagesDropdown } from "@/components/archived-pages-dropdown";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -53,7 +54,7 @@ function ArchivedTournamentsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 space-y-1">
           <Link
             to="/app/$id/tournament"
@@ -74,6 +75,7 @@ function ArchivedTournamentsPage() {
             <code className="text-xs">updated</code>).
           </p>
         </div>
+        <ArchivedPagesDropdown appId={id} current="tournament" />
       </div>
 
       <Card>

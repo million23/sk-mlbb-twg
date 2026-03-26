@@ -2,6 +2,7 @@ import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { ArrowLeft, RotateCcw, UsersRound } from "lucide-react";
 import { toast } from "sonner";
+import { ArchivedPagesDropdown } from "@/components/archived-pages-dropdown";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
 	Card,
@@ -48,7 +49,7 @@ function ArchivedTeamsPage() {
 
 	return (
 		<div className="space-y-6">
-			<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+			<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 				<div className="min-w-0 space-y-1">
 					<Link
 						to="/app/$id/teams"
@@ -70,6 +71,7 @@ function ArchivedTeamsPage() {
 						when the team was archived.
 					</p>
 				</div>
+				<ArchivedPagesDropdown appId={id} current="teams" />
 			</div>
 
 			<Card>
