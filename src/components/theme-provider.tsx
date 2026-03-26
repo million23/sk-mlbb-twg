@@ -26,26 +26,35 @@ export function ThemeProvider({
   storageKey = "vite-ui-theme",
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
-  )
+  const [theme, setTheme] = useState<Theme>(() => {
+    const stored = localStorage.getItem(storageKey) as Theme | null
+    if (stored === "light" || stored === "dark" || stored === "system") {
+      return stored
+    }
+    const legacy = localStorage.getItem("mlbb-theme")
+    if (legacy === "light" || legacy === "dark") {
+      localStorage.setItem(storageKey, legacy)
+      return legacy
+    }
+    return defaultTheme
+  })
 
   useEffect(() => {
     const root = window.document.documentElement
 
     root.classList.remove("light", "dark")
 
-    if (theme === "system") {
-      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
-        .matches
-        ? "dark"
-        : "light"
+    const resolved: "light" | "dark" =
+      theme === "system"
+        ? window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light"
+        : theme
 
-      root.classList.add(systemTheme)
-      return
-    }
-
-    root.classList.add(theme)
+    root.classList.add(resolved)
+    // Must match :root[data-theme="…"] in styles.css; class alone was not enough when
+    // another initializer set data-theme (e.g. legacy mlbb-theme).
+    root.setAttribute("data-theme", resolved)
   }, [theme])
 
   const value = {
