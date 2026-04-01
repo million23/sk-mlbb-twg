@@ -13,6 +13,8 @@ import {
 import { summarizeTeamAgeBracketCounts } from "@/lib/age";
 import { getTeamAvatarUrl } from "@/lib/avatar";
 import { getTeamStatusStyle } from "@/lib/team-status";
+import { RegisteredDateCell } from "@/components/ui/registered-date-cell";
+import { registeredAtMs } from "@/lib/registered-date";
 import { cn } from "@/lib/utils";
 import type { Collections } from "@/types/pocketbase-types";
 import { Archive, ChevronDown, Pencil, UserPlus } from "lucide-react";
@@ -54,6 +56,16 @@ export function getTeamsColumns(
       header: "Name",
       cell: ({ row }) => (
         <span className="font-medium">{row.original.name ?? "-"}</span>
+      ),
+    },
+    {
+      accessorKey: "created",
+      header: "Date registered",
+      sortingFn: (rowA, rowB, columnId) =>
+        registeredAtMs(rowA.getValue(columnId) as string | undefined) -
+        registeredAtMs(rowB.getValue(columnId) as string | undefined),
+      cell: ({ row }) => (
+        <RegisteredDateCell created={row.original.created} />
       ),
     },
     {

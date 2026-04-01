@@ -1,5 +1,5 @@
+import { identicon, loreleiNeutral } from "@dicebear/collection";
 import { createAvatar } from "@dicebear/core";
-import { identicon, lorelei } from "@dicebear/collection";
 
 const avatarCache = new Map<string, string>();
 const teamAvatarCache = new Map<string, string>();
@@ -13,7 +13,7 @@ export function getAvatarUrl(seed: string): string {
   const key = seed || "default";
   let url = avatarCache.get(key);
   if (!url) {
-    const avatar = createAvatar(lorelei, { seed: key });
+    const avatar = createAvatar(loreleiNeutral, { seed: key });
     url = avatar.toDataUri();
     avatarCache.set(key, url);
   }

@@ -26,6 +26,10 @@ import { useAdmins } from "@/hooks/use-admins";
 import { buildAdminNameByIdMap } from "@/lib/audit-actor-display";
 import { canViewAuditLog } from "@/lib/admin-permissions";
 import { formatAuditLogSummaryLine } from "@/lib/audit-log-summary";
+import {
+  downloadStructuredSpreadsheet,
+  type SpreadsheetColumn,
+} from "@/lib/spreadsheet-export";
 import { cn } from "@/lib/utils";
 import { pb } from "@/lib/pocketbase";
 import {
@@ -38,8 +42,9 @@ import { ClientResponseError } from "pocketbase";
 import {
   AuditLogDetailSheet,
 } from "@/components/audit-log-detail-sheet";
-import { Loader2, RefreshCw, ScrollText, Search } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { FileSpreadsheet, Loader2, RefreshCw, ScrollText, Search } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/$id/audit-logs")({
   beforeLoad: ({ params }) => {
@@ -206,6 +211,81 @@ function AuditLogsPage() {
     });
   }, [rows, search, adminNameById]);
 
+  const exportAuditSpreadsheet = useCallback(() => {
+    type R = (typeof filteredRows)[number];
+    const columns: SpreadsheetColumn<R>[] = [
+      {
+        header: "Summary",
+        widthChars: 56,
+        type: "text",
+        get: (r) => formatAuditLogSummaryLine(r, adminNameById),
+      },
+      {
+        header: "Table name",
+        widthChars: 22,
+        type: "text",
+        get: (r) =>
+          r.table_name != null && r.table_name !== ""
+            ? String(r.table_name)
+            : "",
+      },
+      {
+        header: "Record ID",
+        widthChars: 28,
+        type: "text",
+        get: (r) =>
+          r.record_id != null && r.record_id !== ""
+            ? String(r.record_id)
+            : "",
+      },
+      {
+        header: "Key field",
+        widthChars: 18,
+        type: "text",
+        get: (r) =>
+          r.key_field != null && r.key_field !== ""
+            ? String(r.key_field)
+            : "",
+      },
+      {
+        header: "Created",
+        widthChars: 20,
+        type: "date",
+        get: (r) => r.created ?? "",
+      },
+      {
+        header: "Updated",
+        widthChars: 20,
+        type: "date",
+        get: (r) => r.updated ?? "",
+      },
+      {
+        header: "Entry ID",
+        widthChars: 22,
+        type: "text",
+        get: (r) => r.id,
+      },
+    ];
+    downloadStructuredSpreadsheet({
+      fileBasename: "audit-log",
+      sheetName: "Audit log",
+      workbookTitle: "Audit log export",
+      columns,
+      rows: filteredRows,
+      emptyMessage:
+        "No rows match the current filter — clear search or load more entries.",
+    });
+    const partial = filteredRows.length < totalItems && !search.trim();
+    toast.success(
+      `Exported ${filteredRows.length} row${filteredRows.length === 1 ? "" : "s"}`,
+      {
+        description: partial
+          ? "Only entries loaded so far are included. Scroll the table to load more, then export again if you need the rest."
+          : undefined,
+      },
+    );
+  }, [filteredRows, adminNameById, totalItems, search]);
+
   const errMsg =
     error instanceof ClientResponseError
       ? (error.response?.message as string) || error.message
@@ -232,21 +312,34 @@ function AuditLogsPage() {
             details and related records.
           </p>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="shrink-0 gap-2 self-start sm:mt-0.5"
-          disabled={isLoading}
-          aria-busy={isRefreshingAudit}
-          onClick={() => void refetch()}
-        >
-          <RefreshCw
-            className={cn("size-4", isRefreshingAudit && "animate-spin")}
-            aria-hidden
-          />
-          Refresh
-        </Button>
+        <div className="flex shrink-0 flex-col gap-2 self-start sm:mt-0.5 sm:flex-row">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            disabled={isLoading || filteredRows.length === 0}
+            onClick={exportAuditSpreadsheet}
+          >
+            <FileSpreadsheet className="size-4 shrink-0" aria-hidden />
+            Export spreadsheet
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            disabled={isLoading}
+            aria-busy={isRefreshingAudit}
+            onClick={() => void refetch()}
+          >
+            <RefreshCw
+              className={cn("size-4", isRefreshingAudit && "animate-spin")}
+              aria-hidden
+            />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {collectionMissing ? (

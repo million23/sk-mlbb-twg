@@ -1,16 +1,3 @@
-import { createFileRoute, Link, useParams } from "@tanstack/react-router";
-import {
-	Archive,
-	ChevronDown,
-	LayoutGrid,
-	LayoutList,
-	Plus,
-	Search,
-	UserPlus,
-	UsersRound,
-} from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { toast } from "sonner";
 import { getTeamsColumns } from "@/components/tables/teams-columns";
 import { TeamCard } from "@/components/teams/team-card";
 import {
@@ -32,9 +19,12 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
 	Dialog,
 	DialogContent,
+	DialogDescription,
+	DialogFooter,
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
@@ -68,17 +58,39 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
+	useArchivedParticipants,
 	useParticipantMutations,
 	useParticipants,
 } from "@/hooks/use-participants";
-import { useTeamMutations, useTeams } from "@/hooks/use-teams";
+import { useArchivedTeams, useTeamMutations, useTeams } from "@/hooks/use-teams";
 import { groupParticipantsByTournamentAge } from "@/lib/age";
+import {
+	downloadStructuredSpreadsheet,
+	type SpreadsheetColumn,
+} from "@/lib/spreadsheet-export";
+import { getTeamStatusStyle } from "@/lib/team-status";
 import {
 	matchesFuzzyQuery,
 	participantSearchHaystack,
 } from "@/lib/fuzzy-match";
+import { compareRegisteredDesc } from "@/lib/registered-date";
+import { PreferredLaneIcons } from "@/components/participants/preferred-lane-icons";
 import { cn, formatParticipantNameDisplay } from "@/lib/utils";
-import type { Collections } from "@/types/pocketbase-types";
+import type { Collections, PlayerRole } from "@/types/pocketbase-types";
+import { createFileRoute, Link, useParams } from "@tanstack/react-router";
+import {
+	Archive,
+	ChevronDown,
+	FileSpreadsheet,
+	LayoutGrid,
+	LayoutList,
+	Plus,
+	Search,
+	UserPlus,
+	UsersRound,
+} from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/$id/teams/")({
 	component: TeamsPage,
@@ -94,6 +106,7 @@ type ParticipantSummary = {
 	gameID?: string;
 	area?: string;
 	birthdate?: string;
+	preferredRoles?: PlayerRole[];
 };
 
 function AddMembersContent({
@@ -113,13 +126,13 @@ function AddMembersContent({
 		const q = search.trim();
 		return unassignedParticipants.filter((p) =>
 			matchesFuzzyQuery(participantSearchHaystack(p), q),
-		)
+		);
 	}, [unassignedParticipants, search]);
 
 	const filteredByAge = useMemo(
 		() => groupParticipantsByTournamentAge(filtered),
 		[filtered],
-	)
+	);
 
 	if (unassignedParticipants.length === 0) {
 		return (
@@ -132,7 +145,7 @@ function AddMembersContent({
 					Close
 				</Button>
 			</div>
-		)
+		);
 	}
 	return (
 		<div className="flex min-h-0 w-full min-w-0 flex-col gap-3">
@@ -153,33 +166,50 @@ function AddMembersContent({
 								{group.label}
 							</h3>
 							<ul className="space-y-1">
-								{group.items.map((p) => (
-									<li
-										key={p.id}
-										className="flex min-w-0 max-w-full items-start justify-between gap-2 rounded-lg border px-3 py-2"
-									>
-										<span className="min-w-0 flex-1">
-											<span className="block break-words font-medium">
-												{(formatParticipantNameDisplay(p.name) || p.gameID) ??
-													p.id}
-											</span>
-											{p.area ? (
-												<span className="mt-0.5 block break-words text-xs text-muted-foreground">
-													{p.area}
-												</span>
-											) : null}
-										</span>
-										<Button
-											size="sm"
-											variant="secondary"
-											className="shrink-0"
-											onClick={() => onAdd(p.id, teamId)}
+								{group.items.map((p) => {
+									const hasLanes = Boolean(
+										p.preferredRoles?.filter(Boolean).length,
+									);
+									return (
+										<li
+											key={p.id}
+											className="flex min-w-0 max-w-full items-center justify-between gap-2 rounded-lg border px-3 py-2"
 										>
-											<UserPlus className="size-4" />
-											Add
-										</Button>
-									</li>
-								))}
+											<span className="min-w-0 flex-1 space-y-1">
+												<span className="flex items-center gap-3 flex-wrap">
+													<span className="block wrap-break-word font-medium">
+														{(formatParticipantNameDisplay(p.name) ||
+															p.gameID) ??
+															p.id}
+													</span>
+													{hasLanes ? (
+														<span className="inline-flex items-center gap-0.5 rounded-md border border-border/60 bg-muted/30 px-1 py-0.5">
+															<span className="sr-only">Preferred lanes</span>
+															<PreferredLaneIcons
+																roles={p.preferredRoles}
+																iconClassName="size-4"
+															/>
+														</span>
+													) : null}
+												</span>
+												{p.area ? (
+													<span className="block wrap-break-word text-xs text-muted-foreground">
+														{p.area}
+													</span>
+												) : null}
+											</span>
+											<Button
+												size="sm"
+												variant="default"
+												className="w-20 shrink-0 justify-center self-center"
+												onClick={() => onAdd(p.id, teamId)}
+											>
+												<UserPlus className="size-4" />
+												Add
+											</Button>
+										</li>
+									);
+								})}
 							</ul>
 						</section>
 					))}
@@ -194,7 +224,7 @@ function AddMembersContent({
 				Close
 			</Button>
 		</div>
-	)
+	);
 }
 
 function CaptainPopover({
@@ -228,8 +258,8 @@ function CaptainPopover({
 						variant="ghost"
 						className="h-auto w-full justify-start py-3 pl-3 text-left font-normal"
 						onClick={() => {
-							onChange("")
-							setOpen(false)
+							onChange("");
+							setOpen(false);
 						}}
 					>
 						No captain
@@ -241,8 +271,8 @@ function CaptainPopover({
 							variant="ghost"
 							className="h-auto w-full justify-start py-3 pl-3 text-left font-normal"
 							onClick={() => {
-								onChange(p.id)
-								setOpen(false)
+								onChange(p.id);
+								setOpen(false);
 							}}
 						>
 							{(formatParticipantNameDisplay(p.name) || p.gameID) ?? p.id}
@@ -251,7 +281,7 @@ function CaptainPopover({
 				</div>
 			</PopoverContent>
 		</Popover>
-	)
+	);
 }
 
 function TeamForm({
@@ -276,7 +306,7 @@ function TeamForm({
 		form.captain === ""
 			? "Select captain (team members only)"
 			: ((formatParticipantNameDisplay(captainMember?.name) ||
-					captainMember?.gameID) ??
+				captainMember?.gameID) ??
 				"Select captain (team members only)");
 
 	return (
@@ -328,7 +358,7 @@ function TeamForm({
 											formatParticipantNameDisplay(p?.name) ||
 											p?.gameID ||
 											String(value)
-										)
+										);
 									}}
 								</SelectValue>
 							</SelectTrigger>
@@ -352,14 +382,18 @@ function TeamForm({
 				</Button>
 			</div>
 		</div>
-	)
+	);
 }
 
 function TeamsPage() {
 	const params = useParams({ strict: false });
 	const appId = (params as { id?: string })?.id ?? "";
 	const { data: teams, isLoading } = useTeams();
+	const { data: archivedTeamsData } = useArchivedTeams();
+	const archivedTeams = archivedTeamsData ?? [];
 	const { data: participants } = useParticipants();
+	const { data: archivedParticipantsData } = useArchivedParticipants();
+	const archivedParticipants = archivedParticipantsData ?? [];
 	const mutations = useTeamMutations();
 	const participantMutations = useParticipantMutations();
 	const isMobile = useIsMobile();
@@ -367,9 +401,7 @@ function TeamsPage() {
 	const [sheetOpen, setSheetOpen] = useState(false);
 	const [addMembersTeamId, setAddMembersTeamId] = useState<string | null>(null);
 	const [editingId, setEditingId] = useState<string | null>(null);
-	const [archiveConfirmId, setArchiveConfirmId] = useState<string | null>(
-		null,
-	)
+	const [archiveConfirmId, setArchiveConfirmId] = useState<string | null>(null);
 	const [form, setForm] = useState<TeamFormData>({
 		name: "",
 		captain: "",
@@ -380,23 +412,23 @@ function TeamsPage() {
 		setEditingId(null);
 		setForm({ name: "", captain: "", status: "forming" });
 		setSheetOpen(true);
-	}
+	};
 
-	const openEdit = (t: (typeof teams)[number]) => {
+	const openEdit = (t: NonNullable<typeof teams>[number]) => {
 		setEditingId(t.id);
 		setForm({
 			name: t.name ?? "",
 			captain: t.captain ?? "",
 			status: t.status ?? "forming",
-		})
+		});
 		setSheetOpen(true);
-	}
+	};
 
 	const handleSubmit = () => {
 		const name = (form.name ?? "").trim();
 		if (!name) {
 			toast.error("Enter a team name");
-			return
+			return;
 		}
 		if (editingId) {
 			mutations.update.mutate({ id: editingId, ...form });
@@ -406,7 +438,7 @@ function TeamsPage() {
 			toast.success("Team added");
 		}
 		setSheetOpen(false);
-	}
+	};
 
 	const handleArchiveConfirm = () => {
 		if (archiveConfirmId) {
@@ -414,13 +446,34 @@ function TeamsPage() {
 			toast.success("Team archived");
 			setArchiveConfirmId(null);
 		}
-	}
+	};
 
-	const getCaptainName = (captainId: string | undefined) => {
-		const p = participants?.find((x) => x.id === captainId);
-		if (!p) return "-";
-		return formatParticipantNameDisplay(p.name) || p.gameID || "-";
-	}
+	const getCaptainName = useCallback(
+		(captainId: string | undefined) => {
+			const p = participants?.find((x) => x.id === captainId);
+			if (!p) return "-";
+			return formatParticipantNameDisplay(p.name) || p.gameID || "-";
+		},
+		[participants],
+	);
+
+	const participantPoolMerged = useMemo(() => {
+		const byId = new Map<string, NonNullable<typeof participants>[number]>();
+		for (const p of participants ?? []) byId.set(p.id, p);
+		for (const p of archivedParticipants) {
+			if (!byId.has(p.id)) byId.set(p.id, p);
+		}
+		return [...byId.values()];
+	}, [participants, archivedParticipants]);
+
+	const getCaptainNameMerged = useCallback(
+		(captainId: string | undefined) => {
+			const p = participantPoolMerged.find((x) => x.id === captainId);
+			if (!p) return "-";
+			return formatParticipantNameDisplay(p.name) || p.gameID || "-";
+		},
+		[participantPoolMerged],
+	);
 
 	const getTeamMemberCount = (teamId: string) =>
 		participants?.filter((p) => p.team === teamId).length ?? 0;
@@ -462,7 +515,7 @@ function TeamsPage() {
 						id: team.id,
 						...(needsStatusUpdate && { status: targetStatus }),
 						...(needsCaptainClear && { captain: "" }),
-					})
+					});
 				}
 			}
 		}
@@ -475,7 +528,7 @@ function TeamsPage() {
 			id: participantId,
 			team: teamId,
 			status: "assigned",
-		})
+		});
 		if (newCount >= 5) {
 			updatedForReady.current.add(teamId);
 			mutations.update.mutate({ id: teamId, status: "ready" });
@@ -483,22 +536,145 @@ function TeamsPage() {
 		} else {
 			toast.success("Member added to team");
 		}
-	}
+	};
 
 	const addMembersTeam = addMembersTeamId
 		? teams?.find((t) => t.id === addMembersTeamId)
 		: null;
 
 	const [search, setSearch] = useState("");
+	const [exportDialogOpen, setExportDialogOpen] = useState(false);
+	const [exportIncludeArchived, setExportIncludeArchived] = useState(false);
+
 	const filteredTeams = useMemo(() => {
-		if (!search.trim()) return teams ?? [];
-		const q = search.toLowerCase().trim();
-		return (teams ?? []).filter((t) => {
-			const name = (t.name ?? "").toLowerCase();
-			const captainName = getCaptainName(t.captain).toLowerCase();
-			return name.includes(q) || captainName.includes(q);
-		})
-	}, [teams, search, participants]);
+		const base = !search.trim()
+			? (teams ?? [])
+			: (teams ?? []).filter((t) => {
+					const q = search.toLowerCase().trim();
+					const name = (t.name ?? "").toLowerCase();
+					const captainName = getCaptainName(t.captain).toLowerCase();
+					return name.includes(q) || captainName.includes(q);
+				});
+		return [...base].sort(compareRegisteredDesc);
+	}, [teams, search, getCaptainName]);
+
+	const filteredArchivedTeams = useMemo(() => {
+		if (!archivedTeams.length) return [];
+		const base = !search.trim()
+			? archivedTeams
+			: archivedTeams.filter((t) => {
+					const q = search.toLowerCase().trim();
+					const name = (t.name ?? "").toLowerCase();
+					const captainName = getCaptainNameMerged(t.captain).toLowerCase();
+					return name.includes(q) || captainName.includes(q);
+				});
+		return [...base].sort(compareRegisteredDesc);
+	}, [archivedTeams, search, getCaptainNameMerged]);
+
+	const confirmExportTeams = useCallback(() => {
+		const includeArchived = exportIncludeArchived;
+		const pool = includeArchived ? participantPoolMerged : (participants ?? []);
+
+		const captainForRow = (captainId: string | undefined) => {
+			const p = pool.find((x) => x.id === captainId);
+			if (!p) return "-";
+			return formatParticipantNameDisplay(p.name) || p.gameID || "-";
+		};
+
+		const activeRows = filteredTeams;
+		const archivedRows = includeArchived ? filteredArchivedTeams : [];
+		const rows = [...activeRows, ...archivedRows];
+		const archivedTeamIds = new Set(archivedRows.map((t) => t.id));
+
+		type T = (typeof rows)[number];
+		const baseColumns: SpreadsheetColumn<T>[] = [
+			{
+				header: "Team name",
+				widthChars: 26,
+				type: "text",
+				get: (t) => t.name ?? "",
+			},
+			{
+				header: "Date registered",
+				widthChars: 28,
+				type: "text",
+				get: (t) => t.created ?? "",
+			},
+			{
+				header: "Status",
+				widthChars: 12,
+				type: "text",
+				get: (t) => getTeamStatusStyle(t.status).label,
+			},
+			{
+				header: "Captain",
+				widthChars: 26,
+				type: "text",
+				get: (t) => captainForRow(t.captain),
+			},
+			{
+				header: "Member count",
+				widthChars: 14,
+				type: "number",
+				get: (t) => pool.filter((p) => p.team === t.id).length,
+			},
+			{
+				header: "Members",
+				widthChars: 48,
+				type: "text",
+				get: (t) => {
+					const members = pool.filter((p) => p.team === t.id);
+					return members
+						.map(
+							(m) =>
+								formatParticipantNameDisplay(m.name) ||
+								m.gameID ||
+								m.id,
+						)
+						.join("; ");
+				},
+			},
+		];
+
+		const [colTeamName, ...colsAfterName] = baseColumns;
+		const columns: SpreadsheetColumn<T>[] = includeArchived
+			? [
+					colTeamName,
+					{
+						header: "Archived",
+						widthChars: 10,
+						type: "text",
+						get: (t) => (archivedTeamIds.has(t.id) ? "Yes" : "No"),
+					},
+					...colsAfterName,
+				]
+			: baseColumns;
+
+		if (rows.length === 0) {
+			toast.error("Nothing to export for the current search and options.");
+			return;
+		}
+
+		downloadStructuredSpreadsheet({
+			fileBasename: "teams",
+			sheetName: "Teams",
+			workbookTitle: "Teams export",
+			columns,
+			rows,
+			emptyMessage:
+				"No teams match the current view — clear search or add teams.",
+		});
+		toast.success(
+			`Exported ${rows.length} team${rows.length === 1 ? "" : "s"}`,
+		);
+		setExportDialogOpen(false);
+	}, [
+		exportIncludeArchived,
+		participantPoolMerged,
+		participants,
+		filteredTeams,
+		filteredArchivedTeams,
+	]);
 
 	return (
 		<div className="space-y-6">
@@ -543,6 +719,19 @@ function TeamsPage() {
 						<Archive className="size-4 shrink-0" aria-hidden />
 						Archived
 					</Link>
+					<Button
+						type="button"
+						variant="outline"
+						disabled={
+							isLoading ||
+							((teams?.length ?? 0) === 0 && archivedTeams.length === 0)
+						}
+						className="gap-2"
+						onClick={() => setExportDialogOpen(true)}
+					>
+						<FileSpreadsheet className="size-4 shrink-0" aria-hidden />
+						Export spreadsheet
+					</Button>
 					<Button onClick={openCreate}>
 						<Plus className="size-4" />
 						Add team
@@ -585,25 +774,20 @@ function TeamsPage() {
 							</Button>
 						</Empty>
 					) : (isMobile ? "cards" : view) === "table" ? (
-						<>
-							<DataTable
-								columns={getTeamsColumns({
-									getCaptainName,
-									getMemberCount: getTeamMemberCount,
-									getMembers: getTeamMembers,
-									onEdit: openEdit,
-									onDelete: setArchiveConfirmId,
-									onAddMembers: (team) => setAddMembersTeamId(team.id),
-								})}
-								data={filteredTeams}
-								emptyMessage={
-									search
-										? `No teams match "${search}"`
-										: "No teams."
-								}
-								tableWrapperClassName="overflow-x-auto"
-							/>
-						</>
+						<DataTable
+							columns={getTeamsColumns({
+								getCaptainName,
+								getMemberCount: getTeamMemberCount,
+								getMembers: getTeamMembers,
+								onEdit: openEdit,
+								onDelete: setArchiveConfirmId,
+								onAddMembers: (team) => setAddMembersTeamId(team.id),
+							})}
+							data={filteredTeams}
+							initialSorting={[{ id: "created", desc: true }]}
+							emptyMessage={search ? `No teams match "${search}"` : "No teams."}
+							tableWrapperClassName="overflow-x-auto"
+						/>
 					) : (
 						<>
 							<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -718,6 +902,59 @@ function TeamsPage() {
 				</Dialog>
 			)}
 
+			<Dialog
+				open={exportDialogOpen}
+				onOpenChange={(open) => {
+					setExportDialogOpen(open);
+					if (open) setExportIncludeArchived(false);
+				}}
+			>
+				<DialogContent className="sm:max-w-md">
+					<DialogHeader>
+						<DialogTitle>Export teams</DialogTitle>
+						<DialogDescription>
+							Download a spreadsheet using the current search. Active teams are
+							always included when they match the search.
+						</DialogDescription>
+					</DialogHeader>
+					<div className="flex items-start gap-3">
+						<Checkbox
+							id="export-teams-include-archived"
+							checked={exportIncludeArchived}
+							onCheckedChange={(checked) =>
+								setExportIncludeArchived(Boolean(checked))
+							}
+							className="mt-0.5"
+						/>
+						<div className="grid gap-1.5 leading-none">
+							<Label
+								htmlFor="export-teams-include-archived"
+								className="cursor-pointer font-medium"
+							>
+								Include archived teams
+							</Label>
+							<p className="text-sm font-normal leading-snug text-muted-foreground">
+								When checked, archived teams that match the same search are
+								appended and an &quot;Archived&quot; column is added. Member
+								lists include archived participants when this is on.
+							</p>
+						</div>
+					</div>
+					<DialogFooter>
+						<Button
+							type="button"
+							variant="outline"
+							onClick={() => setExportDialogOpen(false)}
+						>
+							Cancel
+						</Button>
+						<Button type="button" onClick={confirmExportTeams}>
+							Export
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
 			<AlertDialog
 				open={!!archiveConfirmId}
 				onOpenChange={(o) => !o && setArchiveConfirmId(null)}
@@ -726,9 +963,9 @@ function TeamsPage() {
 					<AlertDialogHeader>
 						<AlertDialogTitle>Archive team?</AlertDialogTitle>
 						<AlertDialogDescription>
-							This will hide the team from active lists and unassign all members.
-							You can restore the team from the Archived teams page (members stay
-							unassigned until you add them again).
+							This will hide the team from active lists and unassign all
+							members. You can restore the team from the Archived teams page
+							(members stay unassigned until you add them again).
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
@@ -743,5 +980,5 @@ function TeamsPage() {
 				</AlertDialogContent>
 			</AlertDialog>
 		</div>
-	)
+	);
 }

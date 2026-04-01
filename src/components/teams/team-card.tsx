@@ -1,3 +1,4 @@
+import { TeamMembersByAgeGroup } from "@/components/teams/team-members-by-age-group";
 import { GeneratedAvatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,17 +14,18 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { TeamMembersByAgeGroup } from "@/components/teams/team-members-by-age-group";
 import { summarizeTeamAgeBracketCounts } from "@/lib/age";
-import { cn } from "@/lib/utils";
 import { getTeamAvatarUrl } from "@/lib/avatar";
+import { RegisteredDateCell } from "@/components/ui/registered-date-cell";
 import { getTeamStatusStyle } from "@/lib/team-status";
+import { cn } from "@/lib/utils";
 import type { Collections } from "@/types/pocketbase-types";
 import {
+  Archive,
   CalendarDays,
+  Clock,
   ChevronDown,
   Pencil,
-  Archive,
   UserCircle2,
   UserPlus,
   Users,
@@ -31,19 +33,26 @@ import {
 
 type Team = Collections["teams"] & { id: string };
 
-type TeamMember = { id: string; name?: string; gameID?: string; birthdate?: string };
+type TeamMember = {
+  id: string;
+  name?: string;
+  gameID?: string;
+  birthdate?: string;
+};
 
 function InfoRow({
   icon: Icon,
   value,
+  children,
 }: {
   icon: React.ElementType;
-  value: string | number;
+  value?: string | number;
+  children?: React.ReactNode;
 }) {
   return (
     <div className="flex items-center gap-2 text-sm">
-      <Icon className="size-4 shrink-0 text-muted-foreground" />
-      <span className="truncate">{value ?? "-"}</span>
+      <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+      {children ?? <span className="truncate">{value ?? "-"}</span>}
     </div>
   );
 }
@@ -67,7 +76,7 @@ export function TeamCard({
 }) {
   const t = team;
   return (
-    <Card className="overflow-hidden transition-shadow hover:shadow-md">
+    <Card className="overflow-hidden transition-shadow hover:shadow-md h-fit">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-3 min-w-0">
@@ -78,13 +87,15 @@ export function TeamCard({
               alt={t.name ?? ""}
             />
             <div className="min-w-0 flex-1">
-              <CardTitle className="text-base truncate">{t.name ?? "-"}</CardTitle>
+              <CardTitle className="text-base truncate">
+                {t.name ?? "-"}
+              </CardTitle>
               <CardDescription className="mt-0.5">
                 <Badge
                   variant="outline"
                   className={cn(
                     "font-normal",
-                    getTeamStatusStyle(t.status).className
+                    getTeamStatusStyle(t.status).className,
                   )}
                 >
                   {getTeamStatusStyle(t.status).label}
@@ -109,8 +120,18 @@ export function TeamCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-2.5 pt-0">
+        <InfoRow icon={Clock}>
+          <RegisteredDateCell
+            created={t.created}
+            announceLabel
+            className="min-w-0 truncate"
+          />
+        </InfoRow>
         <InfoRow icon={UserCircle2} value={captainName} />
-        <InfoRow icon={Users} value={`${memberCount} member${memberCount !== 1 ? "s" : ""}`} />
+        <InfoRow
+          icon={Users}
+          value={`${memberCount} member${memberCount !== 1 ? "s" : ""}`}
+        />
         {members.length > 0 && (
           <InfoRow
             icon={CalendarDays}

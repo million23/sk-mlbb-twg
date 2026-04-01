@@ -59,6 +59,8 @@ function columnTdClassName(columnDef: ColumnDef<unknown, unknown>): string {
 export interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  /** Initial column sort (e.g. `[{ id: "created", desc: true }]`). */
+  initialSorting?: SortingState;
   filterColumn?: string;
   filterPlaceholder?: string;
   searchValue?: string;
@@ -99,8 +101,9 @@ export function DataTable<TData, TValue>({
   tableClassName,
   tableRowClassName,
   tableWrapperClassName,
+  initialSorting = [],
 }: DataTableProps<TData, TValue>) {
-  const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [sorting, setSorting] = React.useState<SortingState>(initialSorting);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
   );

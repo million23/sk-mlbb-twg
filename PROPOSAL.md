@@ -260,7 +260,7 @@ Practice games allow internal matches with selected participants only, without t
 
 - Frontend: React, TypeScript, Vite, TanStack Router, Tailwind CSS v4, shadcn/ui
 - State and data tools: Nanostores, `@nanostores/persistent`, TanStack Query, TanStack Pacer
-- Environment variables: Varlock (schema validation, type-safe `ENV` access)
+- Environment variables: `.env` via Vite/dotenv (`import.meta.env` for client-safe values)
 - Backend and storage: PocketHost or PocketBase
 - Testing: Vitest, Testing Library
 - Package manager: Bun
@@ -353,7 +353,7 @@ The project is expected to be completed within 90 days and will follow Agile met
 - Practice game support (participant-only matches)
 - Participant role ranking support (3 preferred roles)
 - Backend data structure and access rules
-- Environment variable schema (Varlock) for deployment config
+- Environment variable setup (`.env`, Vite `VITE_` conventions) for deployment config
 - Frontend state and data-loading setup
 - Basic test coverage for important pages and management flows
 
@@ -431,7 +431,7 @@ Acceptance should focus on:
 ## 17. Deployment & Release Strategy
 
 - Prepare the app for a production web deployment
-- Configure required environment values (e.g. `VITE_POCKETHOST_URL`) via Varlock schema
+- Configure required environment values (e.g. `VITE_POCKETHOST_URL`) via `.env` files
 - Release the application in usable stages rather than waiting for all possible features
 - Prioritize the most important working features first
 - Keep the release process simple and stable for the 90-day timeline

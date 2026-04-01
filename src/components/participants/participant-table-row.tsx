@@ -15,7 +15,8 @@ import { ParticipantContactWithBadge } from "@/components/participants/participa
 import { StatusBadge } from "./status-badge";
 import { getAvatarUrl } from "@/lib/avatar";
 import { effectiveParticipantStatus } from "@/lib/participant-display-status";
-import type { Collections, PlayerRole } from "@/types/pocketbase-types";
+import type { Collections } from "@/types/pocketbase-types";
+import { PreferredLaneIcons } from "@/components/participants/preferred-lane-icons";
 import { Archive, CircleHelp, Pencil, Plus, UserMinus } from "lucide-react";
 
 type Participant = Collections["participants"] & { id: string };
@@ -26,22 +27,6 @@ type TeamSuggestion = {
   suggestedTeamName?: string;
   suggestionPriority?: string;
 };
-
-const ROLE_LABELS: Record<PlayerRole, string> = {
-  mid: "Mid",
-  gold: "Gold",
-  exp: "Exp",
-  support: "Support",
-  jungle: "Jungle",
-};
-
-function formatPreferredRoles(roles?: PlayerRole[]): string {
-  if (!roles?.length) return "-";
-  return roles
-    .filter(Boolean)
-    .map((r) => ROLE_LABELS[r] ?? r)
-    .join(", ");
-}
 
 export function ParticipantTableRow({
   participant,
@@ -90,8 +75,8 @@ export function ParticipantTableRow({
       <TableCell>
         <StatusBadge status={displayStatus} />
       </TableCell>
-      <TableCell className="text-muted-foreground text-sm">
-        {formatPreferredRoles(p.preferredRoles)}
+      <TableCell className="text-sm">
+        <PreferredLaneIcons roles={p.preferredRoles} />
       </TableCell>
       <TableCell>
         <div className="flex items-center gap-1">

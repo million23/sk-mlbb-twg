@@ -1,6 +1,6 @@
-import { cn } from "@/lib/utils";
-import { sanitizePhilippineMobileInput } from "@/lib/philippine-mobile";
 import { NetworkProviderBadge } from "@/lib/mobile-network-provider";
+import { sanitizePhilippineMobileInput } from "@/lib/philippine-mobile";
+import { cn } from "@/lib/utils";
 
 export function ParticipantContactWithBadge({
   contactNumber,
@@ -9,12 +9,11 @@ export function ParticipantContactWithBadge({
   contactNumber?: string;
   className?: string;
 }) {
-  const raw = contactNumber ?? "";
-  const formatted = sanitizePhilippineMobileInput(raw);
+  const formatted = sanitizePhilippineMobileInput(contactNumber ?? "");
   return (
     <div className={cn("flex min-w-0 items-center gap-1.5", className)}>
-      <span className="tabular-nums truncate">{formatted || "-"}</span>
-      {formatted ? <NetworkProviderBadge phone={raw} /> : null}
+      <span className="tabular-nums truncate">{formatted ?? "-"}</span>
+      {formatted ? <NetworkProviderBadge phone={formatted} /> : null}
     </div>
   );
 }

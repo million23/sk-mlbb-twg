@@ -1,3 +1,4 @@
+import { ParticipantContactWithBadge } from "@/components/participants/participant-contact-with-badge";
 import { GeneratedAvatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,24 +9,26 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { formatBirthdateDisplay, getAge } from "@/lib/age";
-import { cn, formatParticipantNameDisplay } from "@/lib/utils";
-import { ParticipantContactWithBadge } from "@/components/participants/participant-contact-with-badge";
-import { StatusBadge } from "./status-badge";
 import { getAvatarUrl } from "@/lib/avatar";
 import { effectiveParticipantStatus } from "@/lib/participant-display-status";
-import type { Collections, PlayerRole } from "@/types/pocketbase-types";
+import { RegisteredDateCell } from "@/components/ui/registered-date-cell";
+import { cn, formatParticipantNameDisplay } from "@/lib/utils";
+import type { Collections } from "@/types/pocketbase-types";
+import { PreferredLaneIcons } from "@/components/participants/preferred-lane-icons";
 import {
   Archive,
   Cake,
+  Clock,
   Gamepad2,
   MapPin,
   Pencil,
   Phone,
   Plus,
+  UserCircle2,
   UserMinus,
   Users,
-  UserCircle2,
 } from "lucide-react";
+import { StatusBadge } from "./status-badge";
 
 type Participant = Collections["participants"] & { id: string };
 
@@ -35,35 +38,23 @@ type TeamSuggestion = {
   suggestionPriority?: string;
 };
 
-const ROLE_LABELS: Record<PlayerRole, string> = {
-  mid: "Mid",
-  gold: "Gold",
-  exp: "Exp",
-  support: "Support",
-  jungle: "Jungle",
-};
-
-function formatPreferredRoles(roles?: PlayerRole[]): string {
-  if (!roles?.length) return "-";
-  return roles
-    .filter(Boolean)
-    .map((r) => ROLE_LABELS[r] ?? r)
-    .join(", ");
-}
-
 function InfoRow({
   icon: Icon,
   value,
   valueClassName,
+  children,
 }: {
   icon: React.ElementType;
-  value: string;
+  value?: string;
   valueClassName?: string;
+  children?: React.ReactNode;
 }) {
   return (
     <div className="flex items-center gap-2 text-sm">
-      <Icon className="size-4 shrink-0 text-muted-foreground" />
-      <span className={cn("truncate", valueClassName)}>{value || "-"}</span>
+      <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+      {children ?? (
+        <span className={cn("truncate", valueClassName)}>{value || "-"}</span>
+      )}
     </div>
   );
 }
@@ -91,7 +82,7 @@ export function ParticipantCard({
   const age = getAge(p.birthdate);
   const displayStatus = effectiveParticipantStatus(p, teams);
   return (
-    <Card className="overflow-hidden transition-shadow hover:shadow-md">
+    <Card className="overflow-hidden transition-shadow hover:shadow-md h-fit borderpi">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-3 min-w-0">
@@ -107,7 +98,9 @@ export function ParticipantCard({
               </CardTitle>
               <CardDescription className="text-xs mt-0.5">
                 ID{" "}
-                <span className="font-mono tabular-nums">{p.gameID ?? "-"}</span>
+                <span className="font-mono tabular-nums">
+                  {p.gameID ?? "-"}
+                </span>
               </CardDescription>
             </div>
           </div>
@@ -139,6 +132,13 @@ export function ParticipantCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-2.5 pt-0">
+        <InfoRow icon={Clock}>
+          <RegisteredDateCell
+            created={p.created}
+            announceLabel
+            className="min-w-0 truncate"
+          />
+        </InfoRow>
         <div className="flex items-center gap-2 text-sm min-w-0">
           <Phone className="size-4 shrink-0 text-muted-foreground" />
           <ParticipantContactWithBadge
@@ -156,10 +156,10 @@ export function ParticipantCard({
             )}
           </span>
         </div>
-        <InfoRow
-          icon={Gamepad2}
-          value={formatPreferredRoles(p.preferredRoles)}
-        />
+        <div className="flex items-center gap-2 text-sm min-w-0">
+          <Gamepad2 className="size-4 shrink-0 text-muted-foreground self-start mt-0.5" />
+          <PreferredLaneIcons roles={p.preferredRoles} className="min-w-0 flex-wrap" />
+        </div>
         <div className="flex flex-wrap items-center gap-2 pt-1">
           <div className="flex items-center gap-1.5">
             <UserCircle2 className="size-4 shrink-0 text-muted-foreground" />

@@ -14,7 +14,10 @@ import { ParticipantContactWithBadge } from "@/components/participants/participa
 import { StatusBadge } from "@/components/participants/status-badge";
 import { getAvatarUrl } from "@/lib/avatar";
 import { effectiveParticipantStatus } from "@/lib/participant-display-status";
-import type { Collections, PlayerRole } from "@/types/pocketbase-types";
+import { RegisteredDateCell } from "@/components/ui/registered-date-cell";
+import { registeredAtMs } from "@/lib/registered-date";
+import type { Collections } from "@/types/pocketbase-types";
+import { PreferredLaneIcons } from "@/components/participants/preferred-lane-icons";
 import { Archive, CircleHelp, Pencil, Plus, UserMinus } from "lucide-react";
 
 type Participant = Collections["participants"] & { id: string };
@@ -34,22 +37,6 @@ export type ParticipantsTableMeta = {
   onRemoveFromTeam?: (p: Participant) => void;
   onJoinTeam?: (participantId: string, teamId: string) => void;
 };
-
-const ROLE_LABELS: Record<PlayerRole, string> = {
-  mid: "Mid",
-  gold: "Gold",
-  exp: "Exp",
-  support: "Support",
-  jungle: "Jungle",
-};
-
-function formatPreferredRoles(roles?: PlayerRole[]): string {
-  if (!roles?.length) return "-";
-  return roles
-    .filter(Boolean)
-    .map((r) => ROLE_LABELS[r] ?? r)
-    .join(", ");
-}
 
 export function getParticipantsColumns(
   meta: ParticipantsTableMeta
@@ -88,6 +75,16 @@ export function getParticipantsColumns(
           formatParticipantNameDisplay(p.name) || p.gameID || "-"
         );
       },
+    },
+    {
+      accessorKey: "created",
+      header: "Date registered",
+      sortingFn: (rowA, rowB, columnId) =>
+        registeredAtMs(rowA.getValue(columnId) as string | undefined) -
+        registeredAtMs(rowB.getValue(columnId) as string | undefined),
+      cell: ({ row }) => (
+        <RegisteredDateCell created={row.original.created} />
+      ),
     },
     {
       accessorKey: "contactNumber",
@@ -130,9 +127,7 @@ export function getParticipantsColumns(
       accessorKey: "preferredRoles",
       header: "Preferred lanes",
       cell: ({ row }) => (
-        <span className="text-sm text-muted-foreground">
-          {formatPreferredRoles(row.original.preferredRoles)}
-        </span>
+        <PreferredLaneIcons roles={row.original.preferredRoles} />
       ),
     },
     {

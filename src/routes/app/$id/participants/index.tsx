@@ -1,4 +1,5 @@
 import { ParticipantCard } from "@/components/participants/participant-card";
+import { LaneRoleIcon } from "@/components/participants/preferred-lane-icons";
 import { getParticipantsColumns } from "@/components/tables/participants-columns";
 import {
 	AlertDialog,
@@ -20,10 +21,13 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { DataTable } from "@/components/ui/data-table";
 import {
 	Dialog,
 	DialogContent,
+	DialogDescription,
+	DialogFooter,
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
@@ -61,21 +65,35 @@ import {
 import { AGE_BRACKETS } from "@/config/age-brackets";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
+	useArchivedParticipants,
 	useParticipantMutations,
 	useParticipants,
 } from "@/hooks/use-participants";
 import { useTeamSuggestions } from "@/hooks/use-team-suggestions";
-import { useTeams } from "@/hooks/use-teams";
+import { useArchivedTeams, useTeams } from "@/hooks/use-teams";
 import { formatBirthdateDisplay, getAge, getAgeBracketLabel } from "@/lib/age";
 import { getAvatarUrl } from "@/lib/avatar";
+import { LANE_ROLE_LABELS } from "@/lib/lane-role-icons";
+import { effectiveParticipantStatus } from "@/lib/participant-display-status";
 import { sanitizePhilippineMobileInput } from "@/lib/philippine-mobile";
+import { compareRegisteredDesc } from "@/lib/registered-date";
+import {
+	downloadStructuredSpreadsheet,
+	type SpreadsheetColumn,
+} from "@/lib/spreadsheet-export";
 import {
 	cn,
 	formatParticipantNameDisplay,
 	toTitleCaseWords,
 } from "@/lib/utils";
 import type { Collections, PlayerRole } from "@/types/pocketbase-types";
-import { createFileRoute, Link, useParams } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	Link,
+	useNavigate,
+	useParams,
+} from "@tanstack/react-router";
+import { format } from "date-fns";
 import {
 	Archive,
 	ArrowDownWideNarrow,
@@ -83,6 +101,7 @@ import {
 	ChevronRight,
 	ChevronsLeft,
 	ChevronsRight,
+	FileSpreadsheet,
 	LayoutGrid,
 	LayoutList,
 	Loader2,
@@ -90,10 +109,27 @@ import {
 	Search,
 	Users,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
+type ParticipantsSearch = {
+	edit?: string;
+	archive?: string;
+};
+
 export const Route = createFileRoute("/app/$id/participants/")({
+	validateSearch: (search: Record<string, unknown>): ParticipantsSearch => {
+		const rawEdit = search.edit;
+		const rawArchive = search.archive;
+		return {
+			edit:
+				typeof rawEdit === "string" && rawEdit.length > 0 ? rawEdit : undefined,
+			archive:
+				typeof rawArchive === "string" && rawArchive.length > 0
+					? rawArchive
+					: undefined,
+		};
+	},
 	component: ParticipantsPage,
 });
 
@@ -102,11 +138,11 @@ type ParticipantFormData = Partial<
 >;
 
 const PREFERRED_ROLES: { value: PlayerRole; label: string }[] = [
-	{ value: "mid", label: "Mid" },
-	{ value: "gold", label: "Gold" },
-	{ value: "exp", label: "Exp" },
-	{ value: "support", label: "Support" },
-	{ value: "jungle", label: "Jungle" },
+	{ value: "mid", label: LANE_ROLE_LABELS.mid },
+	{ value: "gold", label: LANE_ROLE_LABELS.gold },
+	{ value: "exp", label: LANE_ROLE_LABELS.exp },
+	{ value: "support", label: LANE_ROLE_LABELS.support },
+	{ value: "jungle", label: LANE_ROLE_LABELS.jungle },
 ];
 
 function ParticipantForm({
@@ -206,18 +242,26 @@ function ParticipantForm({
 								key={i}
 								value={roles[i] ?? ""}
 								onValueChange={(v) => {
-									const next = [...roles]
+									const next = [...roles];
 									next[i] = (v || "") as PlayerRole;
 									setForm((f) => ({ ...f, preferredRoles: next }));
 								}}
 							>
-								<SelectTrigger className="w-full">
+								<SelectTrigger className="w-full gap-2 px-2">
 									<SelectValue placeholder="—">
 										{(value: string | null) =>
-											value
-												? (PREFERRED_ROLES.find((r) => r.value === value)
-													?.label ?? value)
-												: null
+											value ? (
+												<span className="flex min-w-0 items-center gap-2">
+													<LaneRoleIcon
+														role={value as PlayerRole}
+														className="size-5 shrink-0"
+													/>
+													<span className="truncate text-sm">
+														{PREFERRED_ROLES.find((r) => r.value === value)
+															?.label ?? value}
+													</span>
+												</span>
+											) : null
 										}
 									</SelectValue>
 								</SelectTrigger>
@@ -226,13 +270,19 @@ function ParticipantForm({
 									{PREFERRED_ROLES.filter((r) => !used.includes(r.value)).map(
 										(r) => (
 											<SelectItem key={r.value} value={r.value}>
-												{r.label}
+												<span className="flex items-center gap-2">
+													<LaneRoleIcon
+														role={r.value}
+														className="size-5 shrink-0"
+													/>
+													<span>{r.label}</span>
+												</span>
 											</SelectItem>
 										),
 									)}
 								</SelectContent>
 							</Select>
-						)
+						);
 					})}
 				</div>
 			</div>
@@ -245,7 +295,7 @@ function ParticipantForm({
 				</Button>
 			</div>
 		</div>
-	)
+	);
 }
 
 type TeamSuggestion = {
@@ -280,14 +330,20 @@ function sortParticipantsByTeam(
 		const aUn = !aId;
 		const bUn = !bId;
 		if (aUn !== bUn) return aUn ? 1 : -1;
-		if (aUn && bUn) return compareParticipantName(a, b);
+		if (aUn && bUn) {
+			const byDate = compareRegisteredDesc(a, b);
+			if (byDate !== 0) return byDate;
+			return compareParticipantName(a, b);
+		}
 		const teamNameCmp = getTeamName(aId).localeCompare(
 			getTeamName(bId),
 			undefined,
 			{ sensitivity: "base" },
-		)
+		);
 		if (teamNameCmp !== 0) return teamNameCmp;
 		if (aId !== bId) return aId.localeCompare(bId);
+		const byDate = compareRegisteredDesc(a, b);
+		if (byDate !== 0) return byDate;
 		return compareParticipantName(a, b);
 	});
 }
@@ -351,7 +407,7 @@ function ParticipantsLoadingSkeleton({
 					</div>
 				))}
 			</div>
-		)
+		);
 	}
 
 	return (
@@ -432,7 +488,7 @@ function ParticipantsLoadingSkeleton({
 				</TableBody>
 			</Table>
 		</div>
-	)
+	);
 }
 
 function ParticipantsPage() {
@@ -448,9 +504,14 @@ function ParticipantsPage() {
 	const totalRegistered = participants.length;
 
 	const { data: teams } = useTeams();
+	const { data: archivedParticipantsData } = useArchivedParticipants();
+	const archivedParticipants = archivedParticipantsData ?? [];
+	const { data: archivedTeams } = useArchivedTeams();
 	const { data: teamSuggestions } = useTeamSuggestions();
 	const params = useParams({ strict: false });
 	const appId = (params as { id?: string })?.id ?? "";
+	const { edit, archive } = Route.useSearch();
+	const navigate = useNavigate();
 
 	const suggestionsByParticipant = useMemo(() => {
 		const map = new Map<string, TeamSuggestion[]>();
@@ -464,14 +525,14 @@ function ParticipantsPage() {
 						"id" in participantRef &&
 						typeof (participantRef as { id?: unknown }).id === "string"
 						? (participantRef as { id: string }).id
-						: undefined
+						: undefined;
 			if (!pid) continue;
 			const list = map.get(pid) ?? [];
 			list.push({
 				suggestedTeamId: s.suggestedTeamId,
 				suggestedTeamName: s.suggestedTeamName,
 				suggestionPriority: s.suggestionPriority,
-			})
+			});
 			map.set(pid, list);
 		}
 		return map;
@@ -479,11 +540,14 @@ function ParticipantsPage() {
 	const mutations = useParticipantMutations();
 	const isMobile = useIsMobile();
 	const [view, setView] = useState<"table" | "cards">("table");
+	/** Add flow only; edit mode uses `?edit=<id>` in the URL */
+	const [addSheetOpen, setAddSheetOpen] = useState(false);
+	/** Dialog/drawer visibility — decoupled from `?edit` so URL can clear after close animation */
 	const [sheetOpen, setSheetOpen] = useState(false);
-	const [editingId, setEditingId] = useState<string | null>(null);
-	const [archiveConfirmId, setArchiveConfirmId] = useState<string | null>(
+	const closingEditRef = useRef(false);
+	const clearEditUrlTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
 		null,
-	)
+	);
 	const [removeFromTeamParticipant, setRemoveFromTeamParticipant] = useState<
 		(Collections["participants"] & { id: string }) | null
 	>(null);
@@ -497,23 +561,55 @@ function ParticipantsPage() {
 		status: "unassigned",
 	});
 
-	const openCreate = () => {
-		setEditingId(null);
-		setForm({
-			gameID: "",
-			name: "",
-			contactNumber: "",
-			area: "",
-			birthdate: undefined,
-			preferredRoles: [],
-			status: "unassigned",
-			team: undefined,
-		})
-		setSheetOpen(true);
-	}
+	const navigateParticipantsSearch = useCallback(
+		(
+			next:
+				| Partial<ParticipantsSearch>
+				| ((prev: ParticipantsSearch) => ParticipantsSearch),
+		) => {
+			void navigate({
+				to: "/app/$id/participants/",
+				params: { id: appId },
+				search:
+					typeof next === "function" ? next : (prev) => ({ ...prev, ...next }),
+			});
+		},
+		[navigate, appId],
+	);
 
-	const openEdit = (p: Collections["participants"] & { id: string }) => {
-		setEditingId(p.id);
+	/** Matches dialog `duration-100` + small buffer so content stays until exit finishes */
+	const EDIT_SHEET_CLOSE_MS = 150;
+
+	const cancelPendingEditUrlClear = useCallback(() => {
+		if (clearEditUrlTimeoutRef.current) {
+			clearTimeout(clearEditUrlTimeoutRef.current);
+			clearEditUrlTimeoutRef.current = null;
+		}
+		closingEditRef.current = false;
+	}, []);
+
+	const clearEditFromUrlAfterAnimation = useCallback(() => {
+		if (clearEditUrlTimeoutRef.current) {
+			clearTimeout(clearEditUrlTimeoutRef.current);
+		}
+		clearEditUrlTimeoutRef.current = setTimeout(() => {
+			clearEditUrlTimeoutRef.current = null;
+			navigateParticipantsSearch({ edit: undefined });
+			closingEditRef.current = false;
+		}, EDIT_SHEET_CLOSE_MS);
+	}, [navigateParticipantsSearch]);
+
+	const lastSyncedEditRef = useRef<string | undefined>(undefined);
+
+	useEffect(() => {
+		if (!edit) {
+			lastSyncedEditRef.current = undefined;
+			return;
+		}
+		const p = participants.find((x) => x.id === edit);
+		if (!p) return;
+		if (lastSyncedEditRef.current === edit) return;
+		lastSyncedEditRef.current = edit;
 		setForm({
 			gameID: p.gameID ?? "",
 			name: p.name ?? "",
@@ -523,16 +619,98 @@ function ParticipantsPage() {
 			preferredRoles: p.preferredRoles ?? [],
 			status: p.status ?? "unassigned",
 			team: p.team,
-		})
+		});
+	}, [edit, participants]);
+
+	useEffect(() => {
+		if (!edit || isLoading || isError) return;
+		const found = participants.some((p) => p.id === edit);
+		if (!found) {
+			toast.error("Participant not found");
+			cancelPendingEditUrlClear();
+			setSheetOpen(false);
+			navigateParticipantsSearch({ edit: undefined });
+		}
+	}, [
+		edit,
+		participants,
+		isLoading,
+		isError,
+		navigateParticipantsSearch,
+		cancelPendingEditUrlClear,
+	]);
+
+	useEffect(() => {
+		if (!archive || isLoading || isError) return;
+		const found = participants.some((p) => p.id === archive);
+		if (!found) {
+			toast.error("Participant not found");
+			navigateParticipantsSearch({ archive: undefined });
+		}
+	}, [archive, participants, isLoading, isError, navigateParticipantsSearch]);
+
+	useEffect(() => {
+		if (edit && !closingEditRef.current) {
+			setSheetOpen(true);
+		}
+	}, [edit]);
+
+	useEffect(() => {
+		if (!edit && !addSheetOpen) {
+			setSheetOpen(false);
+		}
+	}, [edit, addSheetOpen]);
+
+	useEffect(() => {
+		return () => {
+			if (clearEditUrlTimeoutRef.current) {
+				clearTimeout(clearEditUrlTimeoutRef.current);
+			}
+		};
+	}, []);
+
+	const openCreate = () => {
+		cancelPendingEditUrlClear();
 		setSheetOpen(true);
-	}
+		setAddSheetOpen(true);
+		navigateParticipantsSearch({ edit: undefined });
+		setForm({
+			gameID: "",
+			name: "",
+			contactNumber: "",
+			area: "",
+			birthdate: undefined,
+			preferredRoles: [],
+			status: "unassigned",
+			team: undefined,
+		});
+	};
+
+	const openEdit = (p: Collections["participants"] & { id: string }) => {
+		cancelPendingEditUrlClear();
+		setAddSheetOpen(false);
+		navigateParticipantsSearch({ edit: p.id });
+	};
+
+	const closeSheet = () => {
+		setSheetOpen(false);
+		setAddSheetOpen(false);
+		if (edit) {
+			closingEditRef.current = true;
+			clearEditFromUrlAfterAnimation();
+		}
+	};
+
+	const handleSheetOpenChange = (open: boolean) => {
+		if (!open) closeSheet();
+	};
 
 	const handleSubmit = () => {
 		const name = (form.name ?? "").trim();
 		const gameID = (form.gameID ?? "").trim();
 		if (!name && !gameID) {
 			toast.error("Enter at least a name or Game ID");
-			return
+			return;
 		}
 		const payload = {
 			...form,
@@ -540,30 +718,44 @@ function ParticipantsPage() {
 			preferredRoles: (form.preferredRoles ?? [])
 				.filter((r): r is PlayerRole => Boolean(r))
 				.slice(0, 3),
-		}
-		if (editingId) {
-			mutations.update.mutate({ id: editingId, ...payload });
+		};
+		if (edit) {
+			mutations.update.mutate({ id: edit, ...payload });
 			toast.success("Participant updated");
+			setSheetOpen(false);
+			closingEditRef.current = true;
+			clearEditFromUrlAfterAnimation();
 		} else {
 			mutations.create.mutate(payload);
 			toast.success("Participant added");
+			setSheetOpen(false);
+			setAddSheetOpen(false);
 		}
-		setSheetOpen(false);
-	}
+	};
+
+	const openArchiveConfirm = useCallback(
+		(id: string) => {
+			navigateParticipantsSearch({ archive: id });
+		},
+		[navigateParticipantsSearch],
+	);
+
+	const closeArchiveConfirm = useCallback(() => {
+		navigateParticipantsSearch({ archive: undefined });
+	}, [navigateParticipantsSearch]);
 
 	const handleArchiveConfirm = () => {
-		if (archiveConfirmId) {
-			mutations.archive.mutate(archiveConfirmId);
-			toast.success("Participant archived");
-			setArchiveConfirmId(null);
-		}
-	}
+		if (!archive) return;
+		mutations.archive.mutate(archive);
+		toast.success("Participant archived");
+		navigateParticipantsSearch({ archive: undefined });
+	};
 
 	const handleRemoveFromTeamClick = (
 		p: Collections["participants"] & { id: string },
 	) => {
 		setRemoveFromTeamParticipant(p);
-	}
+	};
 
 	const handleRemoveFromTeamConfirm = () => {
 		if (removeFromTeamParticipant) {
@@ -571,28 +763,38 @@ function ParticipantsPage() {
 				id: removeFromTeamParticipant.id,
 				team: "",
 				status: "unassigned",
-			})
+			});
 			toast.success("Removed from team");
 			setRemoveFromTeamParticipant(null);
 		}
-	}
+	};
 
 	const handleJoinTeam = (participantId: string, teamId: string) => {
 		mutations.update.mutateQueued({
 			id: participantId,
 			team: teamId,
 			status: "assigned",
-		})
+		});
 		toast.success("Added to team");
-	}
+	};
 
 	const getTeamName = useCallback(
 		(teamId: string | undefined) =>
 			teams?.find((t) => t.id === teamId)?.name ?? "-",
 		[teams],
-	)
+	);
+
+	const getTeamNameIncludingArchived = useCallback(
+		(teamId: string | undefined) =>
+			teams?.find((t) => t.id === teamId)?.name ??
+			archivedTeams?.find((t) => t.id === teamId)?.name ??
+			"-",
+		[teams, archivedTeams],
+	);
 
 	const [search, setSearch] = useState("");
+	const [exportDialogOpen, setExportDialogOpen] = useState(false);
+	const [exportIncludeArchived, setExportIncludeArchived] = useState(false);
 	const [participantSort, setParticipantSort] = useState<"default" | "team">(
 		"default",
 	);
@@ -625,14 +827,174 @@ function ParticipantsPage() {
 				ageStr.includes(q) ||
 				bracket.includes(q) ||
 				birthdateStr.includes(q)
-			)
-		})
+			);
+		});
 	}, [participants, search, getTeamName]);
 
 	const displayedParticipants = useMemo(() => {
-		if (participantSort !== "team") return filteredParticipants;
-		return sortParticipantsByTeam(filteredParticipants, getTeamName);
+		if (participantSort === "team") {
+			return sortParticipantsByTeam(filteredParticipants, getTeamName);
+		}
+		return [...filteredParticipants].sort(compareRegisteredDesc);
 	}, [filteredParticipants, participantSort, getTeamName]);
+
+	const filteredArchivedParticipants = useMemo(() => {
+		if (!search.trim()) return archivedParticipants;
+		const q = search.toLowerCase().trim();
+		return archivedParticipants.filter((p) => {
+			const name = (p.name ?? "").toLowerCase();
+			const gameID = (p.gameID ?? "").toLowerCase();
+			const contact = (p.contactNumber ?? "").toLowerCase();
+			const contactDigits = (p.contactNumber ?? "").replace(/\D/g, "");
+			const qDigits = q.replace(/\D/g, "");
+			const area = (p.area ?? "").toLowerCase();
+			const teamName = getTeamNameIncludingArchived(p.team).toLowerCase();
+			const age = getAge(p.birthdate);
+			const ageStr = age !== null ? String(age) : "";
+			const bracket = getAgeBracketLabel(age, AGE_BRACKETS).toLowerCase();
+			const birthdateStr = (
+				formatBirthdateDisplay(p.birthdate) ?? ""
+			).toLowerCase();
+			return (
+				name.includes(q) ||
+				gameID.includes(q) ||
+				contact.includes(q) ||
+				(qDigits.length > 0 && contactDigits.includes(qDigits)) ||
+				area.includes(q) ||
+				teamName.includes(q) ||
+				ageStr.includes(q) ||
+				bracket.includes(q) ||
+				birthdateStr.includes(q)
+			);
+		});
+	}, [archivedParticipants, search, getTeamNameIncludingArchived]);
+
+	const displayedArchivedParticipants = useMemo(() => {
+		if (participantSort === "team") {
+			return sortParticipantsByTeam(
+				filteredArchivedParticipants,
+				getTeamNameIncludingArchived,
+			);
+		}
+		return [...filteredArchivedParticipants].sort(compareRegisteredDesc);
+	}, [
+		filteredArchivedParticipants,
+		participantSort,
+		getTeamNameIncludingArchived,
+	]);
+
+	const confirmExportParticipants = useCallback(() => {
+		const includeArchived = exportIncludeArchived;
+		const activeRows = displayedParticipants;
+		const archivedRows = includeArchived ? displayedArchivedParticipants : [];
+		const rows = [...activeRows, ...archivedRows];
+		const archivedIds = new Set(archivedRows.map((p) => p.id));
+		const teamLookup = includeArchived
+			? getTeamNameIncludingArchived
+			: getTeamName;
+
+		type P = (typeof rows)[number];
+		const baseColumns: SpreadsheetColumn<P>[] = [
+			{
+				header: "Game ID",
+				widthChars: 14,
+				type: "text",
+				get: (p) => p.gameID ?? "",
+			},
+			{
+				header: "Name",
+				widthChars: 28,
+				type: "text",
+				get: (p) => formatParticipantNameDisplay(p.name) || "",
+			},
+			{
+				header: "Date registered",
+				widthChars: 28,
+				type: "text",
+				get: (p) =>
+					p.created ? format(p.created as string, "MMM d, yyyy - hh:mm a") : "",
+			},
+			{
+				header: "Contact",
+				widthChars: 16,
+				type: "text",
+				get: (p) => p.contactNumber ?? "",
+			},
+			{
+				header: "Area",
+				widthChars: 36,
+				type: "text",
+				get: (p) => p.area ?? "",
+			},
+			{
+				header: "Birthday",
+				widthChars: 16,
+				type: "text",
+				get: (p) =>
+					p.birthdate ? format(p.birthdate as string, "MMM d, yyyy") : "",
+			},
+			{
+				header: "Status",
+				widthChars: 12,
+				type: "text",
+				get: (p) => effectiveParticipantStatus(p, teams),
+			},
+			{
+				header: "Preferred lanes",
+				widthChars: 22,
+				type: "text",
+				get: (p) =>
+					(p.preferredRoles?.filter(Boolean) as PlayerRole[] | undefined)
+						?.map((r) => LANE_ROLE_LABELS[r] ?? r)
+						.join(", ") ?? "",
+			},
+			{
+				header: "Team",
+				widthChars: 24,
+				type: "text",
+				get: (p) => teamLookup(p.team),
+			},
+		];
+
+		const columns: SpreadsheetColumn<P>[] = includeArchived
+			? [
+				...baseColumns.slice(0, 2),
+				{
+					header: "Archived",
+					widthChars: 10,
+					type: "text",
+					get: (p) => (archivedIds.has(p.id) ? "Yes" : "No"),
+				},
+				...baseColumns.slice(2),
+			]
+			: baseColumns;
+
+		if (rows.length === 0) {
+			toast.error("Nothing to export for the current search and options.");
+			return;
+		}
+
+		downloadStructuredSpreadsheet({
+			fileBasename: "participants",
+			sheetName: "Participants",
+			workbookTitle: "Participants export",
+			columns,
+			rows,
+			emptyMessage:
+				"No participants match the current view — adjust search or filters.",
+		});
+		toast.success(
+			`Exported ${rows.length} participant${rows.length === 1 ? "" : "s"}`,
+		);
+		setExportDialogOpen(false);
+	}, [
+		exportIncludeArchived,
+		displayedParticipants,
+		displayedArchivedParticipants,
+		teams,
+		getTeamName,
+		getTeamNameIncludingArchived,
+	]);
 
 	const cardPageCount = Math.max(
 		1,
@@ -697,6 +1059,20 @@ function ParticipantsPage() {
 						<Archive className="size-4 shrink-0" aria-hidden />
 						Archived
 					</Link>
+					<Button
+						type="button"
+						variant="outline"
+						disabled={
+							isLoading ||
+							(displayedParticipants.length === 0 &&
+								archivedParticipants.length === 0)
+						}
+						className="gap-2"
+						onClick={() => setExportDialogOpen(true)}
+					>
+						<FileSpreadsheet className="size-4 shrink-0" aria-hidden />
+						Export spreadsheet
+					</Button>
 					<Button onClick={openCreate}>
 						<Plus className="size-4" />
 						Add participant
@@ -762,7 +1138,9 @@ function ParticipantsPage() {
 										<SelectValue placeholder="Order" />
 									</SelectTrigger>
 									<SelectContent>
-										<SelectItem value="default">Default order</SelectItem>
+										<SelectItem value="default">
+											Date registered (newest first)
+										</SelectItem>
 										<SelectItem value="team">By team</SelectItem>
 									</SelectContent>
 								</Select>
@@ -817,11 +1195,12 @@ function ParticipantsPage() {
 									getTeamName,
 									suggestionsByParticipant,
 									onEdit: openEdit,
-									onDelete: setArchiveConfirmId,
+									onDelete: openArchiveConfirm,
 									onRemoveFromTeam: handleRemoveFromTeamClick,
 									onJoinTeam: handleJoinTeam,
 								})}
 								data={displayedParticipants}
+								initialSorting={[{ id: "created", desc: true }]}
 								emptyMessage={
 									search
 										? `No participants match "${search}"`
@@ -840,7 +1219,7 @@ function ParticipantsPage() {
 										teams={teams}
 										suggestions={suggestionsByParticipant.get(p.id) ?? []}
 										onEdit={openEdit}
-										onDelete={setArchiveConfirmId}
+										onDelete={openArchiveConfirm}
 										onRemoveFromTeam={handleRemoveFromTeamClick}
 										onJoinTeam={handleJoinTeam}
 									/>
@@ -913,20 +1292,24 @@ function ParticipantsPage() {
 			</Card>
 
 			{isMobile ? (
-				<Drawer open={sheetOpen} onOpenChange={setSheetOpen} direction="bottom">
+				<Drawer
+					open={sheetOpen}
+					onOpenChange={handleSheetOpenChange}
+					direction="bottom"
+				>
 					<DrawerContent className="max-h-[75vh] flex w-full flex-col overflow-hidden">
 						<DrawerHeader className="shrink-0 px-4">
 							<DrawerTitle>
-								{editingId ? "Edit participant" : "Add participant"}
+								{edit ? "Edit participant" : "Add participant"}
 							</DrawerTitle>
 						</DrawerHeader>
 						<div className="min-h-0 w-full overflow-y-auto overscroll-contain">
 							<ParticipantForm
-								key={editingId ?? "create"}
+								key={edit ?? "create"}
 								form={form}
 								setForm={setForm}
-								editingId={editingId}
-								onClose={() => setSheetOpen(false)}
+								editingId={edit ?? null}
+								onClose={closeSheet}
 								onSubmit={handleSubmit}
 								isMobile
 							/>
@@ -934,28 +1317,80 @@ function ParticipantsPage() {
 					</DrawerContent>
 				</Drawer>
 			) : (
-				<Dialog open={sheetOpen} onOpenChange={setSheetOpen}>
+				<Dialog open={sheetOpen} onOpenChange={handleSheetOpenChange}>
 					<DialogContent className="sm:max-w-md">
 						<DialogHeader>
 							<DialogTitle>
-								{editingId ? "Edit participant" : "Add participant"}
+								{edit ? "Edit participant" : "Add participant"}
 							</DialogTitle>
 						</DialogHeader>
 						<ParticipantForm
-							key={editingId ?? "create"}
+							key={edit ?? "create"}
 							form={form}
 							setForm={setForm}
-							editingId={editingId}
-							onClose={() => setSheetOpen(false)}
+							editingId={edit ?? null}
+							onClose={closeSheet}
 							onSubmit={handleSubmit}
 						/>
 					</DialogContent>
 				</Dialog>
 			)}
 
+			<Dialog
+				open={exportDialogOpen}
+				onOpenChange={(open) => {
+					setExportDialogOpen(open);
+					if (open) setExportIncludeArchived(false);
+				}}
+			>
+				<DialogContent className="sm:max-w-md">
+					<DialogHeader>
+						<DialogTitle>Export participants</DialogTitle>
+						<DialogDescription>
+							Download a spreadsheet using the current search and sort. Active
+							participants are always included when they match the search.
+						</DialogDescription>
+					</DialogHeader>
+					<div className="flex items-start gap-3">
+						<Checkbox
+							id="export-participants-include-archived"
+							checked={exportIncludeArchived}
+							onCheckedChange={(checked) =>
+								setExportIncludeArchived(Boolean(checked))
+							}
+							className="mt-0.5"
+						/>
+						<div className="grid gap-1.5 leading-none">
+							<Label
+								htmlFor="export-participants-include-archived"
+								className="cursor-pointer font-medium"
+							>
+								Include archived participants
+							</Label>
+							<p className="text-sm font-normal leading-snug text-muted-foreground">
+								When checked, archived participants that match the same search
+								are appended and an &quot;Archived&quot; column is added.
+							</p>
+						</div>
+					</div>
+					<DialogFooter>
+						<Button
+							type="button"
+							variant="outline"
+							onClick={() => setExportDialogOpen(false)}
+						>
+							Cancel
+						</Button>
+						<Button type="button" onClick={confirmExportParticipants}>
+							Export
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
 			<AlertDialog
-				open={!!archiveConfirmId}
-				onOpenChange={(o) => !o && setArchiveConfirmId(null)}
+				open={!!archive}
+				onOpenChange={(o) => !o && closeArchiveConfirm()}
 			>
 				<AlertDialogContent>
 					<AlertDialogHeader>
@@ -1009,5 +1444,5 @@ function ParticipantsPage() {
 				</AlertDialogContent>
 			</AlertDialog>
 		</div>
-	)
+	);
 }

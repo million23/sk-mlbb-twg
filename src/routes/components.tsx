@@ -61,12 +61,7 @@ import {
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 export const Route = createFileRoute('/components')({
   component: ComponentsPage,
@@ -96,7 +91,6 @@ function ShowcaseSection({
 
 function ComponentsPage() {
   return (
-    <TooltipProvider>
       <main className="min-h-screen bg-background px-4 py-10 text-foreground sm:px-6 lg:px-8">
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-8">
           <section className="space-y-4">
@@ -385,6 +379,5 @@ function ComponentsPage() {
           </section>
         </div>
       </main>
-    </TooltipProvider>
   )
 }
