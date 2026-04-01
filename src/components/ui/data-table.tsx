@@ -55,6 +55,11 @@ export interface DataTableProps<TData, TValue> {
   data: TData[];
   /** Initial column sort (e.g. `[{ id: "created", desc: true }]`). */
   initialSorting?: SortingState;
+  /**
+   * When true, rows keep the order of `data` (no client-side column sort).
+   * Use when the parent already sorts the array (e.g. custom sort modes).
+   */
+  manualSorting?: boolean;
   filterColumn?: string;
   filterPlaceholder?: string;
   searchValue?: string;
@@ -96,6 +101,7 @@ export function DataTable<TData, TValue>({
   tableRowClassName,
   tableWrapperClassName,
   initialSorting = [],
+  manualSorting = false,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>(initialSorting);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -110,6 +116,7 @@ export function DataTable<TData, TValue>({
     columns,
     meta,
     getSubRows,
+    manualSorting,
     getCoreRowModel: getCoreRowModel(),
     ...(showPagination ? { getPaginationRowModel: getPaginationRowModel() } : {}),
     getSortedRowModel: getSortedRowModel(),

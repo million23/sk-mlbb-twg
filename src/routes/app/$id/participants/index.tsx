@@ -45,6 +45,11 @@ import {
 	EmptyMedia,
 	EmptyTitle,
 } from "@/components/ui/empty";
+import {
+	InputGroup,
+	InputGroupAddon,
+	InputGroupInput,
+} from "@/components/ui/input-group";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -112,6 +117,13 @@ import { toast } from "sonner";
 type ParticipantsSearch = {
 	edit?: string;
 	archive?: string;
+};
+
+type ParticipantSortMode = "default" | "team";
+
+const PARTICIPANT_SORT_LABELS: Record<ParticipantSortMode, string> = {
+	default: "Date registered (newest first)",
+	team: "By team",
 };
 
 export const Route = createFileRoute("/app/$id/participants/")({
@@ -1045,33 +1057,6 @@ function ParticipantsPage() {
 							<LayoutGrid className="size-4" />
 						</Button>
 					</div>
-					<Link
-						to="/app/$id/participants/archived"
-						params={{ id: appId }}
-						className={cn(
-							buttonVariants({ variant: "outline", size: "default" }),
-							"gap-2",
-						)}
-					>
-						<Archive className="size-4 shrink-0" aria-hidden />
-						Archived
-					</Link>
-					<Button
-						type="button"
-						variant="outline"
-						disabled={
-							isLoading ||
-							(displayedParticipants.length === 0 &&
-								archivedParticipants.length === 0)
-						}
-						className="gap-2"
-						aria-label="Export spreadsheet"
-						onClick={() => setExportDialogOpen(true)}
-					>
-						<FileSpreadsheet className="size-4 shrink-0" aria-hidden />
-						<span className="hidden sm:inline">Export spreadsheet</span>
-						<span className="sm:hidden">Export</span>
-					</Button>
 					<Button onClick={openCreate} aria-label="Add participant">
 						<Plus className="size-4 shrink-0" aria-hidden />
 						<span className="hidden sm:inline">Add participant</span>
@@ -1094,58 +1079,77 @@ function ParticipantsPage() {
 						)}
 					</CardDescription>
 					{isLoading ? (
-						<div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-3">
-							<Skeleton className="h-9 w-full flex-1 rounded-md" />
-							<div className="flex w-full shrink-0 flex-col gap-1.5 sm:w-[min(100%,14rem)]">
-								<Skeleton className="h-3 w-8" />
-								<Skeleton className="h-9 w-full rounded-md" />
-							</div>
-						</div>
+						<Skeleton className="mt-2 h-9 w-full rounded-lg" />
 					) : null}
 					{!isLoading && totalRegistered > 0 && (
-						<div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-3">
-							<div className="relative min-w-0 flex-1">
-								<Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-								<Input
-									placeholder="Search by name, Game ID, contact, area, age..."
-									value={search}
-									onChange={(e) => {
-										setSearch(e.target.value);
-										setCardPage(1);
-									}}
-									className="pl-9"
-								/>
-							</div>
-							<div className="flex w-full shrink-0 flex-col gap-1.5 sm:w-[min(100%,14rem)]">
-								<Label
-									htmlFor="participant-sort"
-									className="text-xs text-muted-foreground"
-								>
-									Sort
-								</Label>
-								<Select
-									value={participantSort}
-									onValueChange={(v) => {
-										setParticipantSort(v as "default" | "team");
-										setCardPage(1);
-									}}
-								>
-									<SelectTrigger id="participant-sort" className="w-full">
-										<ArrowDownWideNarrow
-											className="size-4 shrink-0 text-muted-foreground"
-											aria-hidden
-										/>
-										<SelectValue placeholder="Order" />
-									</SelectTrigger>
-									<SelectContent>
-										<SelectItem value="default">
-											Date registered (newest first)
-										</SelectItem>
-										<SelectItem value="team">By team</SelectItem>
-									</SelectContent>
-								</Select>
-							</div>
-						</div>
+						<>
+							<Label htmlFor="participant-sort" className="sr-only">
+								Sort order
+							</Label>
+							<InputGroup className="mt-2 h-auto w-full min-w-0 flex-col items-stretch focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 sm:h-9 sm:flex-row">
+								<div className="flex min-h-9 min-w-0 flex-1 items-stretch">
+									<InputGroupAddon
+										align="inline-start"
+										className="shrink-0 border-0 py-0 sm:py-1.5"
+									>
+										<Search className="size-4 text-muted-foreground" aria-hidden />
+									</InputGroupAddon>
+									<InputGroupInput
+										id="participant-search"
+										placeholder="Search by name, Game ID, contact, area, age..."
+										value={search}
+										onChange={(e) => {
+											setSearch(e.target.value);
+											setCardPage(1);
+										}}
+										className="min-h-9 min-w-0 flex-1"
+										aria-label="Search participants"
+									/>
+								</div>
+								<div className="flex min-h-9 min-w-0 items-stretch border-t border-input sm:min-w-[22rem] sm:shrink-0 sm:border-t-0 sm:border-l">
+									<Select
+										value={participantSort}
+										onValueChange={(v) => {
+											setParticipantSort(v as "default" | "team");
+											setCardPage(1);
+										}}
+									>
+										<SelectTrigger
+											id="participant-sort"
+											size="default"
+											className="h-9 w-full min-w-0 flex-1 rounded-none border-0 bg-transparent px-2.5 shadow-none ring-0 focus-visible:border-0 focus-visible:ring-0 data-[size=default]:h-9 *:data-[slot=select-value]:line-clamp-none dark:hover:bg-transparent"
+										>
+											<ArrowDownWideNarrow
+												className="size-4 shrink-0 text-muted-foreground"
+												aria-hidden
+											/>
+											<SelectValue placeholder="Sort order">
+												{(v: unknown) => {
+													if (v === "default" || v === "team") {
+														return PARTICIPANT_SORT_LABELS[v];
+													}
+													return "Sort order";
+												}}
+											</SelectValue>
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem
+												value="default"
+												label={PARTICIPANT_SORT_LABELS.default}
+											>
+												{PARTICIPANT_SORT_LABELS.default}
+											</SelectItem>
+											<SelectItem
+												value="team"
+												label={PARTICIPANT_SORT_LABELS.team}
+											>
+												{PARTICIPANT_SORT_LABELS.team}
+											</SelectItem>
+										</SelectContent>
+									</Select>
+								</div>
+							</InputGroup>
+						</>
 					)}
 				</CardHeader>
 				<CardContent>
@@ -1201,6 +1205,7 @@ function ParticipantsPage() {
 								})}
 								data={displayedParticipants}
 								initialSorting={[{ id: "created", desc: true }]}
+								manualSorting={participantSort === "team"}
 								tableWrapperClassName="overflow-x-auto"
 								emptyMessage={
 									search
@@ -1208,6 +1213,36 @@ function ParticipantsPage() {
 										: "No participants."
 								}
 							/>
+							<div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4 mt-4">
+								<Link
+									to="/app/$id/participants/archived"
+									params={{ id: appId }}
+									aria-label="Archived Participants"
+									className={cn(
+										buttonVariants({ variant: "outline", size: "default" }),
+										"gap-2",
+									)}
+								>
+									<Archive className="size-4 shrink-0" aria-hidden />
+									<span className="hidden sm:inline">Archived Participants</span>
+									<span className="sm:hidden">Archived</span>
+								</Link>
+								<Button
+									type="button"
+									variant="outline"
+									disabled={
+										displayedParticipants.length === 0 &&
+										archivedParticipants.length === 0
+									}
+									className="gap-2"
+									aria-label="Export spreadsheet"
+									onClick={() => setExportDialogOpen(true)}
+								>
+									<FileSpreadsheet className="size-4 shrink-0" aria-hidden />
+									<span className="hidden sm:inline">Export spreadsheet</span>
+									<span className="sm:hidden">Export</span>
+								</Button>
+							</div>
 						</>
 					) : (
 						<>
@@ -1232,7 +1267,7 @@ function ParticipantsPage() {
 								</p>
 							)}
 							{displayedParticipants.length > CARDS_PER_PAGE ? (
-								<div className="flex flex-col items-center gap-3 border-t border-border pt-4">
+								<div className="flex flex-col items-center gap-3 border-t border-border pt-4 mt-4">
 									<p className="text-center text-sm text-muted-foreground">
 										{displayedParticipants.length} matching
 									</p>
@@ -1244,6 +1279,43 @@ function ParticipantsPage() {
 									/>
 								</div>
 							) : null}
+							<div
+								className={cn(
+									"flex flex-wrap justify-end gap-2 pt-4",
+									displayedParticipants.length > CARDS_PER_PAGE
+										? ""
+										: "mt-4 border-t border-border",
+								)}
+							>
+								<Link
+									to="/app/$id/participants/archived"
+									params={{ id: appId }}
+									aria-label="Archived Participants"
+									className={cn(
+										buttonVariants({ variant: "outline", size: "default" }),
+										"gap-2",
+									)}
+								>
+									<Archive className="size-4 shrink-0" aria-hidden />
+									<span className="hidden sm:inline">Archived Participants</span>
+									<span className="sm:hidden">Archived</span>
+								</Link>
+								<Button
+									type="button"
+									variant="outline"
+									disabled={
+										displayedParticipants.length === 0 &&
+										archivedParticipants.length === 0
+									}
+									className="gap-2"
+									aria-label="Export spreadsheet"
+									onClick={() => setExportDialogOpen(true)}
+								>
+									<FileSpreadsheet className="size-4 shrink-0" aria-hidden />
+									<span className="hidden sm:inline">Export spreadsheet</span>
+									<span className="sm:hidden">Export</span>
+								</Button>
+							</div>
 						</>
 					)}
 				</CardContent>

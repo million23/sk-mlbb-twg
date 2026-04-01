@@ -36,9 +36,9 @@ export function TablePageNavigation({
 		>
 			<Button
 				type="button"
-				variant="secondary"
+				variant="ghost"
 				size="lg"
-				className="h-9 rounded-lg px-3.5"
+				className="h-9 px-3.5 text-foreground hover:bg-muted/50"
 				disabled={!canPrev}
 				onClick={() => onPageChange(safePage - 1)}
 				aria-label="Go to previous page"
@@ -64,7 +64,7 @@ export function TablePageNavigation({
 								variant="ghost"
 								size="sm"
 								className={cn(
-									"h-9 min-w-9 px-2.5 font-medium text-foreground hover:bg-muted/60",
+									"h-9 min-w-9 px-2.5 font-medium text-foreground hover:bg-muted/50",
 									item === safePage &&
 										"rounded-md border border-border bg-muted/60 shadow-none hover:bg-muted/80",
 								)}

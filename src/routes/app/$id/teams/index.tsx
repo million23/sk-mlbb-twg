@@ -708,32 +708,6 @@ function TeamsPage() {
 							<LayoutGrid className="size-4" />
 						</Button>
 					</div>
-					<Link
-						to="/app/$id/teams/archived"
-						params={{ id: appId }}
-						className={cn(
-							buttonVariants({ variant: "outline", size: "default" }),
-							"gap-2",
-						)}
-					>
-						<Archive className="size-4 shrink-0" aria-hidden />
-						Archived
-					</Link>
-					<Button
-						type="button"
-						variant="outline"
-						disabled={
-							isLoading ||
-							((teams?.length ?? 0) === 0 && archivedTeams.length === 0)
-						}
-						className="gap-2"
-						aria-label="Export spreadsheet"
-						onClick={() => setExportDialogOpen(true)}
-					>
-						<FileSpreadsheet className="size-4 shrink-0" aria-hidden />
-						<span className="hidden sm:inline">Export spreadsheet</span>
-						<span className="sm:hidden">Export</span>
-					</Button>
 					<Button onClick={openCreate} aria-label="Add team">
 						<Plus className="size-4 shrink-0" aria-hidden />
 						<span className="hidden sm:inline">Add team</span>
@@ -777,20 +751,53 @@ function TeamsPage() {
 							</Button>
 						</Empty>
 					) : (isMobile ? "cards" : view) === "table" ? (
-						<DataTable
-							columns={getTeamsColumns({
-								getCaptainName,
-								getMemberCount: getTeamMemberCount,
-								getMembers: getTeamMembers,
-								onEdit: openEdit,
-								onDelete: setArchiveConfirmId,
-								onAddMembers: (team) => setAddMembersTeamId(team.id),
-							})}
-							data={filteredTeams}
-							initialSorting={[{ id: "created", desc: true }]}
-							emptyMessage={search ? `No teams match "${search}"` : "No teams."}
-							tableWrapperClassName="overflow-x-auto"
-						/>
+						<>
+							<DataTable
+								columns={getTeamsColumns({
+									getCaptainName,
+									getMemberCount: getTeamMemberCount,
+									getMembers: getTeamMembers,
+									onEdit: openEdit,
+									onDelete: setArchiveConfirmId,
+									onAddMembers: (team) => setAddMembersTeamId(team.id),
+								})}
+								data={filteredTeams}
+								initialSorting={[{ id: "created", desc: true }]}
+								emptyMessage={
+									search ? `No teams match "${search}"` : "No teams."
+								}
+								tableWrapperClassName="overflow-x-auto"
+							/>
+							<div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4 mt-4">
+								<Link
+									to="/app/$id/teams/archived"
+									params={{ id: appId }}
+									aria-label="Archived Teams"
+									className={cn(
+										buttonVariants({ variant: "outline", size: "default" }),
+										"gap-2",
+									)}
+								>
+									<Archive className="size-4 shrink-0" aria-hidden />
+									<span className="hidden sm:inline">Archived Teams</span>
+									<span className="sm:hidden">Archived</span>
+								</Link>
+								<Button
+									type="button"
+									variant="outline"
+									disabled={
+										(teams?.length ?? 0) === 0 && archivedTeams.length === 0
+									}
+									className="gap-2"
+									aria-label="Export spreadsheet"
+									onClick={() => setExportDialogOpen(true)}
+								>
+									<FileSpreadsheet className="size-4 shrink-0" aria-hidden />
+									<span className="hidden sm:inline">Export spreadsheet</span>
+									<span className="sm:hidden">Export</span>
+								</Button>
+							</div>
+						</>
 					) : (
 						<>
 							<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -812,6 +819,35 @@ function TeamsPage() {
 									No teams match &quot;{search}&quot;
 								</p>
 							)}
+							<div className="mt-4 flex flex-wrap justify-end gap-2 border-t border-border pt-4">
+								<Link
+									to="/app/$id/teams/archived"
+									params={{ id: appId }}
+									aria-label="Archived Teams"
+									className={cn(
+										buttonVariants({ variant: "outline", size: "default" }),
+										"gap-2",
+									)}
+								>
+									<Archive className="size-4 shrink-0" aria-hidden />
+									<span className="hidden sm:inline">Archived Teams</span>
+									<span className="sm:hidden">Archived</span>
+								</Link>
+								<Button
+									type="button"
+									variant="outline"
+									disabled={
+										(teams?.length ?? 0) === 0 && archivedTeams.length === 0
+									}
+									className="gap-2"
+									aria-label="Export spreadsheet"
+									onClick={() => setExportDialogOpen(true)}
+								>
+									<FileSpreadsheet className="size-4 shrink-0" aria-hidden />
+									<span className="hidden sm:inline">Export spreadsheet</span>
+									<span className="sm:hidden">Export</span>
+								</Button>
+							</div>
 						</>
 					)}
 				</CardContent>

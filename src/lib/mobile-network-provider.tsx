@@ -23,6 +23,7 @@ export const MOBILE_PREFIX_MAP: Record<string, NetworkProvider> = {
     "0936": "GLOBE",
     "0937": "GLOBE",
     "0945": "GLOBE",
+    "0954": "GLOBE",
     "0955": "GLOBE",
     "0956": "GLOBE",
 

@@ -87,7 +87,7 @@ export function getParticipantsColumns(
       ),
       meta: {
         thClassName: "whitespace-normal min-w-[7.5rem]",
-        tdClassName: "whitespace-normal align-top min-w-[8.5rem]",
+        tdClassName: "whitespace-normal align-middle min-w-[8.5rem]",
       },
     },
     {
