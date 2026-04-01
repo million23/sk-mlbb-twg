@@ -678,16 +678,16 @@ function TeamsPage() {
 
 	return (
 		<div className="space-y-6">
-			<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-				<div className="min-w-0">
+			<div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+				<div className="min-w-0 max-w-prose lg:max-w-none">
 					<h1 className="text-2xl font-bold tracking-tight text-balance">
 						Teams
 					</h1>
-					<p className="text-muted-foreground">
+					<p className="text-muted-foreground text-pretty">
 						Manage teams for the tournament
 					</p>
 				</div>
-				<div className="flex items-center gap-2">
+				<div className="flex w-full min-w-0 flex-wrap items-center gap-2 lg:w-auto lg:flex-nowrap lg:justify-end">
 					<div className="hidden sm:flex rounded-lg border border-input p-0.5">
 						<Button
 							variant={view === "table" ? "secondary" : "ghost"}
@@ -727,14 +727,17 @@ function TeamsPage() {
 							((teams?.length ?? 0) === 0 && archivedTeams.length === 0)
 						}
 						className="gap-2"
+						aria-label="Export spreadsheet"
 						onClick={() => setExportDialogOpen(true)}
 					>
 						<FileSpreadsheet className="size-4 shrink-0" aria-hidden />
-						Export spreadsheet
+						<span className="hidden sm:inline">Export spreadsheet</span>
+						<span className="sm:hidden">Export</span>
 					</Button>
-					<Button onClick={openCreate}>
-						<Plus className="size-4" />
-						Add team
+					<Button onClick={openCreate} aria-label="Add team">
+						<Plus className="size-4 shrink-0" aria-hidden />
+						<span className="hidden sm:inline">Add team</span>
+						<span className="sm:hidden">Add</span>
 					</Button>
 				</div>
 			</div>

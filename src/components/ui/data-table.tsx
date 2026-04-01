@@ -15,8 +15,8 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { TablePageNavigation } from "@/components/ui/table-page-navigation";
 import {
   Table,
   TableBody,
@@ -25,12 +25,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
-} from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -256,19 +250,24 @@ export function DataTablePagination<TData>({
   table,
   pageSizeOptions = [20, 40, 60, 80, 100],
 }: DataTablePaginationProps<TData>) {
+  const pageCount = Math.max(1, table.getPageCount());
+  const page = table.getState().pagination.pageIndex + 1;
+
   return (
-    <div className="flex items-center justify-between px-2">
-      <div className="flex-1 text-sm text-muted-foreground">
-        {table.getFilteredSelectedRowModel().rows.length > 0 && (
-          <>
-            {table.getFilteredSelectedRowModel().rows.length} of{" "}
-            {table.getFilteredRowModel().rows.length} row(s) selected.
-          </>
-        )}
-      </div>
-      <div className="flex items-center gap-6 lg:gap-8">
-        <div className="flex items-center gap-2">
-          <p className="text-sm font-medium">Rows per page</p>
+    <div className="flex flex-col gap-4 px-2 pt-2">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-h-5 flex-1 text-sm text-muted-foreground">
+          {table.getFilteredSelectedRowModel().rows.length > 0 && (
+            <>
+              {table.getFilteredSelectedRowModel().rows.length} of{" "}
+              {table.getFilteredRowModel().rows.length} row(s) selected.
+            </>
+          )}
+        </div>
+        <div className="flex items-center gap-2 sm:justify-end">
+          <span className="text-sm font-medium text-muted-foreground">
+            Rows per page
+          </span>
           <Select
             value={`${table.getState().pagination.pageSize}`}
             onValueChange={(value) => {
@@ -295,53 +294,12 @@ export function DataTablePagination<TData>({
             </SelectContent>
           </Select>
         </div>
-        <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-          Page {table.getState().pagination.pageIndex + 1} of{" "}
-          {table.getPageCount()}
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            className="hidden size-8 lg:flex"
-            onClick={() => table.setPageIndex(0)}
-            disabled={!table.getCanPreviousPage()}
-          >
-            <span className="sr-only">Go to first page</span>
-            <ChevronsLeft className="size-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            className="size-8"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            <span className="sr-only">Go to previous page</span>
-            <ChevronLeft className="size-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            className="size-8"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            <span className="sr-only">Go to next page</span>
-            <ChevronRight className="size-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            className="hidden size-8 lg:flex"
-            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-            disabled={!table.getCanNextPage()}
-          >
-            <span className="sr-only">Go to last page</span>
-            <ChevronsRight className="size-4" />
-          </Button>
-        </div>
       </div>
+      <TablePageNavigation
+        page={page}
+        pageCount={pageCount}
+        onPageChange={(p) => table.setPageIndex(p - 1)}
+      />
     </div>
   );
 }

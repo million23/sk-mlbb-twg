@@ -36,7 +36,6 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarRail,
-  SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Spinner } from "@/components/ui/spinner";
@@ -62,6 +61,8 @@ import {
   LogOut,
   Menu,
   Moon,
+  PanelLeft,
+  PanelLeftClose,
   ScrollText,
   ShieldCheck,
   Swords,
@@ -70,6 +71,7 @@ import {
   UsersRound,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/app/$id")({
   component: AdminLayout,
@@ -154,7 +156,10 @@ function AdminLayoutContent() {
   const visibleFooterNavItems = footerNavItems.filter(
     (item) => item.to !== "/app/$id/audit-logs" || canAudit,
   );
-  const { setOpenMobile, isMobile } = useSidebar();
+  const { setOpenMobile, isMobile, open: sidebarOpen, setOpen: setSidebarOpen } =
+    useSidebar();
+  const mutatingCount = useIsMutating();
+  const showInsetTopBar = isMobile || mutatingCount > 0;
   const [signOutOpen, setSignOutOpen] = useState(false);
   const id = (params as { id?: string })?.id ?? "main";
 
@@ -270,6 +275,26 @@ function AdminLayoutContent() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
+            {!isMobile ? (
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  render={<button type="button" />}
+                  tooltip={
+                    sidebarOpen ? "Minimize sidebar" : "Maximize sidebar"
+                  }
+                  onClick={() => setSidebarOpen(!sidebarOpen)}
+                >
+                  {sidebarOpen ? (
+                    <PanelLeftClose className="size-4" aria-hidden />
+                  ) : (
+                    <PanelLeft className="size-4" aria-hidden />
+                  )}
+                  <span>
+                    {sidebarOpen ? "Minimize sidebar" : "Maximize sidebar"}
+                  </span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ) : null}
             <SidebarMenuItem>
               <DropdownMenu>
                 <DropdownMenuTrigger
@@ -357,12 +382,19 @@ function AdminLayoutContent() {
       </AlertDialog>
 
       <SidebarInset>
-        <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-4">
-          <MobileSidebarTrigger />
-          <SidebarTrigger className="hidden md:flex" />
-          <SyncIndicator />
-        </header>
-        <div className="min-w-0 flex-1 overflow-auto p-4 md:p-6">
+        {showInsetTopBar ? (
+          <header
+            className={cn(
+              "flex h-12 shrink-0 items-center border-b border-border px-4",
+              isMobile ? "gap-2" : "justify-end",
+            )}
+          >
+            <MobileSidebarTrigger />
+            {isMobile ? <div className="min-w-0 flex-1" aria-hidden /> : null}
+            <SyncIndicator />
+          </header>
+        ) : null}
+        <div className="min-w-0 flex-1 overflow-auto px-4 py-4 md:px-5 md:py-5 lg:px-6 lg:py-6">
           <Outlet />
         </div>
       </SidebarInset>

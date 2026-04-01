@@ -1,19 +1,30 @@
-import * as React from "react"
+import * as React from "react";
 
-const MOBILE_BREAKPOINT = 768
+const MOBILE_BREAKPOINT = 768;
+/** Match Tailwind `lg`: docked sidebar below this width becomes overlay (tablet portrait). */
+const SIDEBAR_OVERLAY_MAX_PX = 1023;
 
-export function useIsMobile() {
-  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined)
+function useMediaMaxWidth(maxWidthPx: number): boolean {
+  const [matches, setMatches] = React.useState<boolean | undefined>(undefined);
 
   React.useEffect(() => {
-    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
+    const mql = window.matchMedia(`(max-width: ${maxWidthPx}px)`);
     const onChange = () => {
-      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-    }
-    mql.addEventListener("change", onChange)
-    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-    return () => mql.removeEventListener("change", onChange)
-  }, [])
+      setMatches(window.innerWidth <= maxWidthPx);
+    };
+    mql.addEventListener("change", onChange);
+    onChange();
+    return () => mql.removeEventListener("change", onChange);
+  }, [maxWidthPx]);
 
-  return !!isMobile
+  return !!matches;
+}
+
+export function useIsMobile() {
+  return useMediaMaxWidth(MOBILE_BREAKPOINT - 1);
+}
+
+/** True when the app should use overlay / sheet navigation instead of a fixed sidebar. */
+export function useIsMobileSidebar() {
+  return useMediaMaxWidth(SIDEBAR_OVERLAY_MAX_PX);
 }

@@ -10,7 +10,7 @@ export {
   useArchivedMatchesForTournament,
   useMatchesForTournament
 } from "./use-matches";
-export { useIsMobile } from "./use-mobile";
+export { useIsMobile, useIsMobileSidebar } from "./use-mobile";
 export {
   useArchivedParticipants,
   useParticipantMutations,

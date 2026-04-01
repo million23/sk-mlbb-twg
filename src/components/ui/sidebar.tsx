@@ -14,7 +14,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobileSidebar } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
@@ -63,7 +63,7 @@ function SidebarProvider({
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }) {
-  const isMobile = useIsMobile();
+  const isMobile = useIsMobileSidebar();
   const [openMobile, setOpenMobile] = React.useState(false);
 
   // This is the internal state of the sidebar.
