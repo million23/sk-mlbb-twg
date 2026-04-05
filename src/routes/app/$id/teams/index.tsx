@@ -74,6 +74,7 @@ import {
 	participantSearchHaystack,
 } from "@/lib/fuzzy-match";
 import { compareRegisteredDesc } from "@/lib/registered-date";
+import { pickUnassignedIdsForFiveLanes } from "@/lib/team-lane-recommendations";
 import { PreferredLaneIcons } from "@/components/participants/preferred-lane-icons";
 import { cn, formatParticipantNameDisplay } from "@/lib/utils";
 import type { Collections, PlayerRole } from "@/types/pocketbase-types";
@@ -84,6 +85,7 @@ import {
 	FileSpreadsheet,
 	LayoutGrid,
 	LayoutList,
+	Loader2,
 	Plus,
 	Search,
 	UserPlus,
@@ -108,6 +110,329 @@ type ParticipantSummary = {
 	birthdate?: string;
 	preferredRoles?: PlayerRole[];
 };
+
+/** Max players to attach in one quick-team flow (main roster + backup). */
+const QUICK_TEAM_MAX_MEMBERS = 6;
+
+function QuickTeamFromUnassignedContent({
+	step,
+	unassignedParticipants,
+	teamName,
+	setTeamName,
+	selectedIds,
+	toggleParticipant,
+	captainId,
+	setCaptainId,
+	search,
+	setSearch,
+	onContinue,
+	onClose,
+	onBack,
+	onCreate,
+	isSubmitting,
+	onSuggestFiveByLanes,
+	suggestedLaneIds,
+}: {
+	step: 1 | 2;
+	unassignedParticipants: ParticipantSummary[];
+	teamName: string;
+	setTeamName: (v: string) => void;
+	selectedIds: Set<string>;
+	toggleParticipant: (id: string) => void;
+	captainId: string;
+	setCaptainId: (v: string) => void;
+	search: string;
+	setSearch: (v: string) => void;
+	onContinue: () => void;
+	/** Step 1: close wizard. Step 2: go back to member selection. */
+	onClose: () => void;
+	onBack: () => void;
+	onCreate: () => void | Promise<void>;
+	isSubmitting: boolean;
+	/** Re-select five unassigned players whose preferences can cover all main lanes. */
+	onSuggestFiveByLanes: () => void;
+	/** From parent: ids for the current lane-balanced five (same as selection on open / re-suggest). */
+	suggestedLaneIds: string[] | null;
+}) {
+	/** When a full-lane suggestion exists, step 1 only lists those five (not all unassigned). */
+	const rosterListParticipants = useMemo(() => {
+		if (!suggestedLaneIds?.length) return unassignedParticipants;
+		const byId = new Map(unassignedParticipants.map((p) => [p.id, p]));
+		return suggestedLaneIds
+			.map((id) => byId.get(id))
+			.filter((p): p is ParticipantSummary => p != null);
+	}, [suggestedLaneIds, unassignedParticipants]);
+
+	const filtered = useMemo(() => {
+		if (!search.trim()) return rosterListParticipants;
+		const q = search.trim();
+		return rosterListParticipants.filter((p) =>
+			matchesFuzzyQuery(participantSearchHaystack(p), q),
+		);
+	}, [rosterListParticipants, search]);
+
+	const filteredByAge = useMemo(
+		() => groupParticipantsByTournamentAge(filtered),
+		[filtered],
+	);
+
+	const selectedList = useMemo(
+		() => unassignedParticipants.filter((p) => selectedIds.has(p.id)),
+		[unassignedParticipants, selectedIds],
+	);
+
+	const canContinue =
+		teamName.trim().length > 0 && selectedIds.size >= 1 && selectedIds.size <= QUICK_TEAM_MAX_MEMBERS;
+
+	const selectionMatchesLaneSuggestion = useMemo(() => {
+		if (!suggestedLaneIds || suggestedLaneIds.length !== 5) return false;
+		if (selectedIds.size !== 5) return false;
+		return suggestedLaneIds.every((id) => selectedIds.has(id));
+	}, [suggestedLaneIds, selectedIds]);
+
+	if (step === 2) {
+		return (
+			<div className="flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden">
+				<div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain">
+					<div className="flex flex-col gap-4 pb-1">
+						<DialogDescription className="text-left">
+							You are about to create this team and assign the selected players in
+							one step. This cannot be undone from here (you can edit the team or
+							remove members afterward).
+						</DialogDescription>
+						<div className="space-y-2 rounded-lg border bg-muted/30 p-3 text-sm">
+							<p>
+								<span className="text-muted-foreground">Team name</span>{" "}
+								<span className="font-medium">{teamName.trim()}</span>
+							</p>
+							<p className="text-muted-foreground">
+								Members ({selectedList.length})
+							</p>
+							<ul className="space-y-1 pl-1">
+								{selectedList.map((p) => (
+									<li key={p.id}>
+										·{" "}
+										{formatParticipantNameDisplay(p.name) || p.gameID || p.id}
+									</li>
+								))}
+							</ul>
+							{captainId ? (
+								<p className="border-t border-border/60 pt-2 text-xs text-muted-foreground">
+									Captain:{" "}
+									<span className="font-medium text-foreground">
+										{formatParticipantNameDisplay(
+											selectedList.find((x) => x.id === captainId)?.name,
+										) ||
+											selectedList.find((x) => x.id === captainId)?.gameID ||
+											captainId}
+									</span>
+								</p>
+							) : null}
+						</div>
+					</div>
+				</div>
+				<DialogFooter className="shrink-0 gap-2 border-t border-border/60 bg-background pt-3 sm:gap-0">
+					<Button
+						type="button"
+						variant="outline"
+						onClick={onBack}
+						disabled={isSubmitting}
+					>
+						Back
+					</Button>
+					<Button type="button" onClick={() => void onCreate()} disabled={isSubmitting}>
+						{isSubmitting ? (
+							<>
+								<Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+								Creating…
+							</>
+						) : (
+							"Create team"
+						)}
+					</Button>
+				</DialogFooter>
+			</div>
+		);
+	}
+
+	return (
+		<div className="flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden">
+			<div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain">
+				<div className="flex flex-col gap-3 pb-1">
+					<div className="space-y-2">
+						<Label htmlFor="quick-team-name">Team name</Label>
+						<Input
+							id="quick-team-name"
+							value={teamName}
+							onChange={(e) => setTeamName(e.target.value)}
+							placeholder="e.g. Fallen"
+							autoComplete="off"
+						/>
+					</div>
+					<div className="space-y-2">
+						<Label>Captain (optional)</Label>
+						<Select
+							value={captainId}
+							onValueChange={(v) => setCaptainId(v ?? "")}
+							disabled={selectedIds.size === 0}
+						>
+							<SelectTrigger className="w-full">
+								<SelectValue placeholder="Choose from selected members">
+									{(value) => {
+										if (value == null || value === "") return null;
+										const p = unassignedParticipants.find((x) => x.id === value);
+										return (
+											formatParticipantNameDisplay(p?.name) ||
+											p?.gameID ||
+											String(value)
+										);
+									}}
+								</SelectValue>
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="">No captain yet</SelectItem>
+								{[...selectedIds].map((id) => {
+									const p = unassignedParticipants.find((x) => x.id === id);
+									return (
+										<SelectItem key={id} value={id}>
+											{(formatParticipantNameDisplay(p?.name) || p?.gameID) ?? id}
+										</SelectItem>
+									);
+								})}
+							</SelectContent>
+						</Select>
+					</div>
+					<div className="space-y-2 text-xs text-muted-foreground">
+						{suggestedLaneIds?.length ? (
+							<>
+								<p>
+									Only these five unassigned players are shown — their preferred
+									lanes can cover mid, gold, exp, roamer, and jungle (one per
+									lane). Each time you open Quick team (or use the button below),
+									a different valid mix is chosen when more than one exists. You
+									can change the roster later on the team.
+								</p>
+								{!selectionMatchesLaneSuggestion ? (
+									<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+										<p>
+											Pick another lane-balanced five, or re-check the boxes above.
+										</p>
+										<Button
+											type="button"
+											variant="secondary"
+											size="sm"
+											className="shrink-0 self-start"
+											onClick={onSuggestFiveByLanes}
+										>
+											Try another mix
+										</Button>
+									</div>
+								) : null}
+							</>
+						) : (
+							<>
+								<p>
+									Select up to {QUICK_TEAM_MAX_MEMBERS} unassigned players. You can
+									add or remove members later.
+								</p>
+								<p>
+									No five unassigned players can cover every main lane from
+									preferences alone — pick members manually or adjust preferred
+									lanes on the Participants page.
+								</p>
+							</>
+						)}
+					</div>
+					{!suggestedLaneIds?.length ? (
+						<div className="relative min-w-0">
+							<Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+							<Input
+								placeholder="Search name, Game ID, or area…"
+								value={search}
+								onChange={(e) => setSearch(e.target.value)}
+								className="min-w-0 pl-9"
+							/>
+						</div>
+					) : null}
+					<div className="min-w-0 rounded-md border border-border/60 p-1">
+						<div className="min-w-0 space-y-4">
+							{filteredByAge.map((group) => (
+								<section key={group.key} className="min-w-0 space-y-1.5">
+									<h3 className="sticky top-0 z-1 border-b border-border/70 bg-background py-2 text-xs font-semibold tracking-wide text-muted-foreground">
+										{group.label}
+									</h3>
+									<ul className="space-y-1">
+										{group.items.map((p) => {
+											const checked = selectedIds.has(p.id);
+											const hasLanes = Boolean(
+												p.preferredRoles?.filter(Boolean).length,
+											);
+											return (
+												<li
+													key={p.id}
+													className="flex min-w-0 max-w-full items-center gap-2 rounded-lg border px-2 py-2 sm:px-3"
+												>
+													<Checkbox
+														checked={checked}
+														onCheckedChange={(c) => {
+															const on = Boolean(c);
+															if (on && !selectedIds.has(p.id)) {
+																toggleParticipant(p.id);
+															} else if (!on && selectedIds.has(p.id)) {
+																toggleParticipant(p.id);
+															}
+														}}
+														aria-label={`Select ${formatParticipantNameDisplay(p.name) || p.gameID || p.id}`}
+													/>
+													<span className="min-w-0 flex-1 space-y-1">
+														<span className="flex flex-wrap items-center gap-2">
+															<span className="block wrap-break-word font-medium">
+																{(formatParticipantNameDisplay(p.name) ||
+																	p.gameID) ??
+																	p.id}
+															</span>
+															{hasLanes ? (
+																<span className="inline-flex items-center gap-0.5 rounded-md border border-border/60 bg-muted/30 px-1 py-0.5">
+																	<span className="sr-only">Preferred lanes</span>
+																	<PreferredLaneIcons
+																		roles={p.preferredRoles}
+																		iconClassName="size-4"
+																	/>
+																</span>
+															) : null}
+														</span>
+														{p.area ? (
+															<span className="block wrap-break-word text-xs text-muted-foreground">
+																{p.area}
+															</span>
+														) : null}
+													</span>
+												</li>
+											);
+										})}
+									</ul>
+								</section>
+							))}
+						</div>
+						{filtered.length === 0 && (
+							<p className="py-6 text-center text-sm text-muted-foreground">
+								No participants match &quot;{search}&quot;
+							</p>
+						)}
+					</div>
+				</div>
+			</div>
+			<DialogFooter className="shrink-0 gap-2 border-t border-border/60 bg-background pt-3 sm:gap-0">
+				<Button type="button" variant="outline" onClick={onClose}>
+					Cancel
+				</Button>
+				<Button type="button" onClick={onContinue} disabled={!canContinue}>
+					Continue to confirmation
+				</Button>
+			</DialogFooter>
+		</div>
+	);
+}
 
 function AddMembersContent({
 	unassignedParticipants,
@@ -402,6 +727,19 @@ function TeamsPage() {
 	const [addMembersTeamId, setAddMembersTeamId] = useState<string | null>(null);
 	const [editingId, setEditingId] = useState<string | null>(null);
 	const [archiveConfirmId, setArchiveConfirmId] = useState<string | null>(null);
+	const [quickTeamOpen, setQuickTeamOpen] = useState(false);
+	const [quickTeamStep, setQuickTeamStep] = useState<1 | 2>(1);
+	const [quickTeamName, setQuickTeamName] = useState("");
+	const [quickTeamSelected, setQuickTeamSelected] = useState<Set<string>>(
+		() => new Set(),
+	);
+	const [quickTeamCaptain, setQuickTeamCaptain] = useState("");
+	const [quickTeamSearch, setQuickTeamSearch] = useState("");
+	const [quickTeamSubmitting, setQuickTeamSubmitting] = useState(false);
+	/** Lane-balanced five for this modal session (randomized order each open when possible). */
+	const [quickTeamSuggestedLaneIds, setQuickTeamSuggestedLaneIds] = useState<
+		string[] | null
+	>(null);
 	const [form, setForm] = useState<TeamFormData>({
 		name: "",
 		captain: "",
@@ -484,6 +822,17 @@ function TeamsPage() {
 	const unassignedParticipants =
 		participants?.filter((p) => !p.team || p.team === "") ?? [];
 
+	const unassignedForQuickTeam = useMemo((): ParticipantSummary[] => {
+		return unassignedParticipants.map((p) => ({
+			id: p.id,
+			name: p.name,
+			gameID: p.gameID,
+			area: p.area,
+			birthdate: p.birthdate,
+			preferredRoles: p.preferredRoles as PlayerRole[] | undefined,
+		}));
+	}, [unassignedParticipants]);
+
 	const updatedForReady = useRef<Set<string>>(new Set());
 	useEffect(() => {
 		if (!teams || !participants) return;
@@ -537,6 +886,123 @@ function TeamsPage() {
 			toast.success("Member added to team");
 		}
 	};
+
+	const resetQuickTeam = useCallback(() => {
+		setQuickTeamOpen(false);
+		setQuickTeamStep(1);
+		setQuickTeamName("");
+		setQuickTeamSelected(new Set());
+		setQuickTeamCaptain("");
+		setQuickTeamSearch("");
+		setQuickTeamSubmitting(false);
+		setQuickTeamSuggestedLaneIds(null);
+	}, []);
+
+	const openQuickTeam = useCallback(() => {
+		if (unassignedParticipants.length === 0) {
+			toast.message(
+				"No unassigned participants. Add players or remove them from a team on the Participants page first.",
+			);
+			return;
+		}
+		const lanePick = pickUnassignedIdsForFiveLanes(unassignedForQuickTeam, {
+			shuffleMemberOrder: true,
+		});
+		setQuickTeamSuggestedLaneIds(lanePick);
+		setQuickTeamStep(1);
+		setQuickTeamName("");
+		setQuickTeamSelected(new Set(lanePick ?? []));
+		setQuickTeamCaptain("");
+		setQuickTeamSearch("");
+		setQuickTeamSubmitting(false);
+		setQuickTeamOpen(true);
+	}, [unassignedParticipants.length, unassignedForQuickTeam]);
+
+	const suggestQuickTeamFiveByLanes = useCallback(() => {
+		const ids = pickUnassignedIdsForFiveLanes(unassignedForQuickTeam, {
+			shuffleMemberOrder: true,
+		});
+		if (ids) {
+			setQuickTeamSuggestedLaneIds(ids);
+			setQuickTeamSelected(new Set(ids));
+			toast.success(
+				"Selected 5 players whose preferences can cover all five main lanes.",
+			);
+		} else {
+			toast.message(
+				"No group of 5 unassigned players covers every lane from preferences alone. Pick manually or update preferred lanes.",
+			);
+		}
+	}, [unassignedForQuickTeam]);
+
+	const toggleQuickTeamParticipant = useCallback((id: string) => {
+		setQuickTeamSelected((prev) => {
+			const next = new Set(prev);
+			if (next.has(id)) {
+				next.delete(id);
+			} else {
+				if (next.size >= QUICK_TEAM_MAX_MEMBERS) {
+					toast.error(
+						`You can select at most ${QUICK_TEAM_MAX_MEMBERS} players in this flow.`,
+					);
+					return prev;
+				}
+				next.add(id);
+			}
+			return next;
+		});
+	}, []);
+
+	useEffect(() => {
+		setQuickTeamCaptain((c) =>
+			c && !quickTeamSelected.has(c) ? "" : c,
+		);
+	}, [quickTeamSelected]);
+
+	const handleQuickTeamCreate = useCallback(async () => {
+		const name = quickTeamName.trim();
+		const ids = [...quickTeamSelected];
+		if (!name || ids.length === 0) return;
+		let captain = quickTeamCaptain;
+		if (captain && !ids.includes(captain)) captain = "";
+		setQuickTeamSubmitting(true);
+		try {
+			const created = (await mutations.create.mutateAsync({
+				name,
+				captain: captain || "",
+				status: "forming",
+			})) as { id: string };
+			const teamId = created.id;
+			for (const pid of ids) {
+				participantMutations.update.mutateQueued({
+					id: pid,
+					team: teamId,
+					status: "assigned",
+				});
+			}
+			if (ids.length >= 5) {
+				updatedForReady.current.add(teamId);
+				mutations.update.mutate({ id: teamId, status: "ready" });
+				toast.success(
+					`Team "${name}" created with ${ids.length} members (Ready).`,
+				);
+			} else {
+				toast.success(`Team "${name}" created with ${ids.length} member(s).`);
+			}
+			resetQuickTeam();
+		} catch {
+			toast.error("Could not create the team. Try again.");
+			setQuickTeamSubmitting(false);
+		}
+	}, [
+		quickTeamName,
+		quickTeamSelected,
+		quickTeamCaptain,
+		mutations.create,
+		mutations.update,
+		participantMutations.update,
+		resetQuickTeam,
+	]);
 
 	const addMembersTeam = addMembersTeamId
 		? teams?.find((t) => t.id === addMembersTeamId)
@@ -676,6 +1142,30 @@ function TeamsPage() {
 		filteredArchivedTeams,
 	]);
 
+	const quickTeamModalProps = {
+		step: quickTeamStep,
+		unassignedParticipants: unassignedForQuickTeam,
+		teamName: quickTeamName,
+		setTeamName: setQuickTeamName,
+		selectedIds: quickTeamSelected,
+		toggleParticipant: toggleQuickTeamParticipant,
+		captainId: quickTeamCaptain,
+		setCaptainId: setQuickTeamCaptain,
+		search: quickTeamSearch,
+		setSearch: setQuickTeamSearch,
+		onContinue: () => {
+			const n = quickTeamName.trim();
+			if (!n || quickTeamSelected.size < 1) return;
+			setQuickTeamStep(2);
+		},
+		onClose: resetQuickTeam,
+		onBack: () => setQuickTeamStep(1),
+		onCreate: handleQuickTeamCreate,
+		isSubmitting: quickTeamSubmitting,
+		onSuggestFiveByLanes: suggestQuickTeamFiveByLanes,
+		suggestedLaneIds: quickTeamSuggestedLaneIds,
+	};
+
 	return (
 		<div className="space-y-6">
 			<div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -687,32 +1177,52 @@ function TeamsPage() {
 						Manage teams for the tournament
 					</p>
 				</div>
-				<div className="flex w-full min-w-0 flex-wrap items-center gap-2 lg:w-auto lg:flex-nowrap lg:justify-end">
-					<div className="hidden sm:flex rounded-lg border border-input p-0.5">
+				<div className="flex w-full min-w-0 flex-wrap items-center justify-end gap-2 lg:w-auto">
+					{/* Keep table/cards toggle → quick team → add team on one row (order matters). */}
+					<div className="flex min-w-0 shrink-0 flex-nowrap items-center gap-2">
+						<div className="hidden sm:flex shrink-0 rounded-lg border border-input p-0.5">
+							<Button
+								variant={view === "table" ? "secondary" : "ghost"}
+								size="sm"
+								onClick={() => setView("table")}
+								aria-pressed={view === "table"}
+								aria-label="Table view"
+							>
+								<LayoutList className="size-4" />
+							</Button>
+							<Button
+								variant={view === "cards" ? "secondary" : "ghost"}
+								size="sm"
+								onClick={() => setView("cards")}
+								aria-pressed={view === "cards"}
+								aria-label="Card view"
+							>
+								<LayoutGrid className="size-4" />
+							</Button>
+						</div>
 						<Button
-							variant={view === "table" ? "secondary" : "ghost"}
-							size="sm"
-							onClick={() => setView("table")}
-							aria-pressed={view === "table"}
-							aria-label="Table view"
+							type="button"
+							variant="outline"
+							className="h-9 shrink-0"
+							onClick={openQuickTeam}
+							disabled={unassignedParticipants.length === 0}
+							aria-label="Create team from unassigned participants"
+							title={
+								unassignedParticipants.length === 0
+									? "No unassigned participants"
+									: undefined
+							}
 						>
-							<LayoutList className="size-4" />
+							<UsersRound className="size-4 shrink-0" aria-hidden />
+							<span className="hidden sm:inline">Quick team</span>
+							<span className="sm:hidden">Quick</span>
 						</Button>
-						<Button
-							variant={view === "cards" ? "secondary" : "ghost"}
-							size="sm"
-							onClick={() => setView("cards")}
-							aria-pressed={view === "cards"}
-							aria-label="Card view"
-						>
-							<LayoutGrid className="size-4" />
+						<Button className="shrink-0" onClick={openCreate} aria-label="Add team">
+							<Plus className="size-4 shrink-0" aria-hidden />
+							<span className="hidden sm:inline">Add team</span>
+							<span className="sm:hidden">Add</span>
 						</Button>
 					</div>
-					<Button onClick={openCreate} aria-label="Add team">
-						<Plus className="size-4 shrink-0" aria-hidden />
-						<span className="hidden sm:inline">Add team</span>
-						<span className="sm:hidden">Add</span>
-					</Button>
 				</div>
 			</div>
 
@@ -746,9 +1256,16 @@ function TeamsPage() {
 									Add teams to organize participants
 								</EmptyDescription>
 							</EmptyHeader>
-							<Button onClick={openCreate} variant="outline">
-								Add first team
-							</Button>
+							<div className="flex flex-wrap justify-center gap-2">
+								<Button onClick={openCreate} variant="outline">
+									Add first team
+								</Button>
+								{unassignedParticipants.length > 0 ? (
+									<Button type="button" onClick={openQuickTeam}>
+										Quick team from unassigned
+									</Button>
+								) : null}
+							</div>
 						</Empty>
 					) : (isMobile ? "cards" : view) === "table" ? (
 						<>
@@ -937,6 +1454,63 @@ function TeamsPage() {
 									onClose={() => setAddMembersTeamId(null)}
 								/>
 							)}
+						</div>
+					</DialogContent>
+				</Dialog>
+			)}
+
+			{isMobile ? (
+				<Drawer
+					open={quickTeamOpen}
+					onOpenChange={(o) => {
+						if (!o) resetQuickTeam();
+					}}
+					direction="bottom"
+				>
+					<DrawerContent className="flex max-h-[92vh] w-full flex-col overflow-hidden">
+						<DrawerHeader className="shrink-0 px-4 text-left">
+							<DrawerTitle>
+								{quickTeamStep === 1
+									? "Create team from unassigned"
+									: "Confirm new team"}
+							</DrawerTitle>
+							{quickTeamStep === 1 ? (
+								<p className="pt-1 text-sm text-muted-foreground">
+									Name the team, optionally pick a captain, select members, then
+									confirm — everyone is assigned in one step.
+								</p>
+							) : null}
+						</DrawerHeader>
+						<div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-4 pb-4">
+							<QuickTeamFromUnassignedContent {...quickTeamModalProps} />
+						</div>
+					</DrawerContent>
+				</Drawer>
+			) : (
+				<Dialog
+					open={quickTeamOpen}
+					onOpenChange={(o) => {
+						if (!o) resetQuickTeam();
+					}}
+				>
+					<DialogContent className="flex max-h-[min(90vh,720px)] flex-col gap-4 overflow-hidden sm:max-w-lg">
+						<DialogHeader className="shrink-0 space-y-1.5 text-left">
+							<DialogTitle>
+								{quickTeamStep === 1
+									? "Create team from unassigned"
+									: "Confirm new team"}
+							</DialogTitle>
+							{quickTeamStep === 1 ? (
+								<DialogDescription>
+									Choose a team name, optionally set a captain from your
+									selection, pick up to {QUICK_TEAM_MAX_MEMBERS} unassigned
+									players, then confirm to create the team and assign everyone at
+									once.
+								</DialogDescription>
+							) : null}
+						</DialogHeader>
+						<div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-1 sm:px-0">
+							<QuickTeamFromUnassignedContent {...quickTeamModalProps} />
 						</div>
 					</DialogContent>
 				</Dialog>

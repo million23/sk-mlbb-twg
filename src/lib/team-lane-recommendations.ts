@@ -70,10 +70,12 @@ export function parsePreferredRoles(raw: unknown): PlayerRole[] {
 
 /**
  * Maximum bipartite matching: each member maps to at most one lane from their
- * preferences, each lane to at most one member. Returns the set of lanes
- * that receive an assignment.
+ * preferences, each lane to at most one member.
+ * Returns lane → member index in `memberPrefs`.
  */
-function maxAssignedLanes(memberPrefs: PlayerRole[][]): Set<PlayerRole> {
+function computeMaxLaneMatching(
+  memberPrefs: PlayerRole[][],
+): Map<PlayerRole, number> {
   const n = memberPrefs.length;
   const laneOwner = new Map<PlayerRole, number>();
 
@@ -96,7 +98,74 @@ function maxAssignedLanes(memberPrefs: PlayerRole[][]): Set<PlayerRole> {
     augment(u, new Set());
   }
 
-  return new Set(laneOwner.keys());
+  return laneOwner;
+}
+
+function maxAssignedLanes(memberPrefs: PlayerRole[][]): Set<PlayerRole> {
+  return new Set(computeMaxLaneMatching(memberPrefs).keys());
+}
+
+function shuffleInPlace<T>(arr: T[]): void {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const t = arr[i];
+    arr[i] = arr[j]!;
+    arr[j] = t!;
+  }
+}
+
+export type LaneRosterPickCandidate = {
+  id: string;
+  preferredRoles?: unknown;
+};
+
+export type PickUnassignedForFiveLanesOptions = {
+  /**
+   * Randomize member processing order before matching. When several valid
+   * five-player rosters exist, each call can return a different one; if only
+   * one maximum matching exists, the result may still repeat.
+   */
+  shuffleMemberOrder?: boolean;
+};
+
+/**
+ * Picks up to five unassigned candidates whose preferences allow covering all
+ * five MLBB lanes (one distinct player per lane). Returns their ids, or null
+ * if no such set exists under maximum bipartite matching.
+ */
+export function pickUnassignedIdsForFiveLanes(
+  candidates: LaneRosterPickCandidate[],
+  options?: PickUnassignedForFiveLanesOptions,
+): string[] | null {
+  const withPrefsBase = candidates
+    .map((p) => ({
+      id: p.id,
+      prefs: parsePreferredRoles(p.preferredRoles),
+    }))
+    .filter((p) => p.prefs.length > 0);
+
+  if (withPrefsBase.length < TEAM_MAIN_LANE_SLOTS) return null;
+
+  const withPrefs = options?.shuffleMemberOrder
+    ? (() => {
+        const copy = [...withPrefsBase];
+        shuffleInPlace(copy);
+        return copy;
+      })()
+    : withPrefsBase;
+
+  const prefsMatrix = withPrefs.map((p) => p.prefs);
+  const laneToMember = computeMaxLaneMatching(prefsMatrix);
+  if (laneToMember.size < TEAM_MAIN_LANE_SLOTS) return null;
+
+  const used = new Set<number>();
+  for (const idx of laneToMember.values()) {
+    used.add(idx);
+  }
+  if (used.size !== TEAM_MAIN_LANE_SLOTS) return null;
+
+  const ids = [...laneToMember.values()].map((idx) => withPrefs[idx].id);
+  return [...new Set(ids)];
 }
 
 function missingLaneSet(covered: Set<PlayerRole>): Set<PlayerRole> {
