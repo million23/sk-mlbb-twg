@@ -29,7 +29,6 @@ function invalidateParticipantQueries(
 ) {
   queryClient.invalidateQueries({ queryKey: queryKeys.participants });
   queryClient.invalidateQueries({ queryKey: queryKeys.participantsArchived });
-  queryClient.invalidateQueries({ queryKey: queryKeys.teamSuggestions });
   queryClient.invalidateQueries({ queryKey: queryKeys.draftSuggestions });
 }
 

@@ -155,7 +155,6 @@ export function useTeamMutations() {
     onSettled: () => {
       invalidateTeamQueries(queryClient);
       queryClient.invalidateQueries({ queryKey: queryKeys.participants });
-      queryClient.invalidateQueries({ queryKey: queryKeys.teamSuggestions });
     },
   });
 
@@ -168,7 +167,6 @@ export function useTeamMutations() {
     },
     onSettled: () => {
       invalidateTeamQueries(queryClient);
-      queryClient.invalidateQueries({ queryKey: queryKeys.teamSuggestions });
     },
   });
 

@@ -21,12 +21,10 @@ type Tournament = Collections["tournaments"] & { id: string };
 const refetchParticipants = () => {
   queryClient.invalidateQueries({ queryKey: ["participants"] });
   queryClient.invalidateQueries({ queryKey: ["participants", "archived"] });
-  queryClient.invalidateQueries({ queryKey: ["team_suggestions"] });
   queryClient.invalidateQueries({ queryKey: ["draft_suggestions"] });
 };
 const refetchTeams = () => {
   queryClient.invalidateQueries({ queryKey: ["teams"] });
-  queryClient.invalidateQueries({ queryKey: ["team_suggestions"] });
 };
 const refetchTournaments = () => {
   queryClient.invalidateQueries({ queryKey: ["tournaments"] });

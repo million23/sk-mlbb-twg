@@ -1,4 +1,4 @@
-/** MLBB roles used in participants.preferredRoles and team_suggestions view */
+/** MLBB roles used in participants.preferredRoles */
 export enum PlayerRole {
     Mid = "mid",
     Gold = "gold",

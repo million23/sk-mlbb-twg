@@ -75,12 +75,12 @@ import {
 	useParticipantMutations,
 	useParticipants,
 } from "@/hooks/use-participants";
-import { useTeamSuggestions } from "@/hooks/use-team-suggestions";
 import { useArchivedTeams, useTeams } from "@/hooks/use-teams";
 import { formatBirthdateDisplay, getAge, getAgeBracketLabel } from "@/lib/age";
 import { getAvatarUrl } from "@/lib/avatar";
 import { LANE_ROLE_LABELS } from "@/lib/lane-role-icons";
 import { effectiveParticipantStatus } from "@/lib/participant-display-status";
+import { buildTeamLaneSuggestionsByParticipant } from "@/lib/team-lane-recommendations";
 import { sanitizePhilippineMobileInput } from "@/lib/philippine-mobile";
 import { compareRegisteredDesc } from "@/lib/registered-date";
 import {
@@ -109,6 +109,7 @@ import {
 	Loader2,
 	Plus,
 	Search,
+	UserRound,
 	Users,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -516,36 +517,26 @@ function ParticipantsPage() {
 	const { data: archivedParticipantsData } = useArchivedParticipants();
 	const archivedParticipants = archivedParticipantsData ?? [];
 	const { data: archivedTeams } = useArchivedTeams();
-	const { data: teamSuggestions } = useTeamSuggestions();
 	const params = useParams({ strict: false });
 	const appId = (params as { id?: string })?.id ?? "";
 	const { edit, archive } = Route.useSearch();
 	const navigate = useNavigate();
 
 	const suggestionsByParticipant = useMemo(() => {
+		const raw = buildTeamLaneSuggestionsByParticipant(participants, teams);
 		const map = new Map<string, TeamSuggestion[]>();
-		for (const s of teamSuggestions ?? []) {
-			const participantRef = s.participantId as unknown;
-			const pid =
-				typeof participantRef === "string"
-					? participantRef
-					: participantRef &&
-						typeof participantRef === "object" &&
-						"id" in participantRef &&
-						typeof (participantRef as { id?: unknown }).id === "string"
-						? (participantRef as { id: string }).id
-						: undefined;
-			if (!pid) continue;
-			const list = map.get(pid) ?? [];
-			list.push({
-				suggestedTeamId: s.suggestedTeamId,
-				suggestedTeamName: s.suggestedTeamName,
-				suggestionPriority: s.suggestionPriority,
-			});
-			map.set(pid, list);
+		for (const [pid, list] of raw) {
+			map.set(
+				pid,
+				list.map(({ suggestedTeamId, suggestedTeamName, suggestionPriority }) => ({
+					suggestedTeamId,
+					suggestedTeamName,
+					suggestionPriority,
+				})),
+			);
 		}
 		return map;
-	}, [teamSuggestions]);
+	}, [participants, teams]);
 	const mutations = useParticipantMutations();
 	const isMobile = useIsMobile();
 	const [view, setView] = useState<"table" | "cards">("table");
@@ -802,6 +793,7 @@ function ParticipantsPage() {
 	);
 
 	const [search, setSearch] = useState("");
+	const [unassignedOnly, setUnassignedOnly] = useState(false);
 	const [exportDialogOpen, setExportDialogOpen] = useState(false);
 	const [exportIncludeArchived, setExportIncludeArchived] = useState(false);
 	const [participantSort, setParticipantSort] = useState<"default" | "team">(
@@ -810,9 +802,9 @@ function ParticipantsPage() {
 	const [cardPage, setCardPage] = useState(1);
 
 	const filteredParticipants = useMemo(() => {
-		if (!search.trim()) return participants;
-		const q = search.toLowerCase().trim();
-		return participants.filter((p) => {
+		const matchesSearch = (p: (typeof participants)[number]) => {
+			if (!search.trim()) return true;
+			const q = search.toLowerCase().trim();
 			const name = (p.name ?? "").toLowerCase();
 			const gameID = (p.gameID ?? "").toLowerCase();
 			const contact = (p.contactNumber ?? "").toLowerCase();
@@ -837,8 +829,14 @@ function ParticipantsPage() {
 				bracket.includes(q) ||
 				birthdateStr.includes(q)
 			);
+		};
+
+		return participants.filter((p) => {
+			if (!matchesSearch(p)) return false;
+			if (unassignedOnly && p.team) return false;
+			return true;
 		});
-	}, [participants, search, getTeamName]);
+	}, [participants, search, getTeamName, unassignedOnly]);
 
 	const displayedParticipants = useMemo(() => {
 		if (participantSort === "team") {
@@ -848,9 +846,9 @@ function ParticipantsPage() {
 	}, [filteredParticipants, participantSort, getTeamName]);
 
 	const filteredArchivedParticipants = useMemo(() => {
-		if (!search.trim()) return archivedParticipants;
-		const q = search.toLowerCase().trim();
-		return archivedParticipants.filter((p) => {
+		const matchesSearch = (p: (typeof archivedParticipants)[number]) => {
+			if (!search.trim()) return true;
+			const q = search.toLowerCase().trim();
 			const name = (p.name ?? "").toLowerCase();
 			const gameID = (p.gameID ?? "").toLowerCase();
 			const contact = (p.contactNumber ?? "").toLowerCase();
@@ -875,8 +873,14 @@ function ParticipantsPage() {
 				bracket.includes(q) ||
 				birthdateStr.includes(q)
 			);
+		};
+
+		return archivedParticipants.filter((p) => {
+			if (!matchesSearch(p)) return false;
+			if (unassignedOnly && p.team) return false;
+			return true;
 		});
-	}, [archivedParticipants, search, getTeamNameIncludingArchived]);
+	}, [archivedParticipants, search, getTeamNameIncludingArchived, unassignedOnly]);
 
 	const displayedArchivedParticipants = useMemo(() => {
 		if (participantSort === "team") {
@@ -1086,7 +1090,27 @@ function ParticipantsPage() {
 							<Label htmlFor="participant-sort" className="sr-only">
 								Sort order
 							</Label>
-							<InputGroup className="mt-2 h-auto w-full min-w-0 flex-col items-stretch focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 sm:h-9 sm:flex-row">
+							<div className="mt-2 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch">
+								<Button
+									type="button"
+									variant={unassignedOnly ? "secondary" : "outline"}
+									size="sm"
+									className="h-9 shrink-0 gap-2 sm:min-w-0"
+									onClick={() => {
+										setUnassignedOnly((v) => !v);
+										setCardPage(1);
+									}}
+									aria-pressed={unassignedOnly}
+									aria-label={
+										unassignedOnly
+											? "Showing unassigned only; click to show all"
+											: "Show unassigned participants only"
+									}
+								>
+									<UserRound className="size-4 shrink-0" aria-hidden />
+									<span className="truncate">Unassigned</span>
+								</Button>
+								<InputGroup className="h-auto min-h-0 min-w-0 flex-1 flex-col items-stretch focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 sm:h-9 sm:flex-row">
 								<div className="flex min-h-9 min-w-0 flex-1 items-stretch">
 									<InputGroupAddon
 										align="inline-start"
@@ -1149,6 +1173,7 @@ function ParticipantsPage() {
 									</Select>
 								</div>
 							</InputGroup>
+							</div>
 						</>
 					)}
 				</CardHeader>
@@ -1209,8 +1234,10 @@ function ParticipantsPage() {
 								tableWrapperClassName="overflow-x-auto"
 								emptyMessage={
 									search
-										? `No participants match "${search}"`
-										: "No participants."
+										? `No participants match "${search}"${unassignedOnly ? " (unassigned only)" : ""}`
+										: unassignedOnly
+											? "No unassigned participants."
+											: "No participants."
 								}
 							/>
 							<div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4 mt-4">
@@ -1261,11 +1288,19 @@ function ParticipantsPage() {
 									/>
 								))}
 							</div>
-							{filteredParticipants.length === 0 && search && (
-								<p className="py-4 text-center text-sm text-muted-foreground">
-									No participants match &quot;{search}&quot;
-								</p>
-							)}
+							{filteredParticipants.length === 0 &&
+								(search || unassignedOnly) && (
+									<p className="py-4 text-center text-sm text-muted-foreground">
+										{search ? (
+											<>
+												No participants match &quot;{search}&quot;
+												{unassignedOnly ? " among unassigned" : ""}.
+											</>
+										) : (
+											"No unassigned participants."
+										)}
+									</p>
+								)}
 							{displayedParticipants.length > CARDS_PER_PAGE ? (
 								<div className="flex flex-col items-center gap-3 border-t border-border pt-4 mt-4">
 									<p className="text-center text-sm text-muted-foreground">

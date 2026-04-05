@@ -114,7 +114,7 @@ export function ParticipantTableRow({
                   Suggested teams
                 </p>
                 <div className="flex flex-col gap-1">
-                  {suggestions
+                    {suggestions
                     .filter((s) => s.suggestedTeamId)
                     .map((s) => (
                       <Button
@@ -124,8 +124,15 @@ export function ParticipantTableRow({
                         className="h-auto justify-between gap-2 py-2 pl-3 pr-2 text-left font-normal"
                         onClick={() => onJoinTeam(p.id, s.suggestedTeamId ?? "")}
                       >
-                        <span className="truncate">
-                          {s.suggestedTeamName ?? "-"}
+                        <span className="min-w-0 flex flex-col items-start gap-0.5">
+                          <span className="truncate">
+                            {s.suggestedTeamName ?? "-"}
+                          </span>
+                          {s.suggestionPriority ? (
+                            <span className="w-full truncate text-xs font-normal text-muted-foreground">
+                              {s.suggestionPriority}
+                            </span>
+                          ) : null}
                         </span>
                         <Plus className="size-3 shrink-0" />
                       </Button>

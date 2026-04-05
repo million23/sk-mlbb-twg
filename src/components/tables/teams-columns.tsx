@@ -49,14 +49,27 @@ export function getTeamsColumns(
           />
         );
       },
-      meta: { className: "w-12" },
+      meta: {
+        className: "w-12 max-w-12",
+        thClassName: "w-12 max-w-12 px-2",
+        tdClassName: "w-12 max-w-12 px-2 align-middle",
+      },
     },
     {
       accessorKey: "name",
       header: "Name",
-      cell: ({ row }) => (
-        <span className="font-medium">{row.original.name ?? "-"}</span>
-      ),
+      cell: ({ row }) => {
+        const name = row.original.name ?? "-";
+        return (
+          <span className="block truncate font-medium" title={name}>
+            {name}
+          </span>
+        );
+      },
+      meta: {
+        thClassName: "w-[14%] min-w-[5.5rem]",
+        tdClassName: "w-[14%] min-w-[5.5rem] align-middle overflow-hidden",
+      },
     },
     {
       accessorKey: "created",
@@ -68,15 +81,26 @@ export function getTeamsColumns(
         <RegisteredDateCell created={row.original.created} />
       ),
       meta: {
-        thClassName: "whitespace-normal min-w-[7.5rem]",
-        tdClassName: "whitespace-normal align-top min-w-[8.5rem]",
+        thClassName: "w-[11rem] whitespace-normal",
+        tdClassName:
+          "w-[11rem] max-w-[11rem] whitespace-normal align-middle",
       },
     },
     {
       accessorKey: "captain",
       header: "Captain",
-      cell: ({ row }) =>
-        meta.getCaptainName(row.original.captain),
+      cell: ({ row }) => {
+        const label = meta.getCaptainName(row.original.captain);
+        return (
+          <span className="block truncate" title={label}>
+            {label}
+          </span>
+        );
+      },
+      meta: {
+        thClassName: "w-[18%] min-w-[7rem]",
+        tdClassName: "w-[18%] min-w-[7rem] align-middle overflow-hidden",
+      },
     },
     {
       accessorKey: "members",
@@ -87,7 +111,7 @@ export function getTeamsColumns(
         const count = meta.getMemberCount(t.id);
         const ageSummary = summarizeTeamAgeBracketCounts(members);
         return (
-          <div className="flex min-w-0 max-w-[min(22rem,100%)] flex-nowrap items-center gap-2">
+          <div className="flex min-w-0 max-w-full flex-nowrap items-center justify-start gap-1.5">
             {members.length > 0 ? (
               <>
                 <Popover>
@@ -115,7 +139,7 @@ export function getTeamsColumns(
                   </PopoverContent>
                 </Popover>
                 <span
-                  className="min-w-0 flex-1 truncate text-xs text-muted-foreground"
+                  className="min-w-0 max-w-[min(12rem,calc(100%-7rem))] shrink truncate text-xs text-muted-foreground"
                   title={ageSummary}
                 >
                   {ageSummary}
@@ -128,7 +152,8 @@ export function getTeamsColumns(
         );
       },
       meta: {
-        tdClassName: "align-middle min-w-0",
+        thClassName: "w-[26%] min-w-[10rem]",
+        tdClassName: "w-[26%] min-w-[10rem] align-middle overflow-hidden",
       },
     },
     {
@@ -145,6 +170,10 @@ export function getTeamsColumns(
           </Badge>
         );
       },
+      meta: {
+        thClassName: "w-[6.5rem]",
+        tdClassName: "w-[6.5rem] align-middle",
+      },
     },
     {
       id: "actions",
@@ -152,7 +181,7 @@ export function getTeamsColumns(
       cell: ({ row }) => {
         const t = row.original;
         return (
-          <div className="flex gap-1">
+          <div className="flex justify-end gap-1">
             {meta.onAddMembers && (
               <Button
                 variant="ghost"
@@ -178,7 +207,11 @@ export function getTeamsColumns(
           </div>
         );
       },
-      meta: { className: "w-[100px]" },
+      meta: {
+        className: "w-[104px]",
+        thClassName: "w-[104px] px-1 text-right",
+        tdClassName: "w-[104px] px-1 text-right align-middle",
+      },
     },
   ];
 }

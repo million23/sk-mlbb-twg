@@ -189,8 +189,15 @@ export function getParticipantsColumns(
                             meta.onJoinTeam?.(p.id, s.suggestedTeamId ?? "")
                           }
                         >
-                          <span className="truncate">
-                            {s.suggestedTeamName ?? "-"}
+                          <span className="min-w-0 flex flex-col items-start gap-0.5">
+                            <span className="truncate">
+                              {s.suggestedTeamName ?? "-"}
+                            </span>
+                            {s.suggestionPriority ? (
+                              <span className="w-full truncate text-xs font-normal text-muted-foreground">
+                                {s.suggestionPriority}
+                              </span>
+                            ) : null}
                           </span>
                           <Plus className="size-3 shrink-0" />
                         </Button>

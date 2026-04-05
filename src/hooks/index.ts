@@ -17,10 +17,6 @@ export {
   useParticipants,
 } from "./use-participants";
 export { usePocketBaseAuth } from "./use-pocketbase-auth";
-export {
-  useTeamSuggestions,
-  useTeamSuggestionsByParticipant
-} from "./use-team-suggestions";
 export { useArchivedTeams, useTeamMutations, useTeams } from "./use-teams";
 export { useTournamentDrafts } from "./use-tournament-drafts";
 export {

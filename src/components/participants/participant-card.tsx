@@ -190,22 +190,29 @@ export function ParticipantCard({
               {suggestions.slice(0, 3).map((s) => (
                 <div
                   key={s.suggestedTeamId}
-                  className="flex items-center gap-1 rounded-md border bg-muted/30 px-2 py-1 text-sm"
+                  className="flex min-w-0 max-w-full flex-col gap-0.5 rounded-md border bg-muted/30 px-2 py-1.5 text-sm"
                 >
-                  <span className="truncate max-w-24">
-                    {s.suggestedTeamName ?? "-"}
-                  </span>
-                  {s.suggestedTeamId && onJoinTeam && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 gap-1 px-1.5 text-xs"
-                      onClick={() => onJoinTeam(p.id, s.suggestedTeamId ?? "")}
-                    >
-                      <Plus className="size-3" />
-                      Join
-                    </Button>
-                  )}
+                  <div className="flex items-center gap-1">
+                    <span className="truncate max-w-[10rem]">
+                      {s.suggestedTeamName ?? "-"}
+                    </span>
+                    {s.suggestedTeamId && onJoinTeam && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 shrink-0 gap-1 px-1.5 text-xs"
+                        onClick={() => onJoinTeam(p.id, s.suggestedTeamId ?? "")}
+                      >
+                        <Plus className="size-3" />
+                        Join
+                      </Button>
+                    )}
+                  </div>
+                  {s.suggestionPriority ? (
+                    <span className="text-xs text-muted-foreground line-clamp-2">
+                      {s.suggestionPriority}
+                    </span>
+                  ) : null}
                 </div>
               ))}
             </div>

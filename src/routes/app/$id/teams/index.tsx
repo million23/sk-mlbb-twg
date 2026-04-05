@@ -766,6 +766,7 @@ function TeamsPage() {
 								emptyMessage={
 									search ? `No teams match "${search}"` : "No teams."
 								}
+								tableClassName="table-fixed min-w-[56rem]"
 								tableWrapperClassName="overflow-x-auto"
 							/>
 							<div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4 mt-4">
