@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { withCreatedAuditFields, withUpdatedAuditField } from "@/lib/mutation-authors";
 import { getCollection } from "@/lib/pocketbase";
-import { rateLimited } from "@/lib/rate-limited-api";
+import { rateLimited, rateLimitedWithRetry } from "@/lib/rate-limited-api";
 import { queryKeys } from "@/lib/query-keys";
 import type { Collections } from "@/types/pocketbase-types";
 
@@ -55,29 +55,10 @@ export function useTeamMutations() {
 
   const createMutation = useMutation({
     mutationFn: async (data: TeamInput) => {
-      return rateLimited(async () => {
+      return rateLimitedWithRetry(async () => {
         const col = getCollection("teams");
         return col.create(withCreatedAuditFields(data));
       });
-    },
-    onMutate: async (data) => {
-      await queryClient.cancelQueries({ queryKey: queryKeys.teams });
-      const prev = queryClient.getQueryData<Team[]>(queryKeys.teams);
-      const temp: Team = {
-        id: `temp-${Date.now()}`,
-        ...data,
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      };
-      queryClient.setQueryData<Team[]>(queryKeys.teams, (old) =>
-        old ? [temp, ...old] : [temp]
-      );
-      return { prev };
-    },
-    onError: (_err, _data, ctx) => {
-      if (ctx?.prev != null) {
-        queryClient.setQueryData(queryKeys.teams, ctx.prev);
-      }
     },
     onSettled: () => {
       invalidateTeamQueries(queryClient);
@@ -184,6 +165,7 @@ export function useTeamMutations() {
     archive: {
       mutate: (id: string) => archiveMutation.mutate(id),
       mutateAsync: (id: string) => archiveMutation.mutateAsync(id),
+      isPending: archiveMutation.isPending,
     },
     restore: {
       mutate: (id: string) => restoreMutation.mutate(id),

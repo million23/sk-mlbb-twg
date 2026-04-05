@@ -73,11 +73,14 @@ import {
 	matchesFuzzyQuery,
 	participantSearchHaystack,
 } from "@/lib/fuzzy-match";
+import { queryKeys } from "@/lib/query-keys";
+import { isClientRateLimitError } from "@/lib/rate-limited-api";
 import { compareRegisteredDesc } from "@/lib/registered-date";
 import { pickUnassignedIdsForFiveLanes } from "@/lib/team-lane-recommendations";
 import { PreferredLaneIcons } from "@/components/participants/preferred-lane-icons";
 import { cn, formatParticipantNameDisplay } from "@/lib/utils";
 import type { Collections, PlayerRole } from "@/types/pocketbase-types";
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import {
 	Archive,
@@ -719,6 +722,7 @@ function TeamsPage() {
 	const { data: participants } = useParticipants();
 	const { data: archivedParticipantsData } = useArchivedParticipants();
 	const archivedParticipants = archivedParticipantsData ?? [];
+	const queryClient = useQueryClient();
 	const mutations = useTeamMutations();
 	const participantMutations = useParticipantMutations();
 	const isMobile = useIsMobile();
@@ -778,13 +782,20 @@ function TeamsPage() {
 		setSheetOpen(false);
 	};
 
-	const handleArchiveConfirm = () => {
-		if (archiveConfirmId) {
-			mutations.archive.mutate(archiveConfirmId);
-			toast.success("Team archived");
-			setArchiveConfirmId(null);
-		}
-	};
+	const handleArchiveConfirm = useCallback(() => {
+		const id = archiveConfirmId;
+		if (!id || mutations.archive.isPending) return;
+		const displayName =
+			teams?.find((t) => t.id === id)?.name?.trim() || "Team";
+		void toast.promise(mutations.archive.mutateAsync(id), {
+			loading: "Archiving team and unassigning members…",
+			success: () => {
+				setArchiveConfirmId(null);
+				return `${displayName} archived`;
+			},
+			error: "Could not archive the team. Try again.",
+		});
+	}, [archiveConfirmId, teams, mutations.archive]);
 
 	const getCaptainName = useCallback(
 		(captainId: string | undefined) => {
@@ -959,45 +970,61 @@ function TeamsPage() {
 		);
 	}, [quickTeamSelected]);
 
-	const handleQuickTeamCreate = useCallback(async () => {
+	const handleQuickTeamCreate = useCallback(() => {
 		const name = quickTeamName.trim();
 		const ids = [...quickTeamSelected];
 		if (!name || ids.length === 0) return;
 		let captain = quickTeamCaptain;
 		if (captain && !ids.includes(captain)) captain = "";
 		setQuickTeamSubmitting(true);
-		try {
+
+		const work = (async () => {
+			// 1. Persist the team first — participant records need a real team id.
 			const created = (await mutations.create.mutateAsync({
 				name,
 				captain: captain || "",
 				status: "forming",
-			})) as { id: string };
-			const teamId = created.id;
-			for (const pid of ids) {
-				participantMutations.update.mutateQueued({
-					id: pid,
-					team: teamId,
-					status: "assigned",
-				});
+			})) as { id?: string };
+			const teamId = created?.id;
+			if (!teamId) {
+				throw new Error("Team was created without an id");
 			}
+
+			// 2. Assign members one PocketBase update at a time (team already exists).
+			await participantMutations.update.assignToTeamBatchAsync(ids, teamId);
+
+			// 3. Wait for fresh participants so sync logic sees correct member counts
+			//    before we set status to Ready (avoids stale-cache "incomplete" overwrites).
+			await queryClient.refetchQueries({ queryKey: queryKeys.participants });
+
 			if (ids.length >= 5) {
 				updatedForReady.current.add(teamId);
 				mutations.update.mutate({ id: teamId, status: "ready" });
-				toast.success(
-					`Team "${name}" created with ${ids.length} members (Ready).`,
-				);
-			} else {
-				toast.success(`Team "${name}" created with ${ids.length} member(s).`);
 			}
 			resetQuickTeam();
-		} catch {
-			toast.error("Could not create the team. Try again.");
+			return ids.length >= 5
+				? `Team "${name}" created with ${ids.length} members (Ready).`
+				: `Team "${name}" created with ${ids.length} member(s).`;
+		})();
+
+		toast.promise(work, {
+			loading: `Creating team "${name}"…`,
+			success: (message) => message,
+			error: (e) =>
+				isClientRateLimitError(e)
+					? (e instanceof Error ? e.message : "Too many requests. Wait a moment and try again.")
+					: e instanceof Error
+						? e.message
+						: "Could not create the team. Try again.",
+		});
+		void work.catch(() => {
 			setQuickTeamSubmitting(false);
-		}
+		});
 	}, [
 		quickTeamName,
 		quickTeamSelected,
 		quickTeamCaptain,
+		queryClient,
 		mutations.create,
 		mutations.update,
 		participantMutations.update,
@@ -1571,7 +1598,9 @@ function TeamsPage() {
 
 			<AlertDialog
 				open={!!archiveConfirmId}
-				onOpenChange={(o) => !o && setArchiveConfirmId(null)}
+				onOpenChange={(o) => {
+					if (!o && !mutations.archive.isPending) setArchiveConfirmId(null);
+				}}
 			>
 				<AlertDialogContent>
 					<AlertDialogHeader>
@@ -1583,12 +1612,29 @@ function TeamsPage() {
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
-						<AlertDialogCancel>Cancel</AlertDialogCancel>
+						<AlertDialogCancel disabled={mutations.archive.isPending}>
+							Cancel
+						</AlertDialogCancel>
 						<AlertDialogAction
-							onClick={handleArchiveConfirm}
-							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+							type="button"
+							disabled={mutations.archive.isPending}
+							onClick={(e) => {
+								e.preventDefault();
+								handleArchiveConfirm();
+							}}
+							className="inline-flex items-center gap-2 bg-destructive text-destructive-foreground hover:bg-destructive/90"
 						>
-							Archive
+							{mutations.archive.isPending ? (
+								<>
+									<Loader2
+										className="size-4 shrink-0 animate-spin"
+										aria-hidden
+									/>
+									Archiving…
+								</>
+							) : (
+								"Archive"
+							)}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>

@@ -95,25 +95,6 @@ export function useTournamentMutations() {
         return col.create(withCreatedAuditFields(data));
       });
     },
-    onMutate: async (data) => {
-      await queryClient.cancelQueries({ queryKey: queryKeys.tournaments });
-      const prev = queryClient.getQueryData<Tournament[]>(queryKeys.tournaments);
-      const temp: Tournament = {
-        id: `temp-${Date.now()}`,
-        ...data,
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      };
-      queryClient.setQueryData<Tournament[]>(queryKeys.tournaments, (old) =>
-        old ? [temp, ...old] : [temp]
-      );
-      return { prev };
-    },
-    onError: (_err, _data, ctx) => {
-      if (ctx?.prev != null) {
-        queryClient.setQueryData(queryKeys.tournaments, ctx.prev);
-      }
-    },
     onSettled: () => {
       invalidateTournamentQueries(queryClient);
     },
