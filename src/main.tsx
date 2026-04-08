@@ -1,9 +1,10 @@
 import { PacerProvider } from "@tanstack/react-pacer";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
+import { Analytics } from "@vercel/analytics/react";
 import ReactDOM from "react-dom/client";
-import { routeTree } from "./routeTree.gen";
 import { queryClient } from "./lib/query-client";
+import { routeTree } from "./routeTree.gen";
 
 const router = createRouter({
   routeTree,
@@ -25,6 +26,7 @@ if (!rootElement.innerHTML) {
     <QueryClientProvider client={queryClient}>
       <PacerProvider>
         <RouterProvider router={router} />
+        <Analytics />
       </PacerProvider>
     </QueryClientProvider>,
   );
