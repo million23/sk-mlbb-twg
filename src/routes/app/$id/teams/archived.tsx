@@ -11,7 +11,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { FxArchivedListTwoRows } from "@/lib/loading-placeholders";
 import {
 	Table,
 	TableBody,
@@ -88,9 +88,8 @@ function ArchivedTeamsPage() {
 				</CardHeader>
 				<CardContent>
 					{isLoading ? (
-						<div className="space-y-2">
-							<Skeleton className="h-10 w-full" />
-							<Skeleton className="h-10 w-full" />
+						<div className="animate-pulse">
+							<FxArchivedListTwoRows />
 						</div>
 					) : !archivedTeams?.length ? (
 						<p className="text-sm text-muted-foreground">No archived teams.</p>

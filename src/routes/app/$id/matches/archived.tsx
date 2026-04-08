@@ -21,7 +21,10 @@ import {
   ComboboxItem,
   ComboboxList,
 } from "@/components/ui/combobox";
-import { Skeleton } from "@/components/ui/skeleton";
+import {
+  FxAppMatchesTournamentSelect,
+  FxArchivedListTwoRows,
+} from "@/lib/loading-placeholders";
 import {
   Table,
   TableBody,
@@ -177,7 +180,9 @@ function ArchivedMatchesPage() {
         </CardHeader>
         <CardContent>
           {tournamentsLoading ? (
-            <Skeleton className="h-9 w-full max-w-sm" />
+            <div className="animate-pulse">
+              <FxAppMatchesTournamentSelect />
+            </div>
           ) : sortedTournaments.length === 0 ? (
             <p className="text-sm text-muted-foreground">Add a tournament first.</p>
           ) : (
@@ -262,16 +267,16 @@ function ArchivedMatchesPage() {
               This tournament is archived or no longer in your list. Select
               another tournament above.
             </p>
-          ) : !tournamentId ? null : tournamentEligible && matchesLoading ? (
-            <div className="space-y-2">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-          ) : tournamentEligible && !archivedMatches?.length ? (
+          ) : !tournamentId ? null : tournamentEligible ? (
+            matchesLoading ? (
+              <div className="animate-pulse">
+                <FxArchivedListTwoRows />
+              </div>
+            ) : !archivedMatches?.length ? (
             <p className="text-sm text-muted-foreground">
               No archived matches for this tournament.
             </p>
-          ) : tournamentEligible ? (
+              ) : (
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
@@ -330,6 +335,7 @@ function ArchivedMatchesPage() {
                 </TableBody>
               </Table>
             </div>
+            )
           ) : null}
         </CardContent>
       </Card>

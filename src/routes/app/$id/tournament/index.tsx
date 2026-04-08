@@ -29,7 +29,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { Skeleton } from "@/components/ui/skeleton";
+import { FxAppCardBodyLg } from "@/lib/loading-placeholders";
 import {
   Select,
   SelectContent,
@@ -320,7 +320,9 @@ function TournamentPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <Skeleton className="h-64 w-full" />
+            <div className="animate-pulse">
+              <FxAppCardBodyLg />
+            </div>
           ) : !tournaments?.length ? (
             <Empty>
               <EmptyHeader>

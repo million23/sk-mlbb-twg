@@ -45,7 +45,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Skeleton } from "@/components/ui/skeleton";
+import { FxAppCardBodyLg } from "@/lib/loading-placeholders";
 import { DataTable } from "@/components/ui/data-table";
 import { getAdminsColumns } from "@/components/tables/admins-columns";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -352,7 +352,9 @@ function AdminsPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <Skeleton className="h-64 w-full" />
+            <div className="animate-pulse">
+              <FxAppCardBodyLg />
+            </div>
           ) : !admins?.length ? (
             <Empty>
               <EmptyHeader>

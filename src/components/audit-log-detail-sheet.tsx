@@ -7,7 +7,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Skeleton } from "@/components/ui/skeleton";
+import { FxAuditDetailRelated } from "@/lib/loading-placeholders";
 import type { AuditLogRow } from "@/hooks/use-audit-log";
 import { queryKeys } from "@/lib/query-keys";
 import { pb } from "@/lib/pocketbase";
@@ -135,10 +135,9 @@ function RelatedRecordBlock(props: {
 
   if (isLoading || isFetching) {
     return (
-      <div className="space-y-2">
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-3/4" />
+      <div className="animate-pulse" role="status">
+        <FxAuditDetailRelated />
+        <span className="sr-only">Loading related record</span>
       </div>
     );
   }

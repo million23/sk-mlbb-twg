@@ -56,6 +56,11 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+	FxTeamsCards,
+	FxTeamsHeaderSearch,
+	FxTeamsTable,
+} from "@/lib/loading-placeholders";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
 	useArchivedParticipants,
@@ -713,6 +718,24 @@ function TeamForm({
 	);
 }
 
+function TeamsLoadingSkeleton({
+	layout,
+}: {
+	layout: "table" | "cards";
+}) {
+	const body = layout === "cards" ? <FxTeamsCards /> : <FxTeamsTable />;
+	return (
+		<output
+			aria-live="polite"
+			aria-busy="true"
+			className="block min-w-0 w-full"
+		>
+			<span className="sr-only">Loading teams</span>
+			<div className="min-w-0 w-full">{body}</div>
+		</output>
+	);
+}
+
 function TeamsPage() {
 	const params = useParams({ strict: false });
 	const appId = (params as { id?: string })?.id ?? "";
@@ -1256,22 +1279,33 @@ function TeamsPage() {
 			<Card>
 				<CardHeader>
 					<CardTitle>All teams</CardTitle>
-					<CardDescription>{teams?.length ?? 0} teams</CardDescription>
-					{teams && teams.length > 0 && (
-						<div className="relative mt-2">
-							<Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-							<Input
-								placeholder="Search by team name or captain..."
-								value={search}
-								onChange={(e) => setSearch(e.target.value)}
-								className="pl-9"
-							/>
-						</div>
+					<CardDescription>
+						{isLoading ? (
+							<Skeleton className="h-4 w-28 max-w-[min(100%,7rem)]" />
+						) : (
+							<>{`${teams?.length ?? 0} teams`}</>
+						)}
+					</CardDescription>
+					{isLoading ? (
+						<FxTeamsHeaderSearch />
+					) : (
+						teams &&
+						teams.length > 0 && (
+							<div className="relative mt-2">
+								<Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+								<Input
+									placeholder="Search by team name or captain..."
+									value={search}
+									onChange={(e) => setSearch(e.target.value)}
+									className="pl-9"
+								/>
+							</div>
+						)
 					)}
 				</CardHeader>
 				<CardContent>
 					{isLoading ? (
-						<Skeleton className="h-64 w-full" />
+						<TeamsLoadingSkeleton layout={isMobile ? "cards" : view} />
 					) : !teams?.length ? (
 						<Empty>
 							<EmptyHeader>

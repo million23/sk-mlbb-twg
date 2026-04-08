@@ -8,15 +8,7 @@ import {
 } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Skeleton } from "@/components/ui/skeleton";
+import { FxAuditSearch, FxAuditTable } from "@/lib/loading-placeholders";
 import { useInView } from "@/hooks/use-in-view";
 import {
   useAuditLogInfinite,
@@ -30,13 +22,9 @@ import {
   downloadStructuredSpreadsheet,
   type SpreadsheetColumn,
 } from "@/lib/spreadsheet-export";
-import { cn } from "@/lib/utils";
 import { pb } from "@/lib/pocketbase";
-import {
-  AUDIT_LOG_ACTIONS_CELL_CLASS,
-  AUDIT_LOG_ACTIONS_HEAD_CLASS,
-  getAuditLogColumns,
-} from "@/components/tables/audit-log-columns";
+import { cn } from "@/lib/utils";
+import { getAuditLogColumns } from "@/components/tables/audit-log-columns";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { ClientResponseError } from "pocketbase";
 import {
@@ -60,82 +48,22 @@ export const Route = createFileRoute("/app/$id/audit-logs")({
 
 const AUDIT_TABLE = "border-collapse";
 
-const SKELETON_ROW_KEYS = [
-  "sk-1",
-  "sk-2",
-  "sk-3",
-  "sk-4",
-  "sk-5",
-  "sk-6",
-  "sk-7",
-  "sk-8",
-  "sk-9",
-  "sk-10",
-  "sk-11",
-  "sk-12",
-] as const;
-
 /** Matches loaded search row: icon + full-width control */
 function AuditLogSearchSkeleton() {
   return (
-    <div className="relative mt-2" aria-hidden>
-      <div className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2">
-        <Skeleton className="size-4 rounded-sm" />
-      </div>
-      <Skeleton className="h-10 w-full rounded-md" />
+    <div className="animate-pulse" role="status">
+      <FxAuditSearch />
+      <span className="sr-only">Search loading</span>
     </div>
   );
 }
 
 function AuditLogTableSkeleton() {
   return (
-    <section
-      className="overflow-x-auto rounded-md border border-border bg-card"
-      aria-live="polite"
-      aria-busy="true"
-      aria-label="Loading audit log entries"
-    >
-      <Table className={AUDIT_TABLE}>
-        <TableHeader>
-          <TableRow className="border-b hover:bg-transparent">
-            <TableHead>Summary</TableHead>
-            <TableHead className="whitespace-nowrap">Updated</TableHead>
-            <TableHead className="whitespace-nowrap">Created</TableHead>
-            <TableHead className={AUDIT_LOG_ACTIONS_HEAD_CLASS}>
-              <span className="sr-only">Details</span>
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {SKELETON_ROW_KEYS.map((rowKey, i) => (
-            <TableRow key={rowKey} className="hover:bg-transparent">
-              <TableCell className="align-middle max-w-[min(28rem,50vw)]">
-                <div className="flex flex-col gap-1.5 py-0.5">
-                  <Skeleton
-                    className={cn(
-                      "h-3.5 max-w-full",
-                      i % 4 === 0 ? "w-[92%]" : "w-[88%]",
-                    )}
-                  />
-                  {i % 5 === 0 ? (
-                    <Skeleton className="h-3.5 w-[55%] max-w-full" />
-                  ) : null}
-                </div>
-              </TableCell>
-              <TableCell className="align-middle">
-                <Skeleton className="h-4 w-29" />
-              </TableCell>
-              <TableCell className="align-middle">
-                <Skeleton className="h-4 w-29" />
-              </TableCell>
-              <TableCell className={AUDIT_LOG_ACTIONS_CELL_CLASS}>
-                <Skeleton className="mx-auto size-8 rounded-md" />
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </section>
+    <div className="animate-pulse" role="status">
+      <FxAuditTable />
+      <span className="sr-only">Loading audit log entries</span>
+    </div>
   );
 }
 

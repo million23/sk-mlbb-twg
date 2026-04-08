@@ -61,13 +61,10 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
+	FxParticipantsCards,
+	FxParticipantsHeaderToolbar,
+	FxParticipantsTable,
+} from "@/lib/loading-placeholders";
 import { AGE_BRACKETS } from "@/config/age-brackets";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
@@ -106,7 +103,6 @@ import {
 	FileSpreadsheet,
 	LayoutGrid,
 	LayoutList,
-	Loader2,
 	Plus,
 	Search,
 	UserRound,
@@ -360,143 +356,17 @@ function sortParticipantsByTeam(
 
 const CARDS_PER_PAGE = 20;
 
-const PARTICIPANTS_CARD_SKELETON_KEYS = [
-	"pc1",
-	"pc2",
-	"pc3",
-	"pc4",
-	"pc5",
-	"pc6",
-] as const;
-
-const PARTICIPANTS_TABLE_SKELETON_KEYS = [
-	"pr1",
-	"pr2",
-	"pr3",
-	"pr4",
-	"pr5",
-	"pr6",
-	"pr7",
-	"pr8",
-] as const;
-
 function ParticipantsLoadingSkeleton({
 	layout,
 }: {
 	layout: "table" | "cards";
 }) {
-	if (layout === "cards") {
-		return (
-			<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-				{PARTICIPANTS_CARD_SKELETON_KEYS.map((key) => (
-					<div
-						key={key}
-						className="rounded-xl border border-border bg-card p-4 shadow-sm"
-					>
-						<div className="flex gap-3">
-							<Skeleton className="size-14 shrink-0 rounded-lg" />
-							<div className="min-w-0 flex-1 space-y-2 pt-0.5">
-								<Skeleton className="h-4 w-[72%] max-w-[200px]" />
-								<Skeleton className="h-3 w-20 rounded-full" />
-							</div>
-						</div>
-						<div className="mt-4 space-y-2.5">
-							<div className="flex items-center gap-2">
-								<Skeleton className="size-4 shrink-0 rounded" />
-								<Skeleton className="h-3 flex-1" />
-							</div>
-							<div className="flex items-center gap-2">
-								<Skeleton className="size-4 shrink-0 rounded" />
-								<Skeleton className="h-3 w-[85%]" />
-							</div>
-							<div className="flex items-center gap-2">
-								<Skeleton className="size-4 shrink-0 rounded" />
-								<Skeleton className="h-3 w-[60%]" />
-							</div>
-						</div>
-					</div>
-				))}
-			</div>
-		);
-	}
-
+	const body =
+		layout === "cards" ? <FxParticipantsCards /> : <FxParticipantsTable />;
 	return (
-		<div className="rounded-md border">
-			<Table>
-				<TableHeader>
-					<TableRow className="hover:bg-transparent">
-						<TableHead className="w-12 py-3">
-							<span className="sr-only">Avatar</span>
-						</TableHead>
-						<TableHead className="py-3">
-							<Skeleton className="h-3.5 w-14" />
-						</TableHead>
-						<TableHead className="py-3">
-							<Skeleton className="h-3.5 w-12" />
-						</TableHead>
-						<TableHead className="py-3">
-							<Skeleton className="h-3.5 w-16" />
-						</TableHead>
-						<TableHead className="py-3">
-							<Skeleton className="h-3.5 w-20" />
-						</TableHead>
-						<TableHead className="py-3">
-							<Skeleton className="h-3.5 w-14" />
-						</TableHead>
-						<TableHead className="py-3">
-							<Skeleton className="h-3.5 w-24" />
-						</TableHead>
-						<TableHead className="py-3">
-							<Skeleton className="h-3.5 w-12" />
-						</TableHead>
-						<TableHead className="w-[120px] py-3">
-							<span className="sr-only">Actions</span>
-						</TableHead>
-					</TableRow>
-				</TableHeader>
-				<TableBody>
-					{PARTICIPANTS_TABLE_SKELETON_KEYS.map((rowKey, row) => (
-						<TableRow
-							key={rowKey}
-							className={cn(
-								row % 2 === 1 && "bg-muted/20",
-								"hover:bg-transparent",
-							)}
-						>
-							<TableCell>
-								<Skeleton className="size-8 rounded-full" />
-							</TableCell>
-							<TableCell>
-								<Skeleton className="h-4 w-24" />
-							</TableCell>
-							<TableCell>
-								<Skeleton className="h-4 w-28" />
-							</TableCell>
-							<TableCell>
-								<Skeleton className="h-4 w-28" />
-							</TableCell>
-							<TableCell>
-								<Skeleton className="h-4 w-32" />
-							</TableCell>
-							<TableCell>
-								<Skeleton className="h-5 w-20 rounded-full" />
-							</TableCell>
-							<TableCell>
-								<Skeleton className="h-4 w-24" />
-							</TableCell>
-							<TableCell>
-								<Skeleton className="h-4 w-20" />
-							</TableCell>
-							<TableCell>
-								<div className="flex gap-1">
-									<Skeleton className="size-8 rounded-md" />
-									<Skeleton className="size-8 rounded-md" />
-								</div>
-							</TableCell>
-						</TableRow>
-					))}
-				</TableBody>
-			</Table>
+		<div className="min-w-0 w-full">
+			{body}
+			<span className="sr-only">Loading participants</span>
 		</div>
 	);
 }
@@ -1074,17 +944,12 @@ function ParticipantsPage() {
 					<CardTitle>All participants</CardTitle>
 					<CardDescription>
 						{isLoading ? (
-							<span className="inline-flex items-center gap-2 text-muted-foreground">
-								<Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
-								Loading participants…
-							</span>
+							<Skeleton className="h-4 w-36 max-w-[min(100%,9rem)]" />
 						) : (
 							<>{`${totalRegistered} registered`}</>
 						)}
 					</CardDescription>
-					{isLoading ? (
-						<Skeleton className="mt-2 h-9 w-full rounded-lg" />
-					) : null}
+					{isLoading ? <FxParticipantsHeaderToolbar /> : null}
 					{!isLoading && totalRegistered > 0 && (
 						<>
 							<Label htmlFor="participant-sort" className="sr-only">

@@ -49,7 +49,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
+import {
+  FxAppMatchesList,
+  FxAppMatchesTournamentSelect,
+} from "@/lib/loading-placeholders";
 import { Textarea } from "@/components/ui/textarea";
 import { useMatchMutations } from "@/hooks/use-match-mutations";
 import {
@@ -247,7 +250,9 @@ function MatchesPage() {
         </CardHeader>
         <CardContent>
           {tournamentsLoading ? (
-            <Skeleton className="h-9 w-full max-w-sm" />
+            <div className="animate-pulse">
+              <FxAppMatchesTournamentSelect />
+            </div>
           ) : sortedTournaments.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               Add a tournament first.
@@ -349,13 +354,12 @@ function MatchesPage() {
             </CardDescription>
           </CardHeader>
         </Card>
-      ) : !tournamentId ? null : tournamentEligible && matchesLoading ? (
-        <div className="space-y-2">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-16 w-full rounded-lg" />
-          ))}
-        </div>
-      ) : tournamentEligible && matches?.length === 0 ? (
+      ) : !tournamentId ? null : tournamentEligible ? (
+        matchesLoading ? (
+          <div className="animate-pulse">
+            <FxAppMatchesList />
+          </div>
+        ) : matches?.length === 0 ? (
         <Empty>
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -376,7 +380,7 @@ function MatchesPage() {
             Add first match
           </Button>
         </Empty>
-      ) : tournamentEligible ? (
+          ) : (
         <div className="space-y-6">
           {groupedMatches.map(([round, rows]) => (
             <div key={round}>
@@ -449,6 +453,7 @@ function MatchesPage() {
             </div>
           ))}
         </div>
+        )
       ) : null}
 
       <MatchFormDialog

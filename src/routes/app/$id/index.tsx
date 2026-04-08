@@ -12,7 +12,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import {
+  FxDashboardChart,
+  FxDashboardRecentParticipants,
+  FxDashboardRecentTeams,
+  FxDashboardStat,
+} from "@/lib/loading-placeholders";
 import { StatusBadge } from "@/components/participants/status-badge";
 import { useParticipants } from "@/hooks/use-participants";
 import { useTeams } from "@/hooks/use-teams";
@@ -43,7 +48,7 @@ import {
   Users,
   UsersRound,
 } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, type ElementType } from "react";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 
 export const Route = createFileRoute("/app/$id/")({
@@ -132,7 +137,7 @@ function StatCard({
   title: string;
   value: number;
   description?: string;
-  icon: React.ElementType;
+  icon: ElementType;
   isLoading?: boolean;
 }) {
   return (
@@ -145,7 +150,9 @@ function StatCard({
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <Skeleton className="h-8 w-16" />
+          <div className="animate-pulse">
+            <FxDashboardStat />
+          </div>
         ) : (
           <>
             <div className="text-2xl font-bold">{value}</div>
@@ -218,7 +225,9 @@ function DashboardPage() {
         </CardHeader>
         <CardContent>
           {participantsLoading ? (
-            <Skeleton className="h-[220px] w-full rounded-lg" />
+            <div className="animate-pulse">
+              <FxDashboardChart />
+            </div>
           ) : (
             <ChartContainer
               config={registrationsChartConfig}
@@ -310,17 +319,8 @@ function DashboardPage() {
           </CardHeader>
           <CardContent>
             {participantsLoading ? (
-              <div className="overflow-hidden rounded-lg border border-border divide-y divide-border">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="flex items-center gap-3 px-3 py-3">
-                    <Skeleton className="size-10 shrink-0 rounded-lg" />
-                    <div className="min-w-0 flex-1 space-y-1.5">
-                      <Skeleton className="h-4 w-32" />
-                      <Skeleton className="h-3 w-24" />
-                    </div>
-                    <Skeleton className="h-6 w-20 shrink-0 rounded-full" />
-                  </div>
-                ))}
+              <div className="animate-pulse min-w-0 w-full">
+                <FxDashboardRecentParticipants />
               </div>
             ) : recentParticipants.length === 0 ? (
               <p className="text-sm text-muted-foreground">
@@ -331,9 +331,9 @@ function DashboardPage() {
                 {recentParticipants.map((p) => (
                   <div
                     key={p.id}
-                    className="flex items-center gap-3 px-3 py-3 transition-colors hover:bg-muted/40"
+                    className="flex min-w-0 items-center gap-3 px-3 py-3 transition-colors hover:bg-muted/40"
                   >
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border bg-muted/60">
+                    <div className="flex size-10 min-h-10 min-w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-muted/60">
                       <User
                         className="size-5 text-muted-foreground"
                         aria-hidden
@@ -376,17 +376,8 @@ function DashboardPage() {
           </CardHeader>
           <CardContent>
             {teamsLoading ? (
-              <div className="overflow-hidden rounded-lg border border-border divide-y divide-border">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="flex items-center gap-3 px-3 py-3">
-                    <Skeleton className="size-10 shrink-0 rounded-lg" />
-                    <div className="min-w-0 flex-1 space-y-1.5">
-                      <Skeleton className="h-4 w-36" />
-                      <Skeleton className="h-3 w-28" />
-                    </div>
-                    <Skeleton className="h-6 w-16 shrink-0 rounded-full" />
-                  </div>
-                ))}
+              <div className="animate-pulse min-w-0 w-full">
+                <FxDashboardRecentTeams />
               </div>
             ) : recentTeams.length === 0 ? (
               <p className="text-sm text-muted-foreground">No teams yet</p>
@@ -399,9 +390,9 @@ function DashboardPage() {
                   return (
                     <div
                       key={t.id}
-                      className="flex items-center gap-3 px-3 py-3 transition-colors hover:bg-muted/40"
+                      className="flex min-w-0 items-center gap-3 px-3 py-3 transition-colors hover:bg-muted/40"
                     >
-                      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border bg-muted/60">
+                      <div className="flex size-10 min-h-10 min-w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-muted/60">
                         <UsersRound
                           className="size-5 text-muted-foreground"
                           aria-hidden

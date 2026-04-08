@@ -48,7 +48,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { Skeleton } from '@/components/ui/skeleton'
+import { FxDemoSkeletonCard } from '@/lib/loading-placeholders'
 import { Switch } from '@/components/ui/switch'
 import {
   Table,
@@ -301,16 +301,10 @@ function ComponentsPage() {
                   <AvatarGroupCount>+4</AvatarGroupCount>
                 </AvatarGroup>
 
-                <div className="grid gap-3 rounded-xl border border-dashed border-border p-4">
-                  <div className="flex items-center gap-3">
-                    <Skeleton className="size-10 rounded-full" />
-                    <div className="flex-1 space-y-2">
-                      <Skeleton className="h-4 w-36" />
-                      <Skeleton className="h-4 w-24" />
-                    </div>
-                  </div>
-                  <Skeleton className="h-20 w-full" />
+                <div className="animate-pulse" aria-hidden>
+                  <FxDemoSkeletonCard />
                 </div>
+                <span className="sr-only">Skeleton layout preview</span>
               </div>
             </ShowcaseSection>
 
