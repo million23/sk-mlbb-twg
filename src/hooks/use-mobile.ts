@@ -4,8 +4,12 @@ const MOBILE_BREAKPOINT = 768;
 /** Match Tailwind `lg`: docked sidebar below this width becomes overlay (tablet portrait). */
 const SIDEBAR_OVERLAY_MAX_PX = 1023;
 
+/**
+ * Breakpoint match for client-only layout. Initial `false` keeps the first render
+ * deterministic (SSR / hydration–safe); effect syncs to the real viewport.
+ */
 function useMediaMaxWidth(maxWidthPx: number): boolean {
-  const [matches, setMatches] = React.useState<boolean | undefined>(undefined);
+  const [matches, setMatches] = React.useState(false);
 
   React.useEffect(() => {
     const mql = window.matchMedia(`(max-width: ${maxWidthPx}px)`);
@@ -17,7 +21,7 @@ function useMediaMaxWidth(maxWidthPx: number): boolean {
     return () => mql.removeEventListener("change", onChange);
   }, [maxWidthPx]);
 
-  return !!matches;
+  return matches;
 }
 
 export function useIsMobile() {

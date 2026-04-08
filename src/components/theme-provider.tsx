@@ -27,14 +27,19 @@ export function ThemeProvider({
   ...props
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(() => {
-    const stored = localStorage.getItem(storageKey) as Theme | null
-    if (stored === "light" || stored === "dark" || stored === "system") {
-      return stored
-    }
-    const legacy = localStorage.getItem("mlbb-theme")
-    if (legacy === "light" || legacy === "dark") {
-      localStorage.setItem(storageKey, legacy)
-      return legacy
+    if (typeof window === "undefined") return defaultTheme
+    try {
+      const stored = localStorage.getItem(storageKey) as Theme | null
+      if (stored === "light" || stored === "dark" || stored === "system") {
+        return stored
+      }
+      const legacy = localStorage.getItem("mlbb-theme")
+      if (legacy === "light" || legacy === "dark") {
+        localStorage.setItem(storageKey, legacy)
+        return legacy
+      }
+    } catch {
+      /* private mode / SSR */
     }
     return defaultTheme
   })
@@ -59,9 +64,13 @@ export function ThemeProvider({
 
   const value = {
     theme,
-    setTheme: (theme: Theme) => {
-      localStorage.setItem(storageKey, theme)
-      setTheme(theme)
+    setTheme: (next: Theme) => {
+      try {
+        localStorage.setItem(storageKey, next)
+      } catch {
+        /* ignore */
+      }
+      setTheme(next)
     },
   }
 

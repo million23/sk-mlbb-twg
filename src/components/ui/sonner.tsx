@@ -4,17 +4,10 @@ import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon
 
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme } = useTheme()
-  const resolved: ToasterProps["theme"] =
-    theme === "system"
-      ? typeof window !== "undefined" &&
-        window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light"
-      : theme
-
+  /** Sonner resolves `system` internally and sets `suppressHydrationWarning` on its root. */
   return (
     <Sonner
-      theme={resolved}
+      theme={theme}
       className="toaster group"
       icons={{
         success: (
