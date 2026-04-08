@@ -61,8 +61,8 @@ import {
 } from "@/hooks/use-matches";
 import { useTeams } from "@/hooks/use-teams";
 import { useTournaments } from "@/hooks/use-tournaments";
-import { humanizeSlug } from "@/lib/humanize-slug";
 import { getMatchStatusStyle } from "@/lib/match-status";
+import { tournamentLabel } from "@/lib/tournament-label";
 import { cn } from "@/lib/utils";
 import type { Collections } from "@/types/pocketbase-types";
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
@@ -97,21 +97,6 @@ function winnerName(m: MatchRecord): string {
   const id = m.winner;
   if (!id) return "";
   return m.expand?.winner?.name ?? id;
-}
-
-/**
- * Prefer a real title; if title is missing or identical to slug (common when
- * people paste the slug into title), show a readable name instead of raw slug.
- */
-function tournamentLabel(t: Collections["tournaments"]): string {
-  const title = t.title?.trim();
-  const slug = t.slug?.trim();
-  if (title && slug && title.toLowerCase() === slug.toLowerCase()) {
-    return humanizeSlug(slug);
-  }
-  if (title) return title;
-  if (slug) return humanizeSlug(slug);
-  return "Untitled tournament";
 }
 
 function MatchesPage() {
