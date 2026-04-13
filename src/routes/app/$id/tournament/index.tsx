@@ -14,7 +14,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
-import { DateTimePicker } from "@/components/ui/date-time-picker";
+import { DateTimeRangePicker } from "@/components/ui/date-time-range-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -127,19 +127,14 @@ function TournamentForm({
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="startAt">Start date</Label>
-        <DateTimePicker
-          id="startAt"
-          value={form.startAt ?? ""}
-          onChange={(v) => setForm((f) => ({ ...f, startAt: v }))}
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="endAt">End date</Label>
-        <DateTimePicker
-          id="endAt"
-          value={form.endAt ?? ""}
-          onChange={(v) => setForm((f) => ({ ...f, endAt: v }))}
+        <Label htmlFor="tournament-date-range">Start & end</Label>
+        <DateTimeRangePicker
+          id="tournament-date-range"
+          startValue={form.startAt}
+          endValue={form.endAt}
+          onChange={({ startAt, endAt }) =>
+            setForm((f) => ({ ...f, startAt, endAt }))
+          }
         />
       </div>
       <div className="space-y-2">
