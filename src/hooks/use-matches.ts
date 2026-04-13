@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { pocketbaseListQueryOptions } from "@/lib/pocketbase-list-query-options";
 import { getCollection } from "@/lib/pocketbase";
 import { rateLimited } from "@/lib/rate-limited-api";
 import { queryKeys } from "@/lib/query-keys";
@@ -28,6 +29,7 @@ export function useMatchesForTournament(
 ) {
   const eligible = options?.enabled ?? true;
   return useQuery({
+    ...pocketbaseListQueryOptions,
     queryKey: [...queryKeys.matches, tournamentId ?? "none"] as const,
     enabled: Boolean(tournamentId) && eligible,
     queryFn: () =>
@@ -50,6 +52,7 @@ export function useArchivedMatchesForTournament(
 ) {
   const eligible = options?.enabled ?? true;
   return useQuery({
+    ...pocketbaseListQueryOptions,
     queryKey: [...queryKeys.matches, tournamentId ?? "none", "archived"] as const,
     enabled: Boolean(tournamentId) && eligible,
     queryFn: () =>

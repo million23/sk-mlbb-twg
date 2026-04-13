@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { withCreatedAuditFields, withUpdatedAuditField } from "@/lib/mutation-authors";
+import { pocketbaseListQueryOptions } from "@/lib/pocketbase-list-query-options";
 import { getCollection } from "@/lib/pocketbase";
 import { rateLimited } from "@/lib/rate-limited-api";
 import { queryKeys } from "@/lib/query-keys";
@@ -27,6 +28,7 @@ function invalidateTournamentQueries(
 
 export function useTournaments() {
   return useQuery({
+    ...pocketbaseListQueryOptions,
     queryKey: queryKeys.tournaments,
     queryFn: () =>
       rateLimited(async () => {

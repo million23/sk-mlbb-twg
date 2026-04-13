@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { withCreatedAuditFields, withUpdatedAuditField } from "@/lib/mutation-authors";
+import { pocketbaseListQueryOptions } from "@/lib/pocketbase-list-query-options";
 import { getCollection } from "@/lib/pocketbase";
 import { rateLimited, rateLimitedWithRetry } from "@/lib/rate-limited-api";
 import { queryKeys } from "@/lib/query-keys";
@@ -22,6 +23,7 @@ function invalidateTeamQueries(queryClient: ReturnType<typeof useQueryClient>) {
 
 export function useTeams() {
   return useQuery({
+    ...pocketbaseListQueryOptions,
     queryKey: queryKeys.teams,
     queryFn: () =>
       rateLimited(async () => {

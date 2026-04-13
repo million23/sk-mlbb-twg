@@ -3,6 +3,7 @@ import {
   withUpdatedAuditField,
 } from "@/lib/mutation-authors";
 import { createMutationQueue } from "@/lib/mutation-queue";
+import { pocketbaseListQueryOptions } from "@/lib/pocketbase-list-query-options";
 import { getCollection } from "@/lib/pocketbase";
 import { queryKeys } from "@/lib/query-keys";
 import { rateLimited, rateLimitedWithRetry } from "@/lib/rate-limited-api";
@@ -34,6 +35,7 @@ function invalidateParticipantQueries(
 
 export function useParticipants() {
   return useQuery({
+    ...pocketbaseListQueryOptions,
     queryKey: queryKeys.participants,
     queryFn: () =>
       rateLimitedWithRetry(async () => {
