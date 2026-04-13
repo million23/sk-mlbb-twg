@@ -48,7 +48,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useTournaments, useTournamentMutations } from "@/hooks/use-tournaments";
-import { getTournamentStatusLabel, TOURNAMENT_STATUS_OPTIONS } from "@/lib/tournament-status";
+import {
+  getTournamentStatusLabel,
+  TOURNAMENT_STATUS_OPTIONS,
+} from "@/lib/tournament-status";
 import { cn } from "@/lib/utils";
 import type { Collections } from "@/types/pocketbase-types";
 import { Archive, LayoutGrid, LayoutList, MapPin, Plus, Pencil, Trophy } from "lucide-react";
@@ -62,6 +65,22 @@ export const Route = createFileRoute("/app/$id/tournament/")({
 type TournamentFormData = Partial<
   Omit<Collections["tournaments"], "id" | "created" | "updated">
 >;
+
+const TOURNAMENT_STATUS_VALUES = new Set(
+  TOURNAMENT_STATUS_OPTIONS.map((o) => o.value),
+);
+
+function requiredLabel(text: string) {
+  return (
+    <>
+      {text}
+      <span className="text-destructive" aria-hidden>
+        {" "}
+        *
+      </span>
+    </>
+  );
+}
 
 function TournamentForm({
   form,
@@ -79,10 +98,11 @@ function TournamentForm({
   return (
     <div className="w-full space-y-4 px-4 pb-4">
       <div className="space-y-2">
-        <Label htmlFor="title">Title</Label>
+        <Label htmlFor="title">{requiredLabel("Title")}</Label>
         <Input
           id="title"
           value={form.title ?? ""}
+          aria-required
           onChange={(e) => {
             const title = e.target.value;
             const slug = title
@@ -118,16 +138,19 @@ function TournamentForm({
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="venue">Venue</Label>
+        <Label htmlFor="venue">{requiredLabel("Venue")}</Label>
         <Input
           id="venue"
           value={form.venue ?? ""}
+          aria-required
           onChange={(e) => setForm((f) => ({ ...f, venue: e.target.value }))}
           placeholder="Venue / location"
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="tournament-date-range">Start & end</Label>
+        <Label htmlFor="tournament-date-range">
+          {requiredLabel("Start & end")}
+        </Label>
         <DateTimeRangePicker
           id="tournament-date-range"
           startValue={form.startAt}
@@ -138,7 +161,7 @@ function TournamentForm({
         />
       </div>
       <div className="space-y-2">
-        <Label>Status</Label>
+        <Label htmlFor="tournament-status">{requiredLabel("Status")}</Label>
         <Select
           value={form.status ?? "draft"}
           onValueChange={(v) =>
@@ -148,7 +171,7 @@ function TournamentForm({
             }))
           }
         >
-          <SelectTrigger className="w-full">
+          <SelectTrigger id="tournament-status" className="w-full" aria-required>
             <SelectValue placeholder="Select status">
               {(value) =>
                 value != null && value !== ""
@@ -231,11 +254,65 @@ function TournamentPage() {
   };
 
   const handleSubmit = () => {
+    const title = (form.title ?? "").trim();
+    const venue = (form.venue ?? "").trim();
+    const startAt = (form.startAt ?? "").trim();
+    const endAt = (form.endAt ?? "").trim();
+    const status = form.status;
+
+    const missing: string[] = [];
+    if (!title) missing.push("title");
+    if (!venue) missing.push("venue");
+    if (!startAt) missing.push("start date");
+    if (!endAt) missing.push("end date");
+    if (!status || !TOURNAMENT_STATUS_VALUES.has(status)) {
+      missing.push("status");
+    }
+
+    if (missing.length > 0) {
+      toast.error(
+        missing.length === 1
+          ? `Please enter ${missing[0]}.`
+          : `Please enter: ${missing.join(", ")}.`,
+      );
+      return;
+    }
+
+    const startMs = new Date(startAt).getTime();
+    const endMs = new Date(endAt).getTime();
+    if (Number.isNaN(startMs)) {
+      toast.error("Start date is invalid.");
+      return;
+    }
+    if (Number.isNaN(endMs)) {
+      toast.error("End date is invalid.");
+      return;
+    }
+    if (endMs < startMs) {
+      toast.error("End date and time must be on or after the start.");
+      return;
+    }
+
+    const slug = title
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9-]/g, "");
+
+    const payload = {
+      ...form,
+      title,
+      slug,
+      venue,
+      startAt,
+      endAt,
+      status,
+    };
+
     if (editingId) {
-      mutations.update.mutate({ id: editingId, ...form });
+      mutations.update.mutate({ id: editingId, ...payload });
       toast.success("Tournament updated");
     } else {
-      mutations.create.mutate(form);
+      mutations.create.mutate(payload);
       toast.success("Tournament added");
     }
     setSheetOpen(false);
