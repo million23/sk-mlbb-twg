@@ -78,7 +78,10 @@ import { getAvatarUrl } from "@/lib/avatar";
 import { LANE_ROLE_LABELS } from "@/lib/lane-role-icons";
 import { effectiveParticipantStatus } from "@/lib/participant-display-status";
 import { buildTeamLaneSuggestionsByParticipant } from "@/lib/team-lane-recommendations";
-import { sanitizePhilippineMobileInput } from "@/lib/philippine-mobile";
+import {
+	isValidPhilippineMobile,
+	sanitizePhilippineMobileInput,
+} from "@/lib/philippine-mobile";
 import { compareRegisteredDesc } from "@/lib/registered-date";
 import {
 	downloadStructuredSpreadsheet,
@@ -151,6 +154,20 @@ const PREFERRED_ROLES: { value: PlayerRole; label: string }[] = [
 	{ value: "jungle", label: LANE_ROLE_LABELS.jungle },
 ];
 
+function requiredLabel(text: string, required: boolean) {
+	return (
+		<>
+			{text}
+			{required ? (
+				<span className="text-destructive" aria-hidden>
+					{" "}
+					*
+				</span>
+			) : null}
+		</>
+	);
+}
+
 function ParticipantForm({
 	form,
 	setForm,
@@ -165,6 +182,7 @@ function ParticipantForm({
 	onSubmit: () => void;
 	isMobile?: boolean;
 }) {
+	const registering = !editingId;
 	return (
 		<div className="w-full space-y-4 px-4 pb-4">
 			{editingId && (
@@ -177,16 +195,17 @@ function ParticipantForm({
 				</div>
 			)}
 			<div className="space-y-2">
-				<Label htmlFor="gameID">Game ID</Label>
+				<Label htmlFor="gameID">{requiredLabel("Game ID", registering)}</Label>
 				<Input
 					id="gameID"
 					value={form.gameID ?? ""}
 					onChange={(e) => setForm((f) => ({ ...f, gameID: e.target.value }))}
 					placeholder="e.g. 123456789"
+					aria-required={registering}
 				/>
 			</div>
 			<div className="space-y-2">
-				<Label htmlFor="name">Name</Label>
+				<Label htmlFor="name">{requiredLabel("Name", registering)}</Label>
 				<Input
 					id="name"
 					value={form.name ?? ""}
@@ -198,10 +217,13 @@ function ParticipantForm({
 						}))
 					}
 					placeholder="Full name"
+					aria-required={registering}
 				/>
 			</div>
 			<div className="space-y-2">
-				<Label htmlFor="contact">Contact number</Label>
+				<Label htmlFor="contact">
+					{requiredLabel("Contact number", registering)}
+				</Label>
 				<Input
 					id="contact"
 					type="tel"
@@ -216,19 +238,23 @@ function ParticipantForm({
 					}
 					placeholder="09XX-XXX-XXXX"
 					className="tabular-nums"
+					aria-required={registering}
 				/>
 			</div>
 			<div className="space-y-2">
-				<Label htmlFor="area">Area</Label>
+				<Label htmlFor="area">{requiredLabel("Area", registering)}</Label>
 				<Input
 					id="area"
 					value={form.area ?? ""}
 					onChange={(e) => setForm((f) => ({ ...f, area: e.target.value }))}
 					placeholder="Barangay / area"
+					aria-required={registering}
 				/>
 			</div>
 			<div className="w-full space-y-2">
-				<Label htmlFor="birthdate">Birthday</Label>
+				<Label htmlFor="birthdate">
+					{requiredLabel("Birthday", registering)}
+				</Label>
 				<BirthdayPicker
 					id="birthdate"
 					value={form.birthdate ?? ""}
@@ -578,7 +604,26 @@ function ParticipantsPage() {
 	const handleSubmit = () => {
 		const name = (form.name ?? "").trim();
 		const gameID = (form.gameID ?? "").trim();
-		if (!name && !gameID) {
+		const area = (form.area ?? "").trim();
+		const birthdate = (form.birthdate ?? "").trim();
+		const contactOk = isValidPhilippineMobile(form.contactNumber ?? "");
+
+		if (!edit) {
+			const missing: string[] = [];
+			if (!gameID) missing.push("Game ID");
+			if (!name) missing.push("name");
+			if (!contactOk) missing.push("a valid contact number (09XX-XXX-XXXX)");
+			if (!area) missing.push("area");
+			if (!birthdate) missing.push("birthday");
+			if (missing.length > 0) {
+				toast.error(
+					missing.length === 1
+						? `Please enter ${missing[0]}.`
+						: `Please enter: ${missing.join(", ")}.`,
+				);
+				return;
+			}
+		} else if (!name && !gameID) {
 			toast.error("Enter at least a name or Game ID");
 			return;
 		}

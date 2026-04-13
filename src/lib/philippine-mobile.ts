@@ -11,3 +11,14 @@ export function sanitizePhilippineMobileInput(raw: string): string {
   if (d.length <= 7) return `${d.slice(0, 4)}-${d.slice(4)}`;
   return `${d.slice(0, 4)}-${d.slice(4, 7)}-${d.slice(7)}`;
 }
+
+/** Digits only after the same normalization used by {@link sanitizePhilippineMobileInput}. */
+export function philippineMobileDigits(raw: string): string {
+  return sanitizePhilippineMobileInput(raw).replace(/\D/g, "");
+}
+
+/** True when input is a complete 09XXXXXXXXX Philippine mobile. */
+export function isValidPhilippineMobile(raw: string): boolean {
+  const d = philippineMobileDigits(raw);
+  return d.length === 11 && d.startsWith("09");
+}

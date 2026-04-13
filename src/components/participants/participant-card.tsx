@@ -43,15 +43,25 @@ function InfoRow({
   value,
   valueClassName,
   children,
+  className,
 }: {
   icon: React.ElementType;
   value?: string;
   valueClassName?: string;
   children?: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="flex items-center gap-2 text-sm">
-      <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+    <div
+      className={cn(
+        "flex min-w-0 items-center gap-1.5 text-sm leading-tight",
+        className,
+      )}
+    >
+      <Icon
+        className="size-3.5 shrink-0 text-muted-foreground"
+        aria-hidden
+      />
       {children ?? (
         <span className={cn("truncate", valueClassName)}>{value || "-"}</span>
       )}
@@ -82,21 +92,21 @@ export function ParticipantCard({
   const age = getAge(p.birthdate);
   const displayStatus = effectiveParticipantStatus(p, teams);
   return (
-    <Card className="overflow-hidden transition-shadow hover:shadow-md h-fit borderpi">
-      <CardHeader className="pb-3">
+    <Card className="h-fit overflow-hidden transition-shadow hover:shadow-md">
+      <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex min-w-0 items-center gap-2">
             <GeneratedAvatar
-              size="lg"
+              size="default"
               className="shrink-0"
               src={getAvatarUrl(p.id)}
               alt={formatParticipantNameDisplay(p.name) || p.gameID || ""}
             />
             <div className="min-w-0 flex-1">
-              <CardTitle className="text-base truncate">
+              <CardTitle className="truncate text-base leading-snug">
                 {formatParticipantNameDisplay(p.name) || p.gameID || "-"}
               </CardTitle>
-              <CardDescription className="text-xs mt-0.5">
+              <CardDescription className="mt-0.5 text-xs leading-snug">
                 ID{" "}
                 <span className="font-mono tabular-nums">
                   {p.gameID ?? "-"}
@@ -131,54 +141,62 @@ export function ParticipantCard({
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-2.5 pt-0">
-        <InfoRow icon={Clock}>
-          <RegisteredDateCell
-            created={p.created}
-            announceLabel
-            className="min-w-0 truncate"
+      <CardContent className="pt-0">
+        {/* Two columns on sm+ cuts vertical stack roughly in half */}
+        <div className="grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2 sm:items-start">
+          <InfoRow icon={Clock}>
+            <RegisteredDateCell
+              created={p.created}
+              announceLabel
+              className="min-w-0 truncate"
+            />
+          </InfoRow>
+          <div className="flex min-w-0 items-center gap-1.5 text-sm leading-tight">
+            <Phone
+              className="size-3.5 shrink-0 text-muted-foreground"
+              aria-hidden
+            />
+            <ParticipantContactWithBadge
+              contactNumber={p.contactNumber}
+              className="min-w-0 flex-1"
+            />
+          </div>
+          <InfoRow
+            icon={MapPin}
+            value={p.area ?? ""}
+            className="sm:col-span-2"
           />
-        </InfoRow>
-        <div className="flex items-center gap-2 text-sm min-w-0">
-          <Phone className="size-4 shrink-0 text-muted-foreground" />
-          <ParticipantContactWithBadge
-            contactNumber={p.contactNumber}
-            className="min-w-0 flex-1"
-          />
+          <div className="flex min-w-0 items-center gap-1.5 text-sm leading-tight">
+            <Cake
+              className="size-3.5 shrink-0 text-muted-foreground"
+              aria-hidden
+            />
+            <span className="tabular-nums">
+              {formatBirthdateDisplay(p.birthdate) ?? "-"}
+              {age !== null && (
+                <span className="ml-1 text-muted-foreground">({age} yrs)</span>
+              )}
+            </span>
+          </div>
+          <div className="flex min-w-0 items-start gap-1.5 text-sm sm:min-h-0">
+            <Gamepad2
+              className="mt-0.5 size-3.5 shrink-0 text-muted-foreground"
+              aria-hidden
+            />
+            <PreferredLaneIcons
+              roles={p.preferredRoles}
+              className="min-w-0 flex-wrap"
+            />
+          </div>
         </div>
-        <InfoRow icon={MapPin} value={p.area ?? ""} />
-        <div className="flex items-center gap-2 text-sm">
-          <Cake className="size-4 shrink-0 text-muted-foreground" />
-          <span className="tabular-nums">
-            {formatBirthdateDisplay(p.birthdate) ?? "-"}
-            {age !== null && (
-              <span className="text-muted-foreground ml-1.5">({age} yrs)</span>
-            )}
-          </span>
-        </div>
-        <div className="flex items-center gap-2 text-sm min-w-0">
-          <Gamepad2 className="size-4 shrink-0 text-muted-foreground self-start mt-0.5" />
-          <PreferredLaneIcons roles={p.preferredRoles} className="min-w-0 flex-wrap" />
-        </div>
-        <div className="flex flex-wrap items-center gap-2 pt-1">
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border/60 pt-2">
           <div className="flex items-center gap-1.5">
-            <UserCircle2 className="size-4 shrink-0 text-muted-foreground" />
+            <UserCircle2 className="size-3.5 shrink-0 text-muted-foreground" />
             <StatusBadge status={displayStatus} className="font-normal" />
           </div>
-          <div className="flex items-center gap-1.5">
-            {p.team && onRemoveFromTeam && (
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="size-6 shrink-0 text-muted-foreground hover:text-destructive"
-                onClick={() => onRemoveFromTeam(p)}
-                aria-label="Remove from team"
-              >
-                <UserMinus className="size-3.5" />
-              </Button>
-            )}
-            <Users className="size-4 shrink-0 text-muted-foreground" />
-            <span className="text-sm">{teamName}</span>
+          <div className="flex min-w-0 items-center gap-1.5">
+            <Users className="size-3.5 shrink-0 text-muted-foreground" />
+            <span className="truncate text-sm">{teamName}</span>
           </div>
         </div>
         {!p.team && suggestions.length > 0 && (

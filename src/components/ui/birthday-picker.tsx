@@ -155,17 +155,13 @@ export function BirthdayPicker({
   };
 
   return (
-    <div
+    <fieldset
       id={id}
-      className={cn("flex gap-2", className)}
-      role="group"
+      className={cn("m-0 flex min-w-0 gap-2 border-0 p-0", className)}
       aria-label="Birthday"
+      disabled={disabled}
     >
-      <Select
-        value={month}
-        onValueChange={handleMonthChange}
-        disabled={disabled}
-      >
+      <Select value={month} onValueChange={handleMonthChange}>
         <SelectTrigger className="flex-1 min-w-0">
           <SelectValue placeholder="Month">
             {(value) =>
@@ -183,7 +179,7 @@ export function BirthdayPicker({
           ))}
         </SelectContent>
       </Select>
-      <Select value={day} onValueChange={handleDayChange} disabled={disabled}>
+      <Select value={day} onValueChange={handleDayChange}>
         <SelectTrigger className="w-20 shrink-0">
           <SelectValue placeholder="Day">
             {(value) => (value != null && value !== "" ? String(value) : null)}
@@ -204,9 +200,8 @@ export function BirthdayPicker({
         value={year}
         onChange={handleYearChange}
         placeholder="Year"
-        disabled={disabled}
         className="w-24 shrink-0"
       />
-    </div>
+    </fieldset>
   );
 }
