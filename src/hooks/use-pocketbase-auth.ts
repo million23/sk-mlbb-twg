@@ -18,8 +18,6 @@ export function usePocketBaseAuth() {
 
   return {
     isValid,
-    model: pb.authStore.model,
-    token: pb.authStore.token,
     record: pb.authStore.record,
     signIn: (email: string, password: string) =>
       pb.collection("admins").authWithPassword(email, password),

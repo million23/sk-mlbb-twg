@@ -1,6 +1,5 @@
-import { TanStackDevtools } from "@tanstack/react-devtools";
 import { createRootRoute, Outlet } from "@tanstack/react-router";
-import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
+import { lazy, Suspense } from "react";
 
 import { PublicCookieBannerGate } from "@/components/public/public-cookie-banner";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -8,6 +7,14 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
 import "../styles.css";
+
+const TanStackDevtoolsMount = import.meta.env.DEV
+  ? lazy(() =>
+      import("@/components/devtools/tanstack-devtools").then((m) => ({
+        default: m.TanStackDevtoolsMount,
+      })),
+    )
+  : () => null;
 
 export const Route = createRootRoute({
   component: RootComponent,
@@ -27,18 +34,10 @@ function RootComponent() {
         </TooltipProvider>
         <Toaster richColors position="bottom-right" />
       </ThemeProvider>
-      {!isMobile && (
-        <TanStackDevtools
-          config={{
-            position: "bottom-right",
-          }}
-          plugins={[
-            {
-              name: "TanStack Router",
-              render: <TanStackRouterDevtoolsPanel />,
-            },
-          ]}
-        />
+      {import.meta.env.DEV && !isMobile && (
+        <Suspense fallback={null}>
+          <TanStackDevtoolsMount />
+        </Suspense>
       )}
     </>
   );

@@ -15,7 +15,11 @@ const config = defineConfig({
   ],
   server: {
     port: 1023,
-  }
+  },
+  build: {
+    /** Avoid shipping source maps to browsers in production. */
+    sourcemap: false,
+  },
 });
 
 export default config;
