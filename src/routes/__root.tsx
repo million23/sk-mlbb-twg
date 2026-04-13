@@ -2,6 +2,7 @@ import { TanStackDevtools } from "@tanstack/react-devtools";
 import { createRootRoute, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 
+import { PublicCookieBannerGate } from "@/components/public/public-cookie-banner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -21,6 +22,7 @@ function RootComponent() {
         <TooltipProvider delay={200}>
           <div className="min-h-screen bg-background">
             <Outlet />
+            <PublicCookieBannerGate />
           </div>
         </TooltipProvider>
         <Toaster richColors position="bottom-right" />
