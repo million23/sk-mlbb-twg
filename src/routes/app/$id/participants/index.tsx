@@ -55,7 +55,9 @@ import { Label } from "@/components/ui/label";
 import {
 	Select,
 	SelectContent,
+	SelectGroup,
 	SelectItem,
+	SelectLabel,
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
@@ -73,7 +75,13 @@ import {
 	useParticipants,
 } from "@/hooks/use-participants";
 import { useArchivedTeams, useTeams } from "@/hooks/use-teams";
-import { formatBirthdateDisplay, getAge, getAgeBracketLabel } from "@/lib/age";
+import {
+	formatBirthdateDisplay,
+	getAge,
+	getAgeBracketLabel,
+	teamMajorityTournamentAgeGroup,
+	tournamentAgeGroupFromBirthdate,
+} from "@/lib/age";
 import { getAvatarUrl } from "@/lib/avatar";
 import { LANE_ROLE_LABELS } from "@/lib/lane-role-icons";
 import { effectiveParticipantStatus } from "@/lib/participant-display-status";
@@ -125,6 +133,61 @@ const PARTICIPANT_SORT_LABELS: Record<ParticipantSortMode, string> = {
 	default: "Date registered (newest first)",
 	team: "By team",
 };
+
+type ParticipantTeamAgeFilter = "all" | "under18" | "18plus";
+
+const TEAM_AGE_FILTER_LABELS: Record<ParticipantTeamAgeFilter, string> = {
+	all: "All age groups",
+	under18: "Under 18 (team majority)",
+	"18plus": "18+ (team majority)",
+};
+
+const PARTICIPANTS_VIEW_KEY_SEP = "__" as const;
+
+const PARTICIPANT_TEAM_AGE_ORDER: ParticipantTeamAgeFilter[] = [
+	"all",
+	"under18",
+	"18plus",
+];
+
+type ParticipantsViewKey = `${ParticipantSortMode}${typeof PARTICIPANTS_VIEW_KEY_SEP}${ParticipantTeamAgeFilter}`;
+
+function buildParticipantsViewKey(
+	sort: ParticipantSortMode,
+	age: ParticipantTeamAgeFilter,
+): ParticipantsViewKey {
+	return `${sort}${PARTICIPANTS_VIEW_KEY_SEP}${age}` as ParticipantsViewKey;
+}
+
+function parseParticipantsViewKey(key: string): {
+	sort: ParticipantSortMode;
+	age: ParticipantTeamAgeFilter;
+} {
+	const sep = PARTICIPANTS_VIEW_KEY_SEP;
+	const i = key.indexOf(sep);
+	const sort = key.slice(0, i) as ParticipantSortMode;
+	const age = key.slice(i + sep.length) as ParticipantTeamAgeFilter;
+	return { sort, age };
+}
+
+function participantsViewKeyLabel(key: ParticipantsViewKey): string {
+	const { sort, age } = parseParticipantsViewKey(key);
+	return `${PARTICIPANT_SORT_LABELS[sort]} · ${TEAM_AGE_FILTER_LABELS[age]}`;
+}
+
+function participantMatchesTeamAgeFilter(
+	p: { team?: string; birthdate?: string },
+	filter: ParticipantTeamAgeFilter,
+	teamMajorityByTeamId: Map<string, "under18" | "18+">,
+): boolean {
+	if (filter === "all") return true;
+	const want: "under18" | "18+" =
+		filter === "under18" ? "under18" : "18+";
+	if (!p.team?.trim()) {
+		return tournamentAgeGroupFromBirthdate(p.birthdate) === want;
+	}
+	return teamMajorityByTeamId.get(p.team) === want;
+}
 
 export const Route = createFileRoute("/app/$id/participants/")({
 	validateSearch: (search: Record<string, unknown>): ParticipantsSearch => {
@@ -709,11 +772,32 @@ function ParticipantsPage() {
 
 	const [search, setSearch] = useState("");
 	const [unassignedOnly, setUnassignedOnly] = useState(false);
+	const [participantsViewKey, setParticipantsViewKey] =
+		useState<ParticipantsViewKey>(() => buildParticipantsViewKey("default", "all"));
+
+	const { sort: participantSort, age: teamAgeFilter } = useMemo(
+		() => parseParticipantsViewKey(participantsViewKey),
+		[participantsViewKey],
+	);
+
+	const teamMajorityByTeamId = useMemo(() => {
+		const byTeam = new Map<string, (typeof participants)[number][]>();
+		for (const p of participants) {
+			const tid = p.team?.trim();
+			if (!tid) continue;
+			const list = byTeam.get(tid) ?? [];
+			list.push(p);
+			byTeam.set(tid, list);
+		}
+		const out = new Map<string, "under18" | "18+">();
+		for (const [tid, members] of byTeam) {
+			const maj = teamMajorityTournamentAgeGroup(members);
+			if (maj) out.set(tid, maj);
+		}
+		return out;
+	}, [participants]);
 	const [exportDialogOpen, setExportDialogOpen] = useState(false);
 	const [exportIncludeArchived, setExportIncludeArchived] = useState(false);
-	const [participantSort, setParticipantSort] = useState<"default" | "team">(
-		"default",
-	);
 	const [cardPage, setCardPage] = useState(1);
 
 	const filteredParticipants = useMemo(() => {
@@ -749,9 +833,25 @@ function ParticipantsPage() {
 		return participants.filter((p) => {
 			if (!matchesSearch(p)) return false;
 			if (unassignedOnly && p.team) return false;
+			if (
+				!participantMatchesTeamAgeFilter(
+					p,
+					teamAgeFilter,
+					teamMajorityByTeamId,
+				)
+			) {
+				return false;
+			}
 			return true;
 		});
-	}, [participants, search, getTeamName, unassignedOnly]);
+	}, [
+		participants,
+		search,
+		getTeamName,
+		unassignedOnly,
+		teamAgeFilter,
+		teamMajorityByTeamId,
+	]);
 
 	const displayedParticipants = useMemo(() => {
 		if (participantSort === "team") {
@@ -793,9 +893,25 @@ function ParticipantsPage() {
 		return archivedParticipants.filter((p) => {
 			if (!matchesSearch(p)) return false;
 			if (unassignedOnly && p.team) return false;
+			if (
+				!participantMatchesTeamAgeFilter(
+					p,
+					teamAgeFilter,
+					teamMajorityByTeamId,
+				)
+			) {
+				return false;
+			}
 			return true;
 		});
-	}, [archivedParticipants, search, getTeamNameIncludingArchived, unassignedOnly]);
+	}, [
+		archivedParticipants,
+		search,
+		getTeamNameIncludingArchived,
+		unassignedOnly,
+		teamAgeFilter,
+		teamMajorityByTeamId,
+	]);
 
 	const displayedArchivedParticipants = useMemo(() => {
 		if (participantSort === "team") {
@@ -810,6 +926,23 @@ function ParticipantsPage() {
 		participantSort,
 		getTeamNameIncludingArchived,
 	]);
+
+	const participantsTableEmptyMessage = useMemo(() => {
+		const filterBits: string[] = [];
+		if (unassignedOnly) filterBits.push("unassigned only");
+		if (teamAgeFilter !== "all")
+			filterBits.push(TEAM_AGE_FILTER_LABELS[teamAgeFilter].toLowerCase());
+		const filterSuffix =
+			filterBits.length > 0 ? ` (${filterBits.join(", ")})` : "";
+		const q = search.trim();
+		if (q) {
+			return `No participants match "${q}"${filterSuffix}`;
+		}
+		if (filterBits.length > 0) {
+			return `No participants match the current filters${filterSuffix}.`;
+		}
+		return "No participants.";
+	}, [search, unassignedOnly, teamAgeFilter]);
 
 	const confirmExportParticipants = useCallback(() => {
 		const includeArchived = exportIncludeArchived;
@@ -998,7 +1131,7 @@ function ParticipantsPage() {
 					{!isLoading && totalRegistered > 0 && (
 						<>
 							<Label htmlFor="participant-sort" className="sr-only">
-								Sort order
+								Sort and age group
 							</Label>
 							<div className="mt-2 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch">
 								<Button
@@ -1042,9 +1175,9 @@ function ParticipantsPage() {
 								</div>
 								<div className="flex min-h-9 min-w-0 items-stretch border-t border-input sm:min-w-[22rem] sm:shrink-0 sm:border-t-0 sm:border-l">
 									<Select
-										value={participantSort}
+										value={participantsViewKey}
 										onValueChange={(v) => {
-											setParticipantSort(v as "default" | "team");
+											setParticipantsViewKey(v as ParticipantsViewKey);
 											setCardPage(1);
 										}}
 									>
@@ -1057,28 +1190,34 @@ function ParticipantsPage() {
 												className="size-4 shrink-0 text-muted-foreground"
 												aria-hidden
 											/>
-											<SelectValue placeholder="Sort order">
-												{(v: unknown) => {
-													if (v === "default" || v === "team") {
-														return PARTICIPANT_SORT_LABELS[v];
-													}
-													return "Sort order";
-												}}
+											<SelectValue placeholder="Sort and age group">
+												{(v: unknown) =>
+													typeof v === "string" &&
+													v.includes(PARTICIPANTS_VIEW_KEY_SEP)
+														? participantsViewKeyLabel(v as ParticipantsViewKey)
+														: "Sort and age group"}
 											</SelectValue>
 										</SelectTrigger>
 										<SelectContent>
-											<SelectItem
-												value="default"
-												label={PARTICIPANT_SORT_LABELS.default}
-											>
-												{PARTICIPANT_SORT_LABELS.default}
-											</SelectItem>
-											<SelectItem
-												value="team"
-												label={PARTICIPANT_SORT_LABELS.team}
-											>
-												{PARTICIPANT_SORT_LABELS.team}
-											</SelectItem>
+											{(["default", "team"] as const).map((sort) => (
+												<SelectGroup key={sort}>
+													<SelectLabel>
+														{PARTICIPANT_SORT_LABELS[sort]}
+													</SelectLabel>
+													{PARTICIPANT_TEAM_AGE_ORDER.map((age) => {
+														const value = buildParticipantsViewKey(sort, age);
+														return (
+															<SelectItem
+																key={value}
+																value={value}
+																label={participantsViewKeyLabel(value)}
+															>
+																{TEAM_AGE_FILTER_LABELS[age]}
+															</SelectItem>
+														);
+													})}
+												</SelectGroup>
+											))}
 										</SelectContent>
 									</Select>
 								</div>
@@ -1142,13 +1281,7 @@ function ParticipantsPage() {
 								initialSorting={[{ id: "created", desc: true }]}
 								manualSorting={participantSort === "team"}
 								tableWrapperClassName="overflow-x-auto"
-								emptyMessage={
-									search
-										? `No participants match "${search}"${unassignedOnly ? " (unassigned only)" : ""}`
-										: unassignedOnly
-											? "No unassigned participants."
-											: "No participants."
-								}
+								emptyMessage={participantsTableEmptyMessage}
 							/>
 							<div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4 mt-4">
 								<Link
@@ -1199,16 +1332,11 @@ function ParticipantsPage() {
 								))}
 							</div>
 							{filteredParticipants.length === 0 &&
-								(search || unassignedOnly) && (
+								(search.trim() ||
+									unassignedOnly ||
+									teamAgeFilter !== "all") && (
 									<p className="py-4 text-center text-sm text-muted-foreground">
-										{search ? (
-											<>
-												No participants match &quot;{search}&quot;
-												{unassignedOnly ? " among unassigned" : ""}.
-											</>
-										) : (
-											"No unassigned participants."
-										)}
+										{participantsTableEmptyMessage}
 									</p>
 								)}
 							{displayedParticipants.length > CARDS_PER_PAGE ? (

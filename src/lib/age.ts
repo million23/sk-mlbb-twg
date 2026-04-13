@@ -98,6 +98,26 @@ export function tournamentAgeGroupLabel(key: TournamentAgeGroupKey): string {
   return TOURNAMENT_AGE_LABELS[key];
 }
 
+/**
+ * Categorize a team by comparing counts of under-18 vs 18+ members (known ages only).
+ * Unknown birthdates are ignored. Tie or no known-age members → null.
+ */
+export function teamMajorityTournamentAgeGroup(
+  members: { birthdate?: string }[],
+): Exclude<TournamentAgeGroupKey, "unknown"> | null {
+  let under = 0;
+  let adult = 0;
+  for (const m of members) {
+    const g = tournamentAgeGroupFromBirthdate(m.birthdate);
+    if (g === "under18") under++;
+    else if (g === "18+") adult++;
+  }
+  if (under === 0 && adult === 0) return null;
+  if (under > adult) return "under18";
+  if (adult > under) return "18+";
+  return null;
+}
+
 export function groupParticipantsByTournamentAge<
   T extends { birthdate?: string },
 >(members: T[]): { key: TournamentAgeGroupKey; label: string; items: T[] }[] {
