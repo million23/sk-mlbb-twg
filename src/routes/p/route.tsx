@@ -1,7 +1,9 @@
+import { PublicFooter } from "@/components/public/public-footer";
 import { PublicTeamRosterModalProvider } from "@/components/public/public-team-roster-modal";
 import { useParticipants } from "@/hooks/use-participants";
 import { useTeams } from "@/hooks/use-teams";
 import { useTournaments } from "@/hooks/use-tournaments";
+import { PUBLIC_SITE_TITLE } from "@/lib/public-site";
 import { cn } from "@/lib/utils";
 import {
   createFileRoute,
@@ -14,8 +16,6 @@ import { Home, Swords, Trophy, Users, UsersRound } from "lucide-react";
 export const Route = createFileRoute("/p")({
   component: PublicShell,
 });
-
-const publicSiteTitle = "Baranggay 176E MLBB Tournament";
 
 const nav = [
   { to: "/p/tournaments" as const, label: "Tournaments", icon: Trophy },
@@ -50,7 +50,7 @@ function PublicShell() {
                 </span>
                 <span className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-sm sm:text-base">
                   <span className="min-w-0 text-pretty leading-tight sm:leading-snug">
-                    {publicSiteTitle}
+                    {PUBLIC_SITE_TITLE}
                   </span>
                   <span className="font-mono text-[0.6rem] font-normal text-muted-foreground uppercase tracking-[0.16em] sm:hidden">
                     Public
@@ -105,6 +105,7 @@ function PublicShell() {
       <main className="relative z-10 mx-auto w-full max-w-5xl flex-1 px-4 py-10 sm:px-6 sm:py-12">
         <Outlet />
       </main>
+      <PublicFooter siteTitle={PUBLIC_SITE_TITLE} />
     </div>
     </PublicTeamRosterModalProvider>
   );

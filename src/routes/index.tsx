@@ -1,9 +1,11 @@
+import { PublicFooter } from "@/components/public/public-footer";
 import { buttonVariants } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { useParticipants } from "@/hooks/use-participants";
 import { useTournaments } from "@/hooks/use-tournaments";
 import { useTeams } from "@/hooks/use-teams";
 import { pb } from "@/lib/pocketbase";
+import { PUBLIC_SITE_TITLE } from "@/lib/public-site";
 import { cn } from "@/lib/utils";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import {
@@ -63,7 +65,7 @@ function HomePage() {
   const participantCount = participants?.length ?? 0;
 
   return (
-    <main className="relative min-h-svh overflow-hidden bg-background">
+    <div className="relative flex min-h-svh flex-col overflow-hidden bg-background">
       <div
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,color-mix(in_oklch,var(--primary)_18%,transparent),transparent)]"
         aria-hidden
@@ -77,7 +79,8 @@ function HomePage() {
         aria-hidden
       />
 
-      <div className="relative z-10 mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-20 md:max-w-4xl">
+      <main className="relative z-10 flex-1">
+        <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-20 md:max-w-4xl">
         <header className="text-center">
           <p className="font-mono text-[0.65rem] text-muted-foreground uppercase tracking-[0.22em]">
             Barangay 176-E
@@ -188,8 +191,10 @@ function HomePage() {
             ))}
           </ul>
         </section>
-      </div>
-    </main>
+        </div>
+      </main>
+      <PublicFooter siteTitle={PUBLIC_SITE_TITLE} />
+    </div>
   );
 }
 
