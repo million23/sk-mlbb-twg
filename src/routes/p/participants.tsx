@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -54,14 +53,11 @@ function PublicParticipantsPage() {
   const list = participants ?? [];
   const sorted = useMemo(
     () =>
-      [...list].sort((a, b) => {
-        const ga = a.gameID?.toLowerCase() ?? "";
-        const gb = b.gameID?.toLowerCase() ?? "";
-        if (ga !== gb) return ga.localeCompare(gb);
-        return (a.name ?? "").localeCompare(b.name ?? "", undefined, {
+      [...list].sort((a, b) =>
+        (a.name ?? "").localeCompare(b.name ?? "", undefined, {
           sensitivity: "base",
-        });
-      }),
+        }),
+      ),
     [list],
   );
 
@@ -70,14 +66,9 @@ function PublicParticipantsPage() {
     if (!needle) return sorted;
     return sorted.filter((p) => {
       const name = (p.name ?? "").toLowerCase();
-      const gid = (p.gameID ?? "").toLowerCase();
       const tid = p.team;
       const team = tid ? (teamNameById.get(tid) ?? "").toLowerCase() : "";
-      return (
-        name.includes(needle) ||
-        gid.includes(needle) ||
-        team.includes(needle)
-      );
+      return name.includes(needle) || team.includes(needle);
     });
   }, [sorted, needle, teamNameById]);
 
@@ -135,7 +126,7 @@ function PublicParticipantsPage() {
           </InputGroupAddon>
           <InputGroupInput
             type="search"
-            placeholder="Search by name, game ID, or team…"
+            placeholder="Search by name or team…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             aria-label="Search participants"
@@ -164,13 +155,10 @@ function PublicParticipantsPage() {
                 <CardHeader className="relative pb-2">
                   <div className="absolute right-4 top-4 size-16 rounded-full bg-primary/[0.07] blur-2xl" aria-hidden />
                   <div className="relative flex flex-wrap items-start justify-between gap-2">
-                    <div className="min-w-0 space-y-0.5">
+                    <div className="min-w-0">
                       <CardTitle className="truncate font-serif text-lg">
                         {p.name?.trim() || "Unnamed"}
                       </CardTitle>
-                      <CardDescription className="font-mono text-xs tracking-wide">
-                        {p.gameID?.trim() || "—"}
-                      </CardDescription>
                     </div>
                     <StatusBadge status={eff} className="shrink-0" />
                   </div>

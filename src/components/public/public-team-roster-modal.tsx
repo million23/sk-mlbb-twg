@@ -164,11 +164,6 @@ export function PublicTeamRosterModalProvider({ children }: { children: ReactNod
                             <p className="min-w-0 flex-1 text-left font-semibold text-foreground text-xs uppercase leading-snug tracking-wide line-clamp-2 md:line-clamp-4 md:flex-none md:text-center sm:text-sm">
                               {p.name?.trim() || "Unnamed"}
                             </p>
-                            {p.gameID?.trim() ? (
-                              <p className="shrink-0 text-left font-mono text-[0.65rem] text-muted-foreground tracking-wide tabular-nums md:text-center">
-                                {p.gameID.trim()}
-                              </p>
-                            ) : null}
                           </div>
                           <div className="relative z-20 flex min-h-0 flex-1 items-center justify-center px-2 py-2 md:py-4">
                             <div className="aspect-square size-20 shrink-0 overflow-hidden rounded-full border-2 border-primary/40 bg-card/90 p-0.5 shadow-md ring-2 ring-background/80 sm:size-24 sm:p-1 md:size-28">

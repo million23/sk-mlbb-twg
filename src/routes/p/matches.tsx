@@ -158,10 +158,6 @@ function PublicMatchesPage() {
       <Empty className="min-h-[40vh] border border-dashed">
         <EmptyHeader>
           <EmptyTitle>No tournaments</EmptyTitle>
-          <EmptyDescription>
-            Matches are organized by tournament. Create a tournament in admin
-            first.
-          </EmptyDescription>
         </EmptyHeader>
       </Empty>
     );
