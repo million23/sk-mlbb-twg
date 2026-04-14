@@ -47,7 +47,7 @@ function PublicCookieBanner() {
     <section
       aria-labelledby="public-cookie-banner-title"
       aria-describedby="public-cookie-banner-desc"
-      className="fixed right-4 bottom-4 z-100 w-[min(22rem,calc(100vw-2rem))] rounded-xl border border-border/80 bg-popover/95 p-4 text-popover-foreground shadow-lg ring-1 ring-foreground/10 backdrop-blur-md supports-backdrop-filter:bg-popover/90 sm:right-6 sm:bottom-6 sm:max-w-sm sm:p-5"
+      className="fixed right-4 z-100 w-[min(22rem,calc(100vw-2rem))] rounded-xl border border-border/80 bg-popover/95 p-4 text-popover-foreground shadow-lg ring-1 ring-foreground/10 backdrop-blur-md supports-backdrop-filter:bg-popover/90 sm:right-6 sm:max-w-sm sm:p-5 bottom-[max(1rem,env(safe-area-inset-bottom))] sm:bottom-[max(1.5rem,env(safe-area-inset-bottom))]"
     >
       <div className="flex gap-3">
         <span

@@ -26,13 +26,13 @@ function RootComponent() {
   return (
     <>
       <ThemeProvider defaultTheme="dark" storageKey="sk-mlbb-twg-theme">
-        <TooltipProvider delay={200}>
-          <div className="min-h-screen bg-background">
+        <TooltipProvider delay={300}>
+          <div className="min-h-dvh bg-background pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] pt-[env(safe-area-inset-top)]">
             <Outlet />
             <PublicCookieBannerGate />
           </div>
         </TooltipProvider>
-        <Toaster richColors position="bottom-right" />
+        <Toaster richColors position="bottom-center" />
       </ThemeProvider>
       {import.meta.env.DEV && !isMobile && (
         <Suspense fallback={null}>
