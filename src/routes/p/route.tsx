@@ -1,4 +1,5 @@
 import { PublicFooter } from "@/components/public/public-footer";
+import { PublicThemeToggle } from "@/components/public/public-theme-toggle";
 import { PublicTeamRosterModalProvider } from "@/components/public/public-team-roster-modal";
 import { useParticipants } from "@/hooks/use-participants";
 import { useTeams } from "@/hooks/use-teams";
@@ -35,11 +36,11 @@ function PublicShell() {
     <PublicTeamRosterModalProvider>
     <div className="relative isolate flex min-h-svh flex-col bg-background bg-linear-to-b from-primary/[0.06] via-background to-background text-foreground">
       <header className="sticky top-0 z-20 border-b border-border/70 bg-background/80 backdrop-blur-md supports-backdrop-filter:bg-background/65">
-        <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-3 sm:min-h-14 sm:flex-row sm:items-center sm:px-6">
-          <div className="flex items-center gap-3 sm:min-w-0 sm:shrink-0">
+        <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-3 sm:min-h-14 sm:flex-row sm:items-center sm:gap-4 sm:px-6">
+          <div className="flex min-w-0 items-center gap-2 sm:contents">
             <Link
               to="/"
-              className="group flex min-h-11 min-w-0 items-center gap-2.5 rounded-xl font-semibold tracking-tight text-foreground transition-colors hover:text-primary sm:min-h-0"
+              className="group flex min-h-11 min-w-0 flex-1 items-center gap-2.5 rounded-xl font-semibold tracking-tight text-foreground transition-colors hover:text-primary sm:order-1 sm:min-h-0 sm:w-auto sm:flex-initial sm:shrink-0"
             >
               <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border/80 bg-card/60 text-primary shadow-inner transition-[border-color,box-shadow] group-hover:border-primary/40 group-hover:shadow-[0_0_20px_-6px] group-hover:shadow-primary/35 sm:size-9">
                 <Home className="size-4" aria-hidden />
@@ -58,10 +59,13 @@ function PublicShell() {
                 </span>
               </span>
             </Link>
+            <span className="shrink-0 sm:order-3">
+              <PublicThemeToggle />
+            </span>
           </div>
           <nav
             className={cn(
-              "border-border/50 border-t pt-3 sm:flex-1 sm:border-t-0 sm:pt-0",
+              "border-border/50 border-t pt-3 sm:order-2 sm:min-w-0 sm:flex-1 sm:border-t-0 sm:pt-0",
               "grid max-sm:grid-cols-2 max-sm:gap-2",
               "sm:-mx-1 sm:flex sm:flex-nowrap sm:items-stretch sm:gap-2 sm:overflow-x-auto sm:px-1 sm:pb-0.5 sm:[scrollbar-width:none] sm:[&::-webkit-scrollbar]:hidden",
               "md:justify-end",

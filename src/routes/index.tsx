@@ -1,4 +1,5 @@
 import { PublicFooter } from "@/components/public/public-footer";
+import { PublicThemeToggle } from "@/components/public/public-theme-toggle";
 import { buttonVariants } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { useParticipants } from "@/hooks/use-participants";
@@ -80,6 +81,11 @@ function HomePage() {
       />
 
       <main className="relative z-10 flex-1">
+        <div className="pointer-events-none fixed top-[max(0.75rem,env(safe-area-inset-top))] right-[max(0.75rem,env(safe-area-inset-right))] z-30">
+          <div className="pointer-events-auto">
+            <PublicThemeToggle />
+          </div>
+        </div>
         <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-20 md:max-w-4xl">
         <header className="text-center">
           <p className="font-mono text-[0.65rem] text-muted-foreground uppercase tracking-[0.22em]">

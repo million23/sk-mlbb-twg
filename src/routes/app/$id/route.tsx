@@ -42,6 +42,7 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { SidebarArchivedPagesMenu } from "@/components/archived-pages-dropdown";
 import { usePocketBaseAuth } from "@/hooks/use-pocketbase-auth";
+import { useResolvedTheme } from "@/hooks/use-resolved-theme";
 import { canViewAuditLog } from "@/lib/admin-permissions";
 import { pb } from "@/lib/pocketbase";
 import { queryClient } from "@/lib/query-client";
@@ -71,7 +72,7 @@ import {
   Users,
   UsersRound,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/app/$id")({
@@ -118,26 +119,6 @@ function userDisplay(record: unknown) {
       ? email.slice(0, 2).toUpperCase()
       : "?";
   return { displayName, email, initials };
-}
-
-/** Resolves `system` theme to light/dark for the menu toggle. */
-function useResolvedTheme() {
-  const { theme } = useTheme();
-  const [resolved, setResolved] = useState<"light" | "dark">("dark");
-
-  useEffect(() => {
-    if (theme === "light" || theme === "dark") {
-      setResolved(theme);
-      return;
-    }
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const sync = () => setResolved(mq.matches ? "dark" : "light");
-    sync();
-    mq.addEventListener("change", sync);
-    return () => mq.removeEventListener("change", sync);
-  }, [theme]);
-
-  return resolved;
 }
 
 function AdminLayout() {
