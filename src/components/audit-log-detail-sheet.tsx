@@ -217,77 +217,88 @@ export function AuditLogDetailSheet(props: {
         showCloseButton
         className="flex w-full max-w-none flex-col gap-0 border-l p-0 sm:max-w-xl! md:max-w-2xl!"
       >
-        <SheetHeader className="shrink-0 border-b px-4 py-4 text-left sm:px-6">
-          <SheetTitle>Audit entry</SheetTitle>
-          <SheetDescription className="font-mono text-xs wrap-break-word">
-            {r?.id ? `Entry ${r.id}` : "—"}
-          </SheetDescription>
-        </SheetHeader>
+        <div
+          key={open ? (r?.id ?? "") : "idle"}
+          className={cn(
+            "flex min-h-0 flex-1 flex-col",
+            open && "audit-detail-sheet-content-in",
+          )}
+        >
+          <SheetHeader className="shrink-0 border-b px-4 py-4 text-left sm:px-6">
+            <SheetTitle>Audit entry</SheetTitle>
+            <SheetDescription className="font-mono text-xs wrap-break-word">
+              {r?.id ? `Entry ${r.id}` : "—"}
+            </SheetDescription>
+          </SheetHeader>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
-          <div className="flex flex-col gap-6">
-            <section>
-              <h3 className="mb-3 text-sm font-medium">Log row</h3>
-              <dl className="grid gap-4 sm:grid-cols-2">
-                <AuditDetailField label="Table" mono>
-                  {String(r?.table_name ?? "—")}
-                </AuditDetailField>
-                <AuditDetailField label="Record id" mono>
-                  {String(r?.record_id ?? "—")}
-                </AuditDetailField>
-                <AuditDetailField label="Summary" className="sm:col-span-2">
-                  {r ? (
-                    <AuditLogSummaryLine row={r} adminNameById={adminNameById} />
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
+            <div className="flex flex-col gap-6">
+              <section>
+                <h3 className="mb-3 text-sm font-medium">Log row</h3>
+                <dl className="grid gap-4 sm:grid-cols-2">
+                  <AuditDetailField label="Table" mono>
+                    {String(r?.table_name ?? "—")}
+                  </AuditDetailField>
+                  <AuditDetailField label="Record id" mono>
+                    {String(r?.record_id ?? "—")}
+                  </AuditDetailField>
+                  <AuditDetailField label="Summary" className="sm:col-span-2">
+                    {r ? (
+                      <AuditLogSummaryLine
+                        row={r}
+                        adminNameById={adminNameById}
+                      />
+                    ) : (
+                      "—"
+                    )}
+                  </AuditDetailField>
+                  <AuditDetailField label="Created by">
+                    {r
+                      ? formatAuditActor(
+                          r.created_by,
+                          r.expand?.created_by,
+                          adminNameById,
+                        )
+                      : "—"}
+                  </AuditDetailField>
+                  <AuditDetailField label="Edited by">
+                    {r
+                      ? formatAuditActor(
+                          r.updated_by,
+                          r.expand?.updated_by,
+                          adminNameById,
+                        )
+                      : "—"}
+                  </AuditDetailField>
+                  <AuditDetailField label="Updated (log row)">
+                    {formatAuditDate(r?.updated)}
+                  </AuditDetailField>
+                  <AuditDetailField label="Created (log row)">
+                    {formatAuditDate(r?.created)}
+                  </AuditDetailField>
+                </dl>
+              </section>
+
+              <section className="min-w-0 border-t pt-6">
+                <h3 className="mb-2 text-sm font-medium">Related record</h3>
+                <p className="mb-3 font-mono text-xs text-muted-foreground wrap-break-word">
+                  {collection && recordId ? (
+                    <>
+                      <span>{collection}</span>
+                      <span> · </span>
+                      <span>{recordId}</span>
+                    </>
                   ) : (
                     "—"
                   )}
-                </AuditDetailField>
-                <AuditDetailField label="Created by">
-                  {r
-                    ? formatAuditActor(
-                        r.created_by,
-                        r.expand?.created_by,
-                        adminNameById,
-                      )
-                    : "—"}
-                </AuditDetailField>
-                <AuditDetailField label="Edited by">
-                  {r
-                    ? formatAuditActor(
-                        r.updated_by,
-                        r.expand?.updated_by,
-                        adminNameById,
-                      )
-                    : "—"}
-                </AuditDetailField>
-                <AuditDetailField label="Updated (log row)">
-                  {formatAuditDate(r?.updated)}
-                </AuditDetailField>
-                <AuditDetailField label="Created (log row)">
-                  {formatAuditDate(r?.created)}
-                </AuditDetailField>
-              </dl>
-            </section>
-
-            <section className="min-w-0 border-t pt-6">
-              <h3 className="mb-2 text-sm font-medium">Related record</h3>
-              <p className="mb-3 font-mono text-xs text-muted-foreground wrap-break-word">
-                {collection && recordId ? (
-                  <>
-                    <span>{collection}</span>
-                    <span> · </span>
-                    <span>{recordId}</span>
-                  </>
-                ) : (
-                  "—"
-                )}
-              </p>
-              <RelatedRecordBlock
-                collection={collection}
-                recordId={recordId}
-                fetchEnabled={open}
-              />
-            </section>
+                </p>
+                <RelatedRecordBlock
+                  collection={collection}
+                  recordId={recordId}
+                  fetchEnabled={open}
+                />
+              </section>
+            </div>
           </div>
         </div>
       </SheetContent>
