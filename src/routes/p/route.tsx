@@ -3,7 +3,7 @@ import { PublicThemeToggle } from "@/components/public/public-theme-toggle";
 import { PublicTeamRosterModalProvider } from "@/components/public/public-team-roster-modal";
 import { useParticipants } from "@/hooks/use-participants";
 import { useTeams } from "@/hooks/use-teams";
-import { useTournaments } from "@/hooks/use-tournaments";
+import { usePublicTournaments } from "@/hooks/use-tournaments";
 import { PUBLIC_SITE_TITLE } from "@/lib/public-site";
 import { cn } from "@/lib/utils";
 import {
@@ -28,7 +28,7 @@ const nav = [
 function PublicShell() {
   const pathname = useLocation({ select: (l) => l.pathname });
   /** Keep list queries subscribed for the whole /p subtree so navigation does not drop observers and GC refetch windows. */
-  useTournaments();
+  usePublicTournaments();
   useTeams();
   useParticipants();
 

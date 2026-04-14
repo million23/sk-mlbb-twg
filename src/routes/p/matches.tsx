@@ -27,7 +27,7 @@ import {
   type MatchRecord,
   useMatchesForTournament,
 } from "@/hooks/use-matches";
-import { useTournaments } from "@/hooks/use-tournaments";
+import { usePublicTournaments } from "@/hooks/use-tournaments";
 import { getMatchStatusStyle } from "@/lib/match-status";
 import { tournamentLabel } from "@/lib/tournament-label";
 import { cn } from "@/lib/utils";
@@ -73,7 +73,8 @@ function formatScheduled(iso: string | undefined) {
 function PublicMatchesPage() {
   const navigate = useNavigate();
   const { tournament: tidSearch } = Route.useSearch();
-  const { data: tournaments, isLoading: tournamentsLoading } = useTournaments();
+  const { data: tournaments, isLoading: tournamentsLoading } =
+    usePublicTournaments();
 
   const sortedTournaments = useMemo(
     () =>
@@ -158,7 +159,10 @@ function PublicMatchesPage() {
     return (
       <Empty className="min-h-[40vh] border border-dashed">
         <EmptyHeader>
-          <EmptyTitle>No tournaments</EmptyTitle>
+          <EmptyTitle>No upcoming or live tournaments</EmptyTitle>
+          <EmptyDescription>
+            Match listings appear when an event is scheduled or live.
+          </EmptyDescription>
         </EmptyHeader>
       </Empty>
     );

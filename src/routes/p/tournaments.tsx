@@ -14,7 +14,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { Spinner } from "@/components/ui/spinner";
-import { useTournaments } from "@/hooks/use-tournaments";
+import { usePublicTournaments } from "@/hooks/use-tournaments";
 import { getTournamentStatusLabel } from "@/lib/tournament-status";
 import { tournamentLabel } from "@/lib/tournament-label";
 import type { Collections } from "@/types/pocketbase-types";
@@ -56,7 +56,7 @@ function statusRailClass(
 }
 
 function PublicTournamentsPage() {
-  const { data: tournaments, isLoading, isError, error } = useTournaments();
+  const { data: tournaments, isLoading, isError, error } = usePublicTournaments();
 
   if (isLoading) {
     return (
@@ -86,9 +86,9 @@ function PublicTournamentsPage() {
     return (
       <Empty className="min-h-[40vh] border border-dashed">
         <EmptyHeader>
-          <EmptyTitle>No tournaments yet</EmptyTitle>
+          <EmptyTitle>No upcoming or live tournaments</EmptyTitle>
           <EmptyDescription>
-            Check back later — events will appear here when published.
+            Check back when the next event is announced or goes live.
           </EmptyDescription>
         </EmptyHeader>
       </Empty>
@@ -106,7 +106,7 @@ function PublicTournamentsPage() {
       <PublicPageHeader
         eyebrow="Schedule board"
         title="Tournaments"
-        description="Active tournaments in Barangay 176-E. Draft events may appear before doors open—status strip shows pulse at a glance."
+        description="Upcoming and live tournaments in Barangay 176-E. The status strip highlights what is on deck or in play."
         icon={Trophy}
       />
       <ul className="grid gap-5 sm:grid-cols-2">

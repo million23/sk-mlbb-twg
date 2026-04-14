@@ -15,4 +15,5 @@ export const queryKeys = {
   draftSuggestions: ["draft_suggestions"] as const,
   publicUpcoming: ["public", "upcoming"] as const,
   publicCurrent: ["public", "current"] as const,
+  publicTournaments: ["public", "tournaments"] as const,
 } as const;

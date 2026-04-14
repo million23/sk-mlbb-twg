@@ -3,7 +3,7 @@ import { PublicThemeToggle } from "@/components/public/public-theme-toggle";
 import { buttonVariants } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { useParticipants } from "@/hooks/use-participants";
-import { useTournaments } from "@/hooks/use-tournaments";
+import { usePublicTournaments } from "@/hooks/use-tournaments";
 import { useTeams } from "@/hooks/use-teams";
 import { pb } from "@/lib/pocketbase";
 import { PUBLIC_SITE_TITLE } from "@/lib/public-site";
@@ -56,7 +56,7 @@ const sections = [
 ] as const;
 
 function HomePage() {
-  const { data: tournaments, isLoading: tLoading } = useTournaments();
+  const { data: tournaments, isLoading: tLoading } = usePublicTournaments();
   const { data: teams, isLoading: tmLoading } = useTeams();
   const { data: participants, isLoading: pLoading } = useParticipants();
 
@@ -130,7 +130,8 @@ function HomePage() {
           <div className="border-border/50 border-b px-4 py-3 text-center sm:px-5 sm:text-left">
             <p className="font-medium text-foreground text-sm">At a glance</p>
             <p className="text-muted-foreground text-xs">
-              Active records (non-archived)
+              Tournaments: upcoming or live. Teams and players: active
+              (non-archived).
             </p>
           </div>
           <div className="grid divide-border/60 sm:grid-cols-3 sm:divide-x">

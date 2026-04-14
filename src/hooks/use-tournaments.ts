@@ -14,6 +14,9 @@ type Tournament = Collections["tournaments"];
 /** PocketBase filter: not soft-deleted. */
 export const TOURNAMENTS_ACTIVE_FILTER = "archived != true";
 
+/** PocketBase filter: spectator-visible events only. */
+export const TOURNAMENTS_PUBLIC_FILTER = `${TOURNAMENTS_ACTIVE_FILTER} && (status = "upcoming" || status = "live")`;
+
 const TOURNAMENTS_ARCHIVED_FILTER = "archived = true";
 
 function invalidateTournamentQueries(
@@ -23,6 +26,7 @@ function invalidateTournamentQueries(
   queryClient.invalidateQueries({ queryKey: queryKeys.tournamentsArchived });
   queryClient.invalidateQueries({ queryKey: queryKeys.publicUpcoming });
   queryClient.invalidateQueries({ queryKey: queryKeys.publicCurrent });
+  queryClient.invalidateQueries({ queryKey: queryKeys.publicTournaments });
   queryClient.invalidateQueries({ queryKey: queryKeys.draftSuggestions });
 }
 
@@ -36,6 +40,23 @@ export function useTournaments() {
         const list = await col.getFullList({
           sort: "-created",
           filter: TOURNAMENTS_ACTIVE_FILTER,
+        });
+        return list as Tournament[];
+      }),
+  });
+}
+
+/** Non-archived tournaments with status upcoming or live (public /p routes and landing snapshot). */
+export function usePublicTournaments() {
+  return useQuery({
+    ...pocketbaseListQueryOptions,
+    queryKey: queryKeys.publicTournaments,
+    queryFn: () =>
+      rateLimited(async () => {
+        const col = getCollection("tournaments");
+        const list = await col.getFullList({
+          sort: "-created",
+          filter: TOURNAMENTS_PUBLIC_FILTER,
         });
         return list as Tournament[];
       }),

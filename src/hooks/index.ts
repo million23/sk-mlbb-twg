@@ -22,6 +22,7 @@ export { useTournamentDrafts } from "./use-tournament-drafts";
 export {
   useArchivedTournaments,
   useCurrentTournaments,
+  usePublicTournaments,
   useTournamentMutations,
   useTournaments,
   useUpcomingTournaments
