@@ -33,10 +33,12 @@ import { FxAppCardBodyLg } from "@/lib/loading-placeholders";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -96,8 +98,8 @@ function TournamentForm({
   onSubmit: () => void;
 }) {
   return (
-    <div className="w-full space-y-4 px-4 pb-4">
-      <div className="space-y-2">
+    <div className="w-full flex flex-col gap-4 px-4 pb-4">
+      <div className="flex flex-col gap-2">
         <Label htmlFor="title">{requiredLabel("Title")}</Label>
         <Input
           id="title"
@@ -114,7 +116,7 @@ function TournamentForm({
           placeholder="Tournament name"
         />
       </div>
-      <div className="space-y-2">
+      <div className="flex flex-col gap-2">
         <Label htmlFor="slug">Slug</Label>
         <Input
           id="slug"
@@ -124,7 +126,7 @@ function TournamentForm({
           placeholder="url-friendly-name"
         />
       </div>
-      <div className="space-y-2">
+      <div className="flex flex-col gap-2">
         <Label htmlFor="description">Description</Label>
         <Textarea
           id="description"
@@ -137,7 +139,7 @@ function TournamentForm({
           className="resize-none"
         />
       </div>
-      <div className="space-y-2">
+      <div className="flex flex-col gap-2">
         <Label htmlFor="venue">{requiredLabel("Venue")}</Label>
         <Input
           id="venue"
@@ -147,7 +149,7 @@ function TournamentForm({
           placeholder="Venue / location"
         />
       </div>
-      <div className="space-y-2">
+      <div className="flex flex-col gap-2">
         <Label htmlFor="tournament-date-range">
           {requiredLabel("Start & end")}
         </Label>
@@ -160,7 +162,7 @@ function TournamentForm({
           }
         />
       </div>
-      <div className="space-y-2">
+      <div className="flex flex-col gap-2">
         <Label htmlFor="tournament-status">{requiredLabel("Status")}</Label>
         <Select
           value={form.status ?? "draft"}
@@ -183,11 +185,13 @@ function TournamentForm({
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
-            {TOURNAMENT_STATUS_OPTIONS.map((o) => (
-              <SelectItem key={o.value} value={o.value}>
-                {o.label}
-              </SelectItem>
-            ))}
+            <SelectGroup>
+              {TOURNAMENT_STATUS_OPTIONS.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
           </SelectContent>
         </Select>
       </div>
@@ -336,7 +340,7 @@ function TournamentPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <h1 className="text-2xl font-bold tracking-tight text-balance">
@@ -392,9 +396,9 @@ function TournamentPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="animate-pulse">
+            <Skeleton className="block bg-transparent p-0 shadow-none ring-0">
               <FxAppCardBodyLg />
-            </div>
+            </Skeleton>
           ) : !tournaments?.length ? (
             <Empty>
               <EmptyHeader>
@@ -430,7 +434,7 @@ function TournamentPage() {
                 >
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0 flex-1 space-y-2">
+                      <div className="min-w-0 flex-1 flex flex-col gap-2">
                         <div className="flex items-center gap-2">
                           <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
                             <Trophy className="size-5 text-muted-foreground" />

@@ -11,12 +11,10 @@ const STATUS_LABELS: Record<ParticipantStatus, string> = {
 };
 
 const STATUS_CLASSES: Record<ParticipantStatus, string> = {
-  assigned:
-    "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+  assigned: "border-success/30 bg-success/10 text-success",
   unassigned:
     "border-muted-foreground/25 bg-muted/50 text-muted-foreground",
-  suggested:
-    "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  suggested: "border-warning/30 bg-warning/10 text-warning",
   inactive:
     "border-destructive/30 bg-destructive/10 text-destructive",
 };

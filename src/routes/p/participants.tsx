@@ -112,7 +112,7 @@ function PublicParticipantsPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="flex flex-col gap-8">
       <PublicPageHeader
         eyebrow="Player intel"
         title="Participants"

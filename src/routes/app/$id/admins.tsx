@@ -40,10 +40,12 @@ import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { FxAppCardBodyLg } from "@/lib/loading-placeholders";
 import { DataTable } from "@/components/ui/data-table";
@@ -92,10 +94,10 @@ function AdminForm({
   onSubmit: () => void;
 }) {
   return (
-    <div className="w-full space-y-4 px-4 pb-4">
+    <div className="w-full flex flex-col gap-4 px-4 pb-4">
       {!editingId ? (
         <>
-          <div className="space-y-2">
+          <div className="flex flex-col gap-2">
             <Label htmlFor="admin-email">Email</Label>
             <Input
               id="admin-email"
@@ -105,7 +107,7 @@ function AdminForm({
               placeholder="admin@example.com"
             />
           </div>
-          <div className="space-y-2">
+          <div className="flex flex-col gap-2">
             <Label htmlFor="admin-password">Password</Label>
             <Input
               id="admin-password"
@@ -115,7 +117,7 @@ function AdminForm({
               placeholder="Minimum 8 characters"
             />
           </div>
-          <div className="space-y-2">
+          <div className="flex flex-col gap-2">
             <Label htmlFor="admin-password-confirm">Confirm password</Label>
             <Input
               id="admin-password-confirm"
@@ -129,12 +131,12 @@ function AdminForm({
           </div>
         </>
       ) : (
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           <Label>Email</Label>
           <p className="text-sm text-muted-foreground">{form.email || "-"}</p>
         </div>
       )}
-      <div className="space-y-2">
+      <div className="flex flex-col gap-2">
         <Label htmlFor="admin-name">Name</Label>
         <Input
           id="admin-name"
@@ -144,7 +146,7 @@ function AdminForm({
         />
       </div>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:gap-6">
-        <div className="flex-1 min-w-0 space-y-2">
+        <div className="flex-1 min-w-0 flex flex-col gap-2">
           <Label htmlFor="admin-role">Role</Label>
           <Select
             value={form.role}
@@ -163,11 +165,13 @@ function AdminForm({
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              {ADMIN_ROLES.map((r) => (
-                <SelectItem key={r.value} value={r.value}>
-                  {r.label}
-                </SelectItem>
-              ))}
+              <SelectGroup>
+                {ADMIN_ROLES.map((r) => (
+                  <SelectItem key={r.value} value={r.value}>
+                    {r.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
             </SelectContent>
           </Select>
         </div>
@@ -327,7 +331,7 @@ function AdminsPage() {
     isSuperadmin && admin.id !== currentUserId;
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Admins</h1>
@@ -352,9 +356,9 @@ function AdminsPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="animate-pulse">
+            <Skeleton className="block bg-transparent p-0 shadow-none ring-0">
               <FxAppCardBodyLg />
-            </div>
+            </Skeleton>
           ) : !admins?.length ? (
             <Empty>
               <EmptyHeader>

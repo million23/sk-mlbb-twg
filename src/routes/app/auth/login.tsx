@@ -71,7 +71,7 @@ function RouteComponent() {
         <CardHeader>
           <CardTitle>Login to Admin Panel</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="flex flex-col gap-4">
           <form
             onSubmit={(e) => {
               e.preventDefault();

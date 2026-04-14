@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { FxAuditSearch, FxAuditTable } from "@/lib/loading-placeholders";
 import { useInView } from "@/hooks/use-in-view";
 import {
@@ -51,19 +52,25 @@ const AUDIT_TABLE = "border-collapse";
 /** Matches loaded search row: icon + full-width control */
 function AuditLogSearchSkeleton() {
   return (
-    <div className="animate-pulse" role="status">
+    <Skeleton
+      role="status"
+      className="block bg-transparent p-0 shadow-none ring-0"
+    >
       <FxAuditSearch />
       <span className="sr-only">Search loading</span>
-    </div>
+    </Skeleton>
   );
 }
 
 function AuditLogTableSkeleton() {
   return (
-    <div className="animate-pulse" role="status">
+    <Skeleton
+      role="status"
+      className="block bg-transparent p-0 shadow-none ring-0"
+    >
       <FxAuditTable />
       <span className="sr-only">Loading audit log entries</span>
-    </div>
+    </Skeleton>
   );
 }
 
@@ -231,7 +238,7 @@ function AuditLogsPage() {
   const loadMoreErrorMessage = errMsg;
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <h1 className="text-2xl font-bold tracking-tight">Audit log</h1>

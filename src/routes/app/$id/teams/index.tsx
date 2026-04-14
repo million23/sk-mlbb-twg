@@ -51,6 +51,7 @@ import {
 import {
 	Select,
 	SelectContent,
+	SelectGroup,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
@@ -208,7 +209,7 @@ function QuickTeamFromUnassignedContent({
 							one step. This cannot be undone from here (you can edit the team or
 							remove members afterward).
 						</DialogDescription>
-						<div className="space-y-2 rounded-lg border bg-muted/30 p-3 text-sm">
+						<div className="flex flex-col gap-2 rounded-lg border bg-muted/30 p-3 text-sm">
 							<p>
 								<span className="text-muted-foreground">Team name</span>{" "}
 								<span className="font-medium">{teamName.trim()}</span>
@@ -216,7 +217,7 @@ function QuickTeamFromUnassignedContent({
 							<p className="text-muted-foreground">
 								Members ({selectedList.length})
 							</p>
-							<ul className="space-y-1 pl-1">
+							<ul className="flex flex-col gap-1 pl-1">
 								{selectedList.map((p) => (
 									<li key={p.id}>
 										·{" "}
@@ -267,7 +268,7 @@ function QuickTeamFromUnassignedContent({
 		<div className="flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden">
 			<div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain">
 				<div className="flex flex-col gap-3 pb-1">
-					<div className="space-y-2">
+					<div className="flex flex-col gap-2">
 						<Label htmlFor="quick-team-name">Team name</Label>
 						<Input
 							id="quick-team-name"
@@ -277,7 +278,7 @@ function QuickTeamFromUnassignedContent({
 							autoComplete="off"
 						/>
 					</div>
-					<div className="space-y-2">
+					<div className="flex flex-col gap-2">
 						<Label>Captain (optional)</Label>
 						<Select
 							value={captainId}
@@ -298,19 +299,21 @@ function QuickTeamFromUnassignedContent({
 								</SelectValue>
 							</SelectTrigger>
 							<SelectContent>
-								<SelectItem value="">No captain yet</SelectItem>
-								{[...selectedIds].map((id) => {
-									const p = unassignedParticipants.find((x) => x.id === id);
-									return (
-										<SelectItem key={id} value={id}>
-											{(formatParticipantNameDisplay(p?.name) || p?.gameID) ?? id}
-										</SelectItem>
-									);
-								})}
+								<SelectGroup>
+									<SelectItem value="">No captain yet</SelectItem>
+									{[...selectedIds].map((id) => {
+										const p = unassignedParticipants.find((x) => x.id === id);
+										return (
+											<SelectItem key={id} value={id}>
+												{(formatParticipantNameDisplay(p?.name) || p?.gameID) ?? id}
+											</SelectItem>
+										);
+									})}
+								</SelectGroup>
 							</SelectContent>
 						</Select>
 					</div>
-					<div className="space-y-2 text-xs text-muted-foreground">
+					<div className="flex flex-col gap-2 text-xs text-muted-foreground">
 						{suggestedLaneIds?.length ? (
 							<>
 								<p>
@@ -363,13 +366,13 @@ function QuickTeamFromUnassignedContent({
 						</div>
 					) : null}
 					<div className="min-w-0 rounded-md border border-border/60 p-1">
-						<div className="min-w-0 space-y-4">
+						<div className="min-w-0 flex flex-col gap-4">
 							{filteredByAge.map((group) => (
-								<section key={group.key} className="min-w-0 space-y-1.5">
+								<section key={group.key} className="min-w-0 flex flex-col gap-1.5">
 									<h3 className="sticky top-0 z-1 border-b border-border/70 bg-background py-2 text-xs font-semibold tracking-wide text-muted-foreground">
 										{group.label}
 									</h3>
-									<ul className="space-y-1">
+									<ul className="flex flex-col gap-1">
 										{group.items.map((p) => {
 											const checked = selectedIds.has(p.id);
 											const hasLanes = Boolean(
@@ -392,7 +395,7 @@ function QuickTeamFromUnassignedContent({
 														}}
 														aria-label={`Select ${formatParticipantNameDisplay(p.name) || p.gameID || p.id}`}
 													/>
-													<span className="min-w-0 flex-1 space-y-1">
+													<span className="min-w-0 flex-1 flex flex-col gap-1">
 														<span className="flex flex-wrap items-center gap-2">
 															<span className="block wrap-break-word font-medium">
 																{(formatParticipantNameDisplay(p.name) ||
@@ -469,7 +472,7 @@ function AddMembersContent({
 
 	if (unassignedParticipants.length === 0) {
 		return (
-			<div className="space-y-4">
+			<div className="flex flex-col gap-4">
 				<p className="text-sm text-muted-foreground">
 					No unassigned participants. Assign participants to teams from the
 					Participants page first.
@@ -492,13 +495,13 @@ function AddMembersContent({
 				/>
 			</div>
 			<div className="min-h-[280px] max-h-[50vh] min-w-0 overflow-x-hidden overflow-y-auto overscroll-contain">
-				<div className="min-w-0 space-y-4">
+				<div className="min-w-0 flex flex-col gap-4">
 					{filteredByAge.map((group) => (
-						<section key={group.key} className="min-w-0 space-y-1.5">
+						<section key={group.key} className="min-w-0 flex flex-col gap-1.5">
 							<h3 className="sticky top-0 z-[1] border-b border-border/70 bg-background py-2 text-xs font-semibold tracking-wide text-muted-foreground">
 								{group.label}
 							</h3>
-							<ul className="space-y-1">
+							<ul className="flex flex-col gap-1">
 								{group.items.map((p) => {
 									const hasLanes = Boolean(
 										p.preferredRoles?.filter(Boolean).length,
@@ -508,7 +511,7 @@ function AddMembersContent({
 											key={p.id}
 											className="flex min-w-0 max-w-full items-center justify-between gap-2 rounded-lg border px-3 py-2"
 										>
-											<span className="min-w-0 flex-1 space-y-1">
+											<span className="min-w-0 flex-1 flex flex-col gap-1">
 												<span className="flex items-center gap-3 flex-wrap">
 													<span className="block wrap-break-word font-medium">
 														{(formatParticipantNameDisplay(p.name) ||
@@ -643,8 +646,8 @@ function TeamForm({
 				"Select captain (team members only)");
 
 	return (
-		<div className="w-full space-y-4 px-4 pb-4">
-			<div className="space-y-2">
+		<div className="w-full flex flex-col gap-4 px-4 pb-4">
+			<div className="flex flex-col gap-2">
 				<Label htmlFor="name">Team name</Label>
 				<Input
 					id="name"
@@ -655,7 +658,7 @@ function TeamForm({
 			</div>
 			{editingId &&
 				(isMobile ? (
-					<div className="space-y-2">
+					<div className="flex flex-col gap-2">
 						<Label>Captain</Label>
 						<CaptainPopover
 							value={form.captain ?? ""}
@@ -665,7 +668,7 @@ function TeamForm({
 						/>
 					</div>
 				) : (
-					<div className="space-y-2">
+					<div className="flex flex-col gap-2">
 						<Label>Captain</Label>
 						<Select
 							value={form.captain ?? ""}
@@ -696,12 +699,14 @@ function TeamForm({
 								</SelectValue>
 							</SelectTrigger>
 							<SelectContent>
-								<SelectItem value="">No captain</SelectItem>
-								{teamMembers?.map((p) => (
-									<SelectItem key={p.id} value={p.id}>
-										{(formatParticipantNameDisplay(p.name) || p.gameID) ?? p.id}
-									</SelectItem>
-								))}
+								<SelectGroup>
+									<SelectItem value="">No captain</SelectItem>
+									{teamMembers?.map((p) => (
+										<SelectItem key={p.id} value={p.id}>
+											{(formatParticipantNameDisplay(p.name) || p.gameID) ?? p.id}
+										</SelectItem>
+									))}
+								</SelectGroup>
 							</SelectContent>
 						</Select>
 					</div>
@@ -1217,7 +1222,7 @@ function TeamsPage() {
 	};
 
 	return (
-		<div className="space-y-6">
+		<div className="flex flex-col gap-6">
 			<div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
 				<div className="min-w-0 max-w-prose lg:max-w-none">
 					<h1 className="text-2xl font-bold tracking-tight text-balance">
@@ -1555,7 +1560,7 @@ function TeamsPage() {
 					}}
 				>
 					<DialogContent className="flex max-h-[min(90vh,720px)] flex-col gap-4 overflow-hidden sm:max-w-lg">
-						<DialogHeader className="shrink-0 space-y-1.5 text-left">
+						<DialogHeader className="shrink-0 flex flex-col gap-1.5 text-left">
 							<DialogTitle>
 								{quickTeamStep === 1
 									? "Create team from unassigned"

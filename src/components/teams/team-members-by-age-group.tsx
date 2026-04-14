@@ -21,11 +21,11 @@ export function TeamMembersByAgeGroup({
   if (groups.length === 0) return null;
 
   return (
-    <div className={cn("space-y-4", className)}>
+    <div className={cn("flex flex-col gap-4", className)}>
       {groups.map((g) => (
-        <div key={g.key} className="space-y-1.5">
+        <div key={g.key} className="flex flex-col gap-1.5">
           <p className="text-xs font-medium text-muted-foreground">{g.label}</p>
-          <ul className="space-y-1.5">
+          <ul className="flex flex-col gap-1.5">
             {g.items.map((m) => (
               <li
                 key={m.id}

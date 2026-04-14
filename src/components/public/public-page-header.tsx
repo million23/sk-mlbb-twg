@@ -33,7 +33,7 @@ export function PublicPageHeader({
         >
           <Icon className="size-7" strokeWidth={1.5} />
         </span>
-        <div className="min-w-0 space-y-2 px-1">
+        <div className="min-w-0 flex flex-col gap-2 px-1">
           <h1 className="font-serif text-3xl leading-[1.1] tracking-tight sm:text-4xl">
             {title}
           </h1>

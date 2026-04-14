@@ -45,10 +45,12 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   FxAppMatchesList,
   FxAppMatchesTournamentSelect,
@@ -188,7 +190,7 @@ function MatchesPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <h1 className="text-2xl font-bold tracking-tight text-balance">
@@ -235,9 +237,9 @@ function MatchesPage() {
         </CardHeader>
         <CardContent>
           {tournamentsLoading ? (
-            <div className="animate-pulse">
+            <Skeleton className="block bg-transparent p-0 shadow-none ring-0">
               <FxAppMatchesTournamentSelect />
-            </div>
+            </Skeleton>
           ) : sortedTournaments.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               Add a tournament first.
@@ -341,9 +343,9 @@ function MatchesPage() {
         </Card>
       ) : !tournamentId ? null : tournamentEligible ? (
         matchesLoading ? (
-          <div className="animate-pulse">
+          <Skeleton className="block bg-transparent p-0 shadow-none ring-0">
             <FxAppMatchesList />
-          </div>
+          </Skeleton>
         ) : matches?.length === 0 ? (
         <Empty>
           <EmptyHeader>
@@ -366,7 +368,7 @@ function MatchesPage() {
           </Button>
         </Empty>
           ) : (
-        <div className="space-y-6">
+        <div className="flex flex-col gap-6">
           {groupedMatches.map(([round, rows]) => (
             <div key={round}>
               <h2 className="mb-2 text-sm font-medium text-muted-foreground">
@@ -380,7 +382,7 @@ function MatchesPage() {
                       key={m.id}
                       className="flex flex-col gap-2 px-3 py-3 transition-colors hover:bg-muted/40 sm:flex-row sm:items-center sm:gap-3"
                     >
-                      <div className="min-w-0 flex-1 space-y-1">
+                      <div className="min-w-0 flex-1 flex flex-col gap-1">
                         <p className="font-medium text-sm">
                           {m.matchLabel?.trim() ||
                             `${teamName(m, "A")} vs ${teamName(m, "B")}`}
@@ -390,7 +392,7 @@ function MatchesPage() {
                           {m.bestOf != null ? ` · Bo${m.bestOf}` : ""}
                         </p>
                         {m.winner ? (
-                          <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                          <p className="text-xs font-medium text-success">
                             Winner · {winnerName(m)}
                           </p>
                         ) : null}
@@ -610,7 +612,7 @@ function MatchFormDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[min(90vh,720px)] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
-        <DialogHeader className="space-y-1 border-b border-border px-6 py-4 text-left">
+        <DialogHeader className="flex flex-col gap-1 border-b border-border px-6 py-4 text-left">
           <DialogTitle>{initial ? "Edit match" : "Add match"}</DialogTitle>
           <DialogDescription>
             {initial
@@ -619,8 +621,8 @@ function MatchFormDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-4">
-          <div className="space-y-2">
+        <div className="min-h-0 flex-1 flex flex-col gap-5 overflow-y-auto px-6 py-4">
+          <div className="flex flex-col gap-2">
             <Label htmlFor="m-label">Label</Label>
             <Input
               id="m-label"
@@ -631,7 +633,7 @@ function MatchFormDialog({
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-3">
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               <Label htmlFor="m-round">Round</Label>
               <Input
                 id="m-round"
@@ -640,7 +642,7 @@ function MatchFormDialog({
                 placeholder="Round 1"
               />
             </div>
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               <Label htmlFor="m-order">Order</Label>
               <Input
                 id="m-order"
@@ -652,7 +654,7 @@ function MatchFormDialog({
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div className="flex flex-col gap-2">
             <Label htmlFor="m-bo">Best of</Label>
             <Input
               id="m-bo"
@@ -663,11 +665,11 @@ function MatchFormDialog({
             />
           </div>
 
-          <div className="space-y-3 border-t border-border pt-4">
+          <div className="flex flex-col gap-3 border-t border-border pt-4">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Teams
             </p>
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               <Label>Team A</Label>
               <Select
                 value={teamA || "__none__"}
@@ -683,16 +685,18 @@ function MatchFormDialog({
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__none__">TBD</SelectItem>
-                  {teams.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.name ?? t.id}
-                    </SelectItem>
-                  ))}
+                  <SelectGroup>
+                    <SelectItem value="__none__">TBD</SelectItem>
+                    {teams.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.name ?? t.id}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               <Label>Team B</Label>
               <Select
                 value={teamB || "__none__"}
@@ -708,19 +712,21 @@ function MatchFormDialog({
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__none__">TBD</SelectItem>
-                  {teams.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.name ?? t.id}
-                    </SelectItem>
-                  ))}
+                  <SelectGroup>
+                    <SelectItem value="__none__">TBD</SelectItem>
+                    {teams.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.name ?? t.id}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
           {initial ? (
-            <div className="space-y-2 border-t border-border pt-4">
+            <div className="flex flex-col gap-2 border-t border-border pt-4">
               <Label>Status</Label>
               <Select
                 value={status}
@@ -739,17 +745,19 @@ function MatchFormDialog({
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {MATCH_STATUSES.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>
-                      {s.label}
-                    </SelectItem>
-                  ))}
+                  <SelectGroup>
+                    {MATCH_STATUSES.map((s) => (
+                      <SelectItem key={s.value} value={s.value}>
+                        {s.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
                 </SelectContent>
               </Select>
             </div>
           ) : null}
 
-          <div className="space-y-2 border-t border-border pt-4">
+          <div className="flex flex-col gap-2 border-t border-border pt-4">
             <Label htmlFor="m-notes">Notes</Label>
             <Textarea
               id="m-notes"
@@ -829,16 +837,16 @@ function MatchResultsDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[min(90vh,560px)] flex-col gap-0 overflow-hidden p-0 sm:max-w-md">
-        <DialogHeader className="space-y-1 border-b border-border px-6 py-4 text-left">
+        <DialogHeader className="flex flex-col gap-1 border-b border-border px-6 py-4 text-left">
           <DialogTitle>Score & winner</DialogTitle>
           <DialogDescription className="line-clamp-2">
             {headline || "Match result"}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-5 px-6 py-4">
+        <div className="flex flex-col gap-5 px-6 py-4">
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               <Label htmlFor="r-sa">{teamALabel} — wins</Label>
               <Input
                 id="r-sa"
@@ -848,7 +856,7 @@ function MatchResultsDialog({
                 onChange={(e) => setScoreA(e.target.value)}
               />
             </div>
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               <Label htmlFor="r-sb">{teamBLabel} — wins</Label>
               <Input
                 id="r-sb"
@@ -860,7 +868,7 @@ function MatchResultsDialog({
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div className="flex flex-col gap-2">
             <Label>Winner</Label>
             <Select
               value={winner || "__none__"}
@@ -876,13 +884,15 @@ function MatchResultsDialog({
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__none__">None</SelectItem>
-                {match?.teamA ? (
-                  <SelectItem value={match.teamA}>{teamALabel}</SelectItem>
-                ) : null}
-                {match?.teamB ? (
-                  <SelectItem value={match.teamB}>{teamBLabel}</SelectItem>
-                ) : null}
+                <SelectGroup>
+                  <SelectItem value="__none__">None</SelectItem>
+                  {match?.teamA ? (
+                    <SelectItem value={match.teamA}>{teamALabel}</SelectItem>
+                  ) : null}
+                  {match?.teamB ? (
+                    <SelectItem value={match.teamB}>{teamBLabel}</SelectItem>
+                  ) : null}
+                </SelectGroup>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">

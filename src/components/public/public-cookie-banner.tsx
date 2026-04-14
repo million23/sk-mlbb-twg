@@ -56,8 +56,8 @@ function PublicCookieBanner() {
         >
           <Cookie className="size-5" strokeWidth={1.75} />
         </span>
-        <div className="min-w-0 flex-1 space-y-3">
-          <div className="space-y-1.5">
+        <div className="min-w-0 flex-1 flex flex-col gap-3">
+          <div className="flex flex-col gap-1.5">
             <h2
               id="public-cookie-banner-title"
               className="font-semibold text-foreground text-sm leading-tight"

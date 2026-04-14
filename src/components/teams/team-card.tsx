@@ -119,7 +119,7 @@ export function TeamCard({
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-2.5 pt-0">
+      <CardContent className="flex flex-col gap-2.5 pt-0">
         <InfoRow icon={Clock}>
           <RegisteredDateCell
             created={t.created}

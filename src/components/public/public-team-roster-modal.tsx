@@ -99,12 +99,12 @@ export function PublicTeamRosterModalProvider({ children }: { children: ReactNod
             "data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
           )}
         >
-          <DialogHeader className="w-full min-w-0 shrink-0 space-y-1 border-b border-border/80 bg-card/40 px-4 py-4 sm:px-6 sm:py-5">
+          <DialogHeader className="w-full min-w-0 shrink-0 flex flex-col gap-1 border-b border-border/80 bg-card/40 px-4 py-4 sm:px-6 sm:py-5">
             <div className="flex items-start gap-3">
               <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-primary/30 bg-primary/10 text-primary">
                 <UsersRound className="size-5" aria-hidden />
               </span>
-              <div className="min-w-0 flex-1 space-y-1 pr-10 text-left">
+              <div className="min-w-0 flex-1 flex flex-col gap-1 pr-10 text-left">
                 <DialogTitle className="font-serif text-2xl leading-tight sm:text-3xl">
                   {teamTitle}
                 </DialogTitle>

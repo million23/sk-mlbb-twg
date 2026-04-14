@@ -30,6 +30,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -93,9 +94,9 @@ function ComponentsPage() {
   return (
       <main className="min-h-screen bg-background px-4 py-10 text-foreground sm:px-6 lg:px-8">
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-8">
-          <section className="space-y-4">
+          <section className="flex flex-col gap-4">
             <Badge variant="outline">UI Components</Badge>
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
                 Components showcase
               </h1>
@@ -301,9 +302,12 @@ function ComponentsPage() {
                   <AvatarGroupCount>+4</AvatarGroupCount>
                 </AvatarGroup>
 
-                <div className="animate-pulse" aria-hidden>
+                <Skeleton
+                  aria-hidden
+                  className="block bg-transparent p-0 shadow-none ring-0"
+                >
                   <FxDemoSkeletonCard />
-                </div>
+                </Skeleton>
                 <span className="sr-only">Skeleton layout preview</span>
               </div>
             </ShowcaseSection>

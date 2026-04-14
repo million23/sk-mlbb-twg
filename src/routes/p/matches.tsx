@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -164,7 +165,7 @@ function PublicMatchesPage() {
   }
 
   return (
-    <div className="space-y-10">
+    <div className="flex flex-col gap-10">
       <PublicPageHeader
         eyebrow="Scoreboard lane"
         title="Matches"
@@ -172,7 +173,7 @@ function PublicMatchesPage() {
         icon={Swords}
       />
 
-      <div className="max-w-md space-y-2">
+      <div className="max-w-md flex flex-col gap-2">
         <Label
           htmlFor="public-match-tournament"
           className="font-mono text-[0.65rem] uppercase tracking-[0.18em] text-muted-foreground"
@@ -187,11 +188,13 @@ function PublicMatchesPage() {
             <SelectValue placeholder="Select tournament" />
           </SelectTrigger>
           <SelectContent>
-            {sortedTournaments.map((t) => (
-              <SelectItem key={t.id} value={t.id}>
-                {tournamentLabel(t)}
-              </SelectItem>
-            ))}
+            <SelectGroup>
+              {sortedTournaments.map((t) => (
+                <SelectItem key={t.id} value={t.id}>
+                  {tournamentLabel(t)}
+                </SelectItem>
+              ))}
+            </SelectGroup>
           </SelectContent>
         </Select>
       </div>
@@ -224,9 +227,9 @@ function PublicMatchesPage() {
           </EmptyHeader>
         </Empty>
       ) : (
-        <div className="space-y-10">
+        <div className="flex flex-col gap-10">
           {matchesByRound.map(([roundLabel, roundMatches]) => (
-            <section key={roundLabel} className="space-y-4">
+            <section key={roundLabel} className="flex flex-col gap-4">
               <div className="flex items-center gap-3">
                 <span className="font-serif text-xl tracking-tight sm:text-2xl">
                   {roundLabel}
@@ -237,7 +240,7 @@ function PublicMatchesPage() {
                   {roundMatches.length === 1 ? "" : "es"}
                 </span>
               </div>
-              <ul className="space-y-3">
+              <ul className="flex flex-col gap-3">
                 {roundMatches.map((m) => {
                   const st = getMatchStatusStyle(m.status);
                   const scheduled = formatScheduled(m.scheduledAt);
@@ -278,7 +281,7 @@ function PublicMatchesPage() {
                             </Badge>
                           </div>
                         </CardHeader>
-                        <CardContent className="space-y-3">
+                        <CardContent className="flex flex-col gap-3">
                           <div className="flex flex-wrap items-stretch justify-between gap-3 rounded-2xl border border-border/60 bg-muted/25 p-3 sm:items-center">
                             <span
                               className={cn(

@@ -87,7 +87,7 @@ function PublicTeamsPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="flex flex-col gap-8">
       <PublicPageHeader
         eyebrow="Roster wall"
         title="Teams"

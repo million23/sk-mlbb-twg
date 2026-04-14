@@ -25,7 +25,7 @@ import {
 import { User, UsersRound } from "lucide-react";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 
-/** Static loading placeholders (`bg-muted` blocks) wrapped with `animate-pulse` while data loads. */
+/** Static loading placeholders (`bg-muted` blocks); parent routes wrap with `Skeleton` while data loads. */
 
 export function FxAppCardBodyLg() {
   return <div className="h-64 w-full rounded-lg bg-muted" />;
@@ -37,7 +37,7 @@ export function FxAppMatchesTournamentSelect() {
 
 export function FxAppMatchesList() {
   return (
-    <div className="space-y-2">
+    <div className="flex flex-col gap-2">
       {[1, 2, 3].map((i) => (
         <div key={i} className="h-16 w-full rounded-lg bg-muted" />
       ))}
@@ -47,7 +47,7 @@ export function FxAppMatchesList() {
 
 export function FxArchivedListTwoRows() {
   return (
-    <div className="space-y-2">
+    <div className="flex flex-col gap-2">
       <div className="h-10 w-full rounded-md bg-muted" />
       <div className="h-10 w-full rounded-md bg-muted" />
     </div>
@@ -56,7 +56,7 @@ export function FxArchivedListTwoRows() {
 
 export function FxAuditDetailRelated() {
   return (
-    <div className="space-y-2">
+    <div className="flex flex-col gap-2">
       <div className="h-4 w-full rounded-md bg-muted" />
       <div className="h-4 w-full rounded-md bg-muted" />
       <div className="h-4 w-3/4 rounded-md bg-muted" />
@@ -143,7 +143,7 @@ function FxRecentParticipantRow() {
       <div className="flex size-10 min-h-10 min-w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-muted/60">
         <User className="size-5 text-muted-foreground" aria-hidden />
       </div>
-      <div className="min-w-0 flex-1 space-y-1">
+      <div className="min-w-0 flex-1 flex flex-col gap-1">
         <p className="truncate font-medium text-sm">Sample Player</p>
         <p className="truncate text-muted-foreground font-mono text-xs">
           123456789
@@ -170,7 +170,7 @@ function FxRecentTeamRow() {
       <div className="flex size-10 min-h-10 min-w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-muted/60">
         <UsersRound className="size-5 text-muted-foreground" aria-hidden />
       </div>
-      <div className="min-w-0 flex-1 space-y-1">
+      <div className="min-w-0 flex-1 flex flex-col gap-1">
         <p className="truncate font-medium text-sm">Team Alpha</p>
         <p className="text-muted-foreground text-xs">5 members</p>
       </div>
@@ -292,12 +292,12 @@ export function FxParticipantsCards() {
         >
           <div className="flex gap-3">
             <Skeleton className="size-14 shrink-0 rounded-lg" />
-            <div className="min-w-0 flex-1 space-y-2 pt-0.5">
+            <div className="min-w-0 flex-1 flex flex-col gap-2 pt-0.5">
               <Skeleton className="h-4 w-[72%] max-w-[200px]" />
               <Skeleton className="h-3 w-20 rounded-full" />
             </div>
           </div>
-          <div className="mt-4 space-y-2.5">
+          <div className="mt-4 flex flex-col gap-2.5">
             <div className="flex items-center gap-2">
               <Skeleton className="size-4 shrink-0 rounded-sm" />
               <Skeleton className="h-3 flex-1" />
@@ -567,15 +567,15 @@ export function FxTeamsCards() {
           key={key}
           className="h-fit overflow-hidden rounded-xl border border-border bg-card shadow-sm"
         >
-          <div className="space-y-3 p-4">
+          <div className="flex flex-col gap-3 p-4">
             <div className="flex gap-3">
               <Skeleton className="size-12 shrink-0 rounded-lg" />
-              <div className="min-w-0 flex-1 space-y-2 pt-0.5">
+              <div className="min-w-0 flex-1 flex flex-col gap-2 pt-0.5">
                 <Skeleton className="h-5 w-[72%] max-w-[200px]" />
                 <Skeleton className="h-3 w-28 rounded-full" />
               </div>
             </div>
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
                 <Skeleton className="size-4 shrink-0 rounded-sm" />
                 <Skeleton className="h-3 flex-1" />
@@ -597,7 +597,7 @@ export function FxDemoSkeletonCard() {
     <div className="grid gap-3 rounded-xl border border-dashed border-border p-4">
       <div className="flex items-center gap-3">
         <div className="size-10 rounded-full bg-muted" />
-        <div className="flex-1 space-y-2">
+        <div className="flex-1 flex flex-col gap-2">
           <div className="h-4 w-36 rounded-md bg-muted" />
           <div className="h-4 w-24 rounded-md bg-muted" />
         </div>

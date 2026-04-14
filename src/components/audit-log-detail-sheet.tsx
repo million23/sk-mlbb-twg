@@ -1,5 +1,6 @@
 import { AuditLogSummaryLine } from "@/components/audit-log-summary-line";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Sheet,
   SheetContent,
@@ -68,7 +69,7 @@ function AuditDetailField({
   className?: string;
 }) {
   return (
-    <div className={cn("space-y-1", className)}>
+    <div className={cn("flex flex-col gap-1", className)}>
       <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
       <dd
         className={cn(
@@ -135,10 +136,13 @@ function RelatedRecordBlock(props: {
 
   if (isLoading || isFetching) {
     return (
-      <div className="animate-pulse" role="status">
+      <Skeleton
+        role="status"
+        className="block bg-transparent p-0 shadow-none ring-0"
+      >
         <FxAuditDetailRelated />
         <span className="sr-only">Loading related record</span>
-      </div>
+      </Skeleton>
     );
   }
 
@@ -221,7 +225,7 @@ export function AuditLogDetailSheet(props: {
         </SheetHeader>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
-          <div className="space-y-6">
+          <div className="flex flex-col gap-6">
             <section>
               <h3 className="mb-3 text-sm font-medium">Log row</h3>
               <dl className="grid gap-4 sm:grid-cols-2">

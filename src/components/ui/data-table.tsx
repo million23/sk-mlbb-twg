@@ -28,6 +28,7 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -152,7 +153,7 @@ export function DataTable<TData, TValue>({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4">
       {(filterColumn || onSearchChange) && (
         <div className="flex items-center gap-2">
           <Input
@@ -293,11 +294,13 @@ export function DataTablePagination<TData>({
               </SelectValue>
             </SelectTrigger>
             <SelectContent side="top">
-              {pageSizeOptions.map((size) => (
-                <SelectItem key={size} value={`${size}`}>
-                  {size}
-                </SelectItem>
-              ))}
+              <SelectGroup>
+                {pageSizeOptions.map((size) => (
+                  <SelectItem key={size} value={`${size}`}>
+                    {size}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
             </SelectContent>
           </Select>
         </div>

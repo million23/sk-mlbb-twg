@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -172,11 +173,13 @@ export function BirthdayPicker({
           </SelectValue>
         </SelectTrigger>
         <SelectContent>
-          {MONTHS.map((m) => (
-            <SelectItem key={m.value} value={m.value}>
-              {m.label}
-            </SelectItem>
-          ))}
+          <SelectGroup>
+            {MONTHS.map((m) => (
+              <SelectItem key={m.value} value={m.value}>
+                {m.label}
+              </SelectItem>
+            ))}
+          </SelectGroup>
         </SelectContent>
       </Select>
       <Select value={day} onValueChange={handleDayChange}>
@@ -186,11 +189,13 @@ export function BirthdayPicker({
           </SelectValue>
         </SelectTrigger>
         <SelectContent>
-          {days.map((d) => (
-            <SelectItem key={d} value={d.toString()}>
-              {d}
-            </SelectItem>
-          ))}
+          <SelectGroup>
+            {days.map((d) => (
+              <SelectItem key={d} value={d.toString()}>
+                {d}
+              </SelectItem>
+            ))}
+          </SelectGroup>
         </SelectContent>
       </Select>
       <Input

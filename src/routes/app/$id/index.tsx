@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { buttonVariants } from "@/components/ui/button";
 import {
   FxDashboardChart,
@@ -150,9 +151,9 @@ function StatCard({
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="animate-pulse">
+          <Skeleton className="block bg-transparent p-0 shadow-none ring-0">
             <FxDashboardStat />
-          </div>
+          </Skeleton>
         ) : (
           <>
             <div className="text-2xl font-bold">{value}</div>
@@ -184,7 +185,7 @@ function DashboardPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
         <p className="text-muted-foreground">
@@ -225,9 +226,9 @@ function DashboardPage() {
         </CardHeader>
         <CardContent>
           {participantsLoading ? (
-            <div className="animate-pulse">
+            <Skeleton className="block bg-transparent p-0 shadow-none ring-0">
               <FxDashboardChart />
-            </div>
+            </Skeleton>
           ) : (
             <ChartContainer
               config={registrationsChartConfig}
@@ -272,10 +273,9 @@ function DashboardPage() {
                           <p
                             className={cn(
                               "text-[11px] leading-snug",
-                              row.changeTone === "positive" &&
-                                "text-emerald-600 dark:text-emerald-400",
+                              row.changeTone === "positive" && "text-success",
                               row.changeTone === "negative" &&
-                                "text-rose-600 dark:text-rose-400",
+                                "text-destructive",
                               row.changeTone === "neutral" &&
                                 "text-muted-foreground",
                             )}
@@ -319,9 +319,9 @@ function DashboardPage() {
           </CardHeader>
           <CardContent>
             {participantsLoading ? (
-              <div className="animate-pulse min-w-0 w-full">
+              <Skeleton className="block min-w-0 w-full bg-transparent p-0 shadow-none ring-0">
                 <FxDashboardRecentParticipants />
-              </div>
+              </Skeleton>
             ) : recentParticipants.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 No participants yet
@@ -376,9 +376,9 @@ function DashboardPage() {
           </CardHeader>
           <CardContent>
             {teamsLoading ? (
-              <div className="animate-pulse min-w-0 w-full">
+              <Skeleton className="block min-w-0 w-full bg-transparent p-0 shadow-none ring-0">
                 <FxDashboardRecentTeams />
-              </div>
+              </Skeleton>
             ) : recentTeams.length === 0 ? (
               <p className="text-sm text-muted-foreground">No teams yet</p>
             ) : (

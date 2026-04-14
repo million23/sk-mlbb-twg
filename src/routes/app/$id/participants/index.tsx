@@ -247,7 +247,7 @@ function ParticipantForm({
 }) {
 	const registering = !editingId;
 	return (
-		<div className="w-full space-y-4 px-4 pb-4">
+		<div className="w-full flex flex-col gap-4 px-4 pb-4">
 			{editingId && (
 				<div className="flex justify-center pb-2">
 					<GeneratedAvatar
@@ -257,7 +257,7 @@ function ParticipantForm({
 					/>
 				</div>
 			)}
-			<div className="space-y-2">
+			<div className="flex flex-col gap-2">
 				<Label htmlFor="gameID">{requiredLabel("Game ID", registering)}</Label>
 				<Input
 					id="gameID"
@@ -267,7 +267,7 @@ function ParticipantForm({
 					aria-required={registering}
 				/>
 			</div>
-			<div className="space-y-2">
+			<div className="flex flex-col gap-2">
 				<Label htmlFor="name">{requiredLabel("Name", registering)}</Label>
 				<Input
 					id="name"
@@ -283,7 +283,7 @@ function ParticipantForm({
 					aria-required={registering}
 				/>
 			</div>
-			<div className="space-y-2">
+			<div className="flex flex-col gap-2">
 				<Label htmlFor="contact">
 					{requiredLabel("Contact number", registering)}
 				</Label>
@@ -304,7 +304,7 @@ function ParticipantForm({
 					aria-required={registering}
 				/>
 			</div>
-			<div className="space-y-2">
+			<div className="flex flex-col gap-2">
 				<Label htmlFor="area">{requiredLabel("Area", registering)}</Label>
 				<Input
 					id="area"
@@ -314,7 +314,7 @@ function ParticipantForm({
 					aria-required={registering}
 				/>
 			</div>
-			<div className="w-full space-y-2">
+			<div className="w-full flex flex-col gap-2">
 				<Label htmlFor="birthdate">
 					{requiredLabel("Birthday", registering)}
 				</Label>
@@ -326,7 +326,7 @@ function ParticipantForm({
 					}
 				/>
 			</div>
-			<div className="space-y-2">
+			<div className="flex flex-col gap-2">
 				<Label>Preferred lanes (1st, 2nd, 3rd)</Label>
 				<div className="grid grid-cols-3 gap-2">
 					{[0, 1, 2].map((i) => {
@@ -361,20 +361,22 @@ function ParticipantForm({
 									</SelectValue>
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="">—</SelectItem>
-									{PREFERRED_ROLES.filter((r) => !used.includes(r.value)).map(
-										(r) => (
-											<SelectItem key={r.value} value={r.value}>
-												<span className="flex items-center gap-2">
-													<LaneRoleIcon
-														role={r.value}
-														className="size-5 shrink-0"
-													/>
-													<span>{r.label}</span>
-												</span>
-											</SelectItem>
-										),
-									)}
+									<SelectGroup>
+										<SelectItem value="">—</SelectItem>
+										{PREFERRED_ROLES.filter((r) => !used.includes(r.value)).map(
+											(r) => (
+												<SelectItem key={r.value} value={r.value}>
+													<span className="flex items-center gap-2">
+														<LaneRoleIcon
+															role={r.value}
+															className="size-5 shrink-0"
+														/>
+														<span>{r.label}</span>
+													</span>
+												</SelectItem>
+											),
+										)}
+									</SelectGroup>
 								</SelectContent>
 							</Select>
 						);
@@ -1078,7 +1080,7 @@ function ParticipantsPage() {
 	const initialQueryFailed = isError && !participantsData;
 
 	return (
-		<div className="space-y-6">
+		<div className="flex flex-col gap-6">
 			<div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
 				<div className="min-w-0 max-w-prose lg:max-w-none">
 					<h1 className="text-2xl font-bold tracking-tight text-balance">
@@ -1231,7 +1233,7 @@ function ParticipantsPage() {
 						<output
 							aria-live="polite"
 							aria-busy="true"
-							className="block space-y-2"
+							className="block flex flex-col gap-2"
 						>
 							<span className="sr-only">Loading participants</span>
 							<ParticipantsLoadingSkeleton layout={isMobile ? "cards" : view} />

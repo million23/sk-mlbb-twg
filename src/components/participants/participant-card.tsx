@@ -200,7 +200,7 @@ export function ParticipantCard({
           </div>
         </div>
         {!p.team && suggestions.length > 0 && (
-          <div className="space-y-1.5 pt-2 border-t">
+          <div className="flex flex-col gap-1.5 pt-2 border-t">
             <p className="text-xs font-medium text-muted-foreground">
               Suggested teams
             </p>

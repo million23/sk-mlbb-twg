@@ -43,14 +43,14 @@ function PublicHubPage() {
   const secondary = sections.filter((s) => !s.featured);
 
   return (
-    <div className="space-y-12">
+    <div className="flex flex-col gap-12">
       <section className="relative overflow-hidden rounded-3xl border border-border/70 bg-card/30 p-6 shadow-[0_0_0_1px] shadow-primary/10 sm:p-10">
         <div
           className="pointer-events-none absolute -right-16 -top-24 size-72 rounded-full bg-primary/15 blur-3xl"
           aria-hidden
         />
         <div className="relative grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-end">
-          <div className="space-y-5">
+          <div className="flex flex-col gap-5">
             <p className="inline-flex items-center gap-2 font-mono text-[0.65rem] text-primary uppercase tracking-[0.24em]">
               <Radio className="size-3.5" aria-hidden />
               Live desk · Barangay 176-E
@@ -70,7 +70,7 @@ function PublicHubPage() {
               .
             </p>
           </div>
-          <div className="space-y-3 lg:text-right">
+          <div className="flex flex-col gap-3 lg:text-right">
             <p className="font-mono text-[0.65rem] text-muted-foreground uppercase tracking-[0.2em]">
               Jump in
             </p>
@@ -93,7 +93,7 @@ function PublicHubPage() {
         </div>
       </section>
 
-      <section className="space-y-5">
+      <section className="flex flex-col gap-5">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <h2 className="font-serif text-2xl tracking-tight sm:text-3xl">Directory</h2>
           <p className="max-w-md text-right text-muted-foreground text-sm">
@@ -119,7 +119,7 @@ function PublicHubPage() {
                     aria-hidden
                   />
                 </div>
-                <div className="space-y-1.5 pt-4">
+                <div className="flex flex-col gap-1.5 pt-4">
                   <span className="block font-serif text-xl tracking-tight sm:text-2xl">
                     {title}
                   </span>
@@ -142,7 +142,7 @@ function PublicHubPage() {
                 <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted/80 text-foreground">
                   <Icon className="size-5 opacity-90" aria-hidden />
                 </span>
-                <span className="min-w-0 flex-1 space-y-1">
+                <span className="min-w-0 flex-1 flex flex-col gap-1">
                   <span className="flex items-center gap-2 font-semibold tracking-tight">
                     {title}
                     <ArrowRight className="size-4 shrink-0 opacity-40" aria-hidden />

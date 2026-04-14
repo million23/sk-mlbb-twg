@@ -7,7 +7,7 @@ export function PublicFooter({ siteTitle }: PublicFooterProps) {
 
   return (
     <footer className="relative z-10 mt-auto border-t border-border/60 bg-background/50 py-6 text-muted-foreground text-xs sm:py-8 sm:text-sm">
-      <div className="mx-auto max-w-5xl px-4 text-center sm:px-6 space-y-3">
+      <div className="mx-auto max-w-5xl px-4 text-center sm:px-6 flex flex-col gap-3">
         <p className="text-pretty">
           © {year} {siteTitle}. Public information only.
         </p>

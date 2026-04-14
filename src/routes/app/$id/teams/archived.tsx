@@ -11,6 +11,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { FxArchivedListTwoRows } from "@/lib/loading-placeholders";
 import {
 	Table,
@@ -48,9 +49,9 @@ function ArchivedTeamsPage() {
 	};
 
 	return (
-		<div className="space-y-6">
+		<div className="flex flex-col gap-6">
 			<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-				<div className="min-w-0 space-y-1">
+				<div className="min-w-0 flex flex-col gap-1">
 					<Link
 						to="/app/$id/teams"
 						params={{ id }}
@@ -88,9 +89,9 @@ function ArchivedTeamsPage() {
 				</CardHeader>
 				<CardContent>
 					{isLoading ? (
-						<div className="animate-pulse">
+						<Skeleton className="block bg-transparent p-0 shadow-none ring-0">
 							<FxArchivedListTwoRows />
-						</div>
+						</Skeleton>
 					) : !archivedTeams?.length ? (
 						<p className="text-sm text-muted-foreground">No archived teams.</p>
 					) : (

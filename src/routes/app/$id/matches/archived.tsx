@@ -33,6 +33,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useMatchMutations } from "@/hooks/use-match-mutations";
 import {
   type MatchRecord,
@@ -146,9 +147,9 @@ function ArchivedMatchesPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 space-y-1">
+        <div className="min-w-0 flex flex-col gap-1">
           <Link
             to="/app/$id/matches"
             params={{ id: appId }}
@@ -180,9 +181,9 @@ function ArchivedMatchesPage() {
         </CardHeader>
         <CardContent>
           {tournamentsLoading ? (
-            <div className="animate-pulse">
+            <Skeleton className="block bg-transparent p-0 shadow-none ring-0">
               <FxAppMatchesTournamentSelect />
-            </div>
+            </Skeleton>
           ) : sortedTournaments.length === 0 ? (
             <p className="text-sm text-muted-foreground">Add a tournament first.</p>
           ) : (
@@ -269,9 +270,9 @@ function ArchivedMatchesPage() {
             </p>
           ) : !tournamentId ? null : tournamentEligible ? (
             matchesLoading ? (
-              <div className="animate-pulse">
+              <Skeleton className="block bg-transparent p-0 shadow-none ring-0">
                 <FxArchivedListTwoRows />
-              </div>
+              </Skeleton>
             ) : !archivedMatches?.length ? (
             <p className="text-sm text-muted-foreground">
               No archived matches for this tournament.

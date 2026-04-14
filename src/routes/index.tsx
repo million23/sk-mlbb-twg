@@ -92,7 +92,7 @@ function HomePage() {
             >
               <Trophy className="size-7" strokeWidth={1.5} />
             </span>
-            <div className="min-w-0 space-y-3 px-1">
+            <div className="min-w-0 flex flex-col gap-3 px-1">
               <h1 className="font-serif text-3xl leading-[1.12] tracking-tight text-balance sm:text-4xl md:text-[2.5rem]">
                 SK MLBB Tournament Tracker
               </h1>
@@ -144,7 +144,7 @@ function HomePage() {
 
         <section
           aria-labelledby="browse-heading"
-          className="mt-16 space-y-5 sm:mt-20"
+          className="mt-16 flex flex-col gap-5 sm:mt-20"
         >
           <div className="text-center sm:text-left">
             <h2
@@ -171,7 +171,7 @@ function HomePage() {
                     <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary transition-colors group-hover:border-primary/35 group-hover:bg-primary/15">
                       <Icon className="size-[1.35rem]" aria-hidden />
                     </span>
-                    <span className="min-w-0 flex-1 space-y-1.5">
+                    <span className="min-w-0 flex-1 flex flex-col gap-1.5">
                       <span className="flex items-center justify-between gap-2">
                         <span className="font-semibold text-base leading-tight">
                           {title}

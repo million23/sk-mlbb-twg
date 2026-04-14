@@ -18,6 +18,7 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -336,23 +337,27 @@ function AdminLayoutContent() {
                   sideOffset={4}
                   className="min-w-48"
                 >
-                  <DropdownMenuCheckboxItem
-                    checked={resolvedTheme === "dark"}
-                    onCheckedChange={(checked) => {
-                      setTheme(checked ? "dark" : "light");
-                    }}
-                  >
-                    <Moon className="size-4" aria-hidden />
-                    Dark mode
-                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuGroup>
+                    <DropdownMenuCheckboxItem
+                      checked={resolvedTheme === "dark"}
+                      onCheckedChange={(checked) => {
+                        setTheme(checked ? "dark" : "light");
+                      }}
+                    >
+                      <Moon className="size-4" aria-hidden />
+                      Dark mode
+                    </DropdownMenuCheckboxItem>
+                  </DropdownMenuGroup>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    variant="destructive"
-                    onClick={() => setSignOutOpen(true)}
-                  >
-                    <LogOut className="size-4" />
-                    Sign out
-                  </DropdownMenuItem>
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem
+                      variant="destructive"
+                      onClick={() => setSignOutOpen(true)}
+                    >
+                      <LogOut className="size-4" />
+                      Sign out
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
                 </DropdownMenuContent>
               </DropdownMenu>
             </SidebarMenuItem>

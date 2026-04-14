@@ -102,7 +102,7 @@ function PublicTournamentsPage() {
   });
 
   return (
-    <div className="space-y-10">
+    <div className="flex flex-col gap-10">
       <PublicPageHeader
         eyebrow="Schedule board"
         title="Tournaments"
@@ -142,7 +142,7 @@ function PublicTournamentsPage() {
                     </CardDescription>
                   ) : null}
                 </CardHeader>
-                <CardContent className="space-y-2 border-border/50 border-t border-dashed pt-3 text-muted-foreground text-sm">
+                <CardContent className="flex flex-col gap-2 border-border/50 border-t border-dashed pt-3 text-muted-foreground text-sm">
                   {t.venue ? (
                     <p className="flex items-center gap-2">
                       <MapPin className="size-3.5 shrink-0 text-primary/80" />
