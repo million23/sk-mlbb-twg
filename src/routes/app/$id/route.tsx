@@ -1,3 +1,5 @@
+import { SidebarArchivedPagesMenu } from "@/components/archived-pages-dropdown";
+import { useTheme } from "@/components/theme-provider";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -8,12 +10,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import {
-  Avatar,
-  AvatarFallback,
-} from "@/components/ui/avatar";
-import { useTheme } from "@/components/theme-provider";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -40,12 +38,12 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Spinner } from "@/components/ui/spinner";
-import { SidebarArchivedPagesMenu } from "@/components/archived-pages-dropdown";
 import { usePocketBaseAuth } from "@/hooks/use-pocketbase-auth";
 import { useResolvedTheme } from "@/hooks/use-resolved-theme";
 import { canViewAuditLog } from "@/lib/admin-permissions";
 import { pb } from "@/lib/pocketbase";
 import { queryClient } from "@/lib/query-client";
+import { cn } from "@/lib/utils";
 import { useIsMutating } from "@tanstack/react-query";
 import {
   createFileRoute,
@@ -73,7 +71,6 @@ import {
   UsersRound,
 } from "lucide-react";
 import { useState } from "react";
-import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/app/$id")({
   component: AdminLayout,
@@ -110,11 +107,11 @@ function userDisplay(record: unknown) {
   const displayName = name || email || "Signed in";
   const initials = name
     ? name
-        .split(/\s+/)
-        .filter(Boolean)
-        .map((w) => w[0]?.toUpperCase() ?? "")
-        .join("")
-        .slice(0, 2) || "?"
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((w) => w[0]?.toUpperCase() ?? "")
+      .join("")
+      .slice(0, 2) || "?"
     : email
       ? email.slice(0, 2).toUpperCase()
       : "?";
@@ -138,8 +135,12 @@ function AdminLayoutContent() {
   const visibleFooterNavItems = footerNavItems.filter(
     (item) => item.to !== "/app/$id/audit-logs" || canAudit,
   );
-  const { setOpenMobile, isMobile, open: sidebarOpen, setOpen: setSidebarOpen } =
-    useSidebar();
+  const {
+    setOpenMobile,
+    isMobile,
+    open: sidebarOpen,
+    setOpen: setSidebarOpen,
+  } = useSidebar();
   const mutatingCount = useIsMutating();
   const showInsetTopBar = isMobile || mutatingCount > 0;
   const [signOutOpen, setSignOutOpen] = useState(false);
@@ -191,7 +192,9 @@ function AdminLayoutContent() {
                   <Trophy className="size-4" aria-hidden />
                 </div>
                 <div className="grid min-w-0 flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">SK MLBB Tracker</span>
+                  <span className="truncate font-semibold">
+                    SK MLBB Tracker
+                  </span>
                   <span className="truncate text-xs text-sidebar-foreground/70">
                     Admin
                   </span>
@@ -285,9 +288,7 @@ function AdminLayoutContent() {
                       size="lg"
                       render={<button type="button" />}
                       tooltip={
-                        email
-                          ? `${displayName} · ${email}`
-                          : displayName
+                        email ? `${displayName} · ${email}` : displayName
                       }
                     >
                       <Avatar className="size-8 rounded-lg">

@@ -9,6 +9,10 @@ import type { Collections } from "@/types/pocketbase-types";
 type MatchInput = Partial<
   Omit<Collections["matches"], "id" | "created" | "updated">
 >;
+type CreateManyMatchesInput = {
+  tournamentId: string;
+  matches: MatchInput[];
+};
 
 function invalidateMatches(queryClient: ReturnType<typeof useQueryClient>) {
   queryClient.invalidateQueries({ queryKey: queryKeys.matches });
@@ -191,6 +195,33 @@ export function useMatchMutations() {
     onSettled: () => invalidateMatches(queryClient),
   });
 
+  const createManyMutation = useMutation({
+    mutationFn: async ({ tournamentId, matches }: CreateManyMatchesInput) => {
+      return rateLimited(async () => {
+        const col = getCollection("matches");
+        const created: MatchRecord[] = [];
+        for (const payload of matches) {
+          const row = await col.create(
+            withCreatedAuditFields({
+              ...payload,
+              tournament: tournamentId,
+            }),
+          );
+          created.push(row as MatchRecord);
+        }
+        return created;
+      });
+    },
+    onSettled: (_data, _error, variables) => {
+      const tid = variables?.tournamentId;
+      if (tid) {
+        queryClient.invalidateQueries({ queryKey: [...queryKeys.matches, tid] });
+      } else {
+        invalidateMatches(queryClient);
+      }
+    },
+  });
+
   return {
     create: {
       mutate: createMutation.mutate,
@@ -211,6 +242,11 @@ export function useMatchMutations() {
       mutate: restoreMutation.mutate,
       mutateAsync: restoreMutation.mutateAsync,
       isPending: restoreMutation.isPending,
+    },
+    createMany: {
+      mutate: createManyMutation.mutate,
+      mutateAsync: createManyMutation.mutateAsync,
+      isPending: createManyMutation.isPending,
     },
   };
 }

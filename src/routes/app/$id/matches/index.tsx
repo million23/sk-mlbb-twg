@@ -50,6 +50,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   FxAppMatchesList,
@@ -61,16 +62,18 @@ import {
   type MatchRecord,
   useMatchesForTournament,
 } from "@/hooks/use-matches";
+import { useParticipants } from "@/hooks/use-participants";
 import { useTeams } from "@/hooks/use-teams";
 import { useTournaments } from "@/hooks/use-tournaments";
+import { tournamentAgeGroupFromBirthdate } from "@/lib/age";
 import { getMatchStatusStyle } from "@/lib/match-status";
 import { tournamentLabel } from "@/lib/tournament-label";
 import { cn } from "@/lib/utils";
 import type { Collections } from "@/types/pocketbase-types";
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { ClientResponseError } from "pocketbase";
-import { Archive, Medal, Pencil, Plus, Swords } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { Archive, Medal, Pencil, Plus, Shuffle, Swords } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/$id/matches/")({
@@ -101,11 +104,35 @@ function winnerName(m: MatchRecord): string {
   return m.expand?.winner?.name ?? id;
 }
 
+function shuffledCopy<T>(list: T[]): T[] {
+  const copy = [...list];
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+type AutoMatchBracket = "under18" | "18+";
+type AutoMatchPreviewRow = {
+  teamA: Collections["teams"];
+  teamB: Collections["teams"];
+  round: string;
+  order: number;
+  bestOf: number;
+};
+type AutoMatchPreview = {
+  rows: AutoMatchPreviewRow[];
+  leftOut: Collections["teams"] | null;
+};
+type MatchesAgeCategory = "all" | "under18" | "18+";
+
 function MatchesPage() {
   const params = useParams({ strict: false });
   const appId = (params as { id?: string })?.id ?? "";
   const { data: tournaments, isLoading: tournamentsLoading } = useTournaments();
   const { data: teams } = useTeams();
+  const { data: participants } = useParticipants();
   const [tournamentId, setTournamentId] = useState<string>("");
 
   const sortedTournaments = useMemo(
@@ -140,6 +167,14 @@ function MatchesPage() {
   const [editMatch, setEditMatch] = useState<MatchRecord | null>(null);
   const [resultsMatch, setResultsMatch] = useState<MatchRecord | null>(null);
   const [archiveId, setArchiveId] = useState<string | null>(null);
+  const [autoMatchOpen, setAutoMatchOpen] = useState(false);
+  const [autoMatchPreviewOpen, setAutoMatchPreviewOpen] = useState(false);
+  const [autoMatchBracket, setAutoMatchBracket] =
+    useState<AutoMatchBracket>("under18");
+  const [autoMatchPreview, setAutoMatchPreview] =
+    useState<AutoMatchPreview | null>(null);
+  const [matchesAgeCategory, setMatchesAgeCategory] =
+    useState<MatchesAgeCategory>("all");
 
   useEffect(() => {
     if (tournamentId || !tournaments?.length) return;
@@ -169,10 +204,84 @@ function MatchesPage() {
       errMsg.toLowerCase().includes("wasn't found") ||
       (error instanceof ClientResponseError && error.status === 404));
 
+  const tournamentIds = useMemo(
+    () => sortedTournaments.map((t) => t.id),
+    [sortedTournaments],
+  );
+
+  const teamsForAutoMatches = useMemo(
+    () =>
+      (teams ?? []).filter((t) => t.archived !== true && t.status !== "inactive"),
+    [teams],
+  );
+
+  const teamMajorityBracket = useMemo(() => {
+    const membersByTeam = new Map<
+      string,
+      {
+        under18: number;
+        adults: number;
+        total: number;
+      }
+    >();
+    for (const p of participants ?? []) {
+      const teamId = p.team?.trim();
+      if (!teamId) continue;
+      const current = membersByTeam.get(teamId) ?? {
+        under18: 0,
+        adults: 0,
+        total: 0,
+      };
+      current.total += 1;
+      const ageGroup = tournamentAgeGroupFromBirthdate(p.birthdate);
+      if (ageGroup === "under18") current.under18 += 1;
+      else if (ageGroup === "18+") current.adults += 1;
+      membersByTeam.set(teamId, current);
+    }
+
+    const map = new Map<string, AutoMatchBracket | null>();
+    for (const team of teamsForAutoMatches) {
+      const counts = membersByTeam.get(team.id);
+      if (!counts || counts.total < 1) {
+        map.set(team.id, null);
+        continue;
+      }
+      if (counts.under18 > counts.total / 2) {
+        map.set(team.id, "under18");
+        continue;
+      }
+      if (counts.adults > counts.total / 2) {
+        map.set(team.id, "18+");
+        continue;
+      }
+      map.set(team.id, null);
+    }
+    return map;
+  }, [participants, teamsForAutoMatches]);
+
+  const autoMatchBracketTeams = useMemo(
+    () =>
+      teamsForAutoMatches.filter(
+        (team) => teamMajorityBracket.get(team.id) === autoMatchBracket,
+      ),
+    [autoMatchBracket, teamMajorityBracket, teamsForAutoMatches],
+  );
+
+  const filteredMatchesByAge = useMemo(() => {
+    if (!matches?.length || matchesAgeCategory === "all") return matches ?? [];
+    return matches.filter((m) => {
+      const teamABracket = m.teamA ? teamMajorityBracket.get(m.teamA) : null;
+      const teamBBracket = m.teamB ? teamMajorityBracket.get(m.teamB) : null;
+      return (
+        teamABracket === matchesAgeCategory && teamBBracket === matchesAgeCategory
+      );
+    });
+  }, [matches, matchesAgeCategory, teamMajorityBracket]);
+
   const groupedMatches = useMemo(() => {
-    if (!tournamentEligible || !matches?.length) return [];
+    if (!tournamentEligible || !filteredMatchesByAge.length) return [];
     const map = new Map<string, MatchRecord[]>();
-    for (const m of matches) {
+    for (const m of filteredMatchesByAge) {
       const r = (m.round ?? "").trim() || "General";
       const existing = map.get(r);
       if (existing) existing.push(m);
@@ -182,12 +291,144 @@ function MatchesPage() {
       arr.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     }
     return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
-  }, [matches, tournamentEligible]);
+  }, [filteredMatchesByAge, tournamentEligible]);
 
-  const tournamentIds = useMemo(
-    () => sortedTournaments.map((t) => t.id),
-    [sortedTournaments],
+  const buildAutoMatchPreview = useCallback(
+    (bracket: AutoMatchBracket): AutoMatchPreview | null => {
+      const bracketTeams = teamsForAutoMatches.filter(
+        (team) => teamMajorityBracket.get(team.id) === bracket,
+      );
+      if (bracketTeams.length < 2) return null;
+      const shuffledTeams = shuffledCopy(bracketTeams);
+      const pairCount = Math.floor(shuffledTeams.length / 2);
+      if (pairCount < 1) return null;
+      const highestOrder = (matches ?? []).reduce(
+        (max, row) => Math.max(max, row.order ?? 0),
+        0,
+      );
+      const rows = Array.from({ length: pairCount }, (_, index) => ({
+        teamA: shuffledTeams[index * 2],
+        teamB: shuffledTeams[index * 2 + 1],
+        round: "Round 1",
+        order: highestOrder + index + 1,
+        bestOf: 3,
+      }));
+      return {
+        rows,
+        leftOut:
+          shuffledTeams.length % 2 === 1
+            ? shuffledTeams[shuffledTeams.length - 1]
+            : null,
+      };
+    },
+    [matches, teamMajorityBracket, teamsForAutoMatches],
   );
+
+  const openAutoMatchesDialog = useCallback(() => {
+    setAutoMatchPreview(null);
+    setAutoMatchPreviewOpen(false);
+    setAutoMatchOpen(true);
+  }, []);
+
+  const openAutoMatchPreview = useCallback(() => {
+    const preview = buildAutoMatchPreview(autoMatchBracket);
+    if (!preview) {
+      toast.error("Need at least 2 teams in this age bracket");
+      return;
+    }
+    setAutoMatchPreview(preview);
+    setAutoMatchOpen(false);
+    setAutoMatchPreviewOpen(true);
+  }, [autoMatchBracket, buildAutoMatchPreview]);
+
+  const handleAutoMatches = useCallback(() => {
+    if (!tournamentId || !tournamentEligible) {
+      toast.error("Select an active tournament first");
+      return;
+    }
+    if (!autoMatchPreview || autoMatchPreview.rows.length < 1) {
+      toast.error("Generate a valid preview first");
+      return;
+    }
+    const pairCount = autoMatchPreview.rows.length;
+    const leftOutTeam = autoMatchPreview.leftOut;
+    const payload = autoMatchPreview.rows.map((preview, index) => {
+      const { teamA, teamB } = preview;
+      return {
+        teamA: teamA.id,
+        teamB: teamB.id,
+        round: preview.round.trim() || "Round 1",
+        order: Number.isFinite(preview.order) ? preview.order : index + 1,
+        bestOf: Math.max(1, Number.isFinite(preview.bestOf) ? preview.bestOf : 3),
+        status: "scheduled" as const,
+        matchLabel: `${teamA.name ?? teamA.id} vs ${teamB.name ?? teamB.id}`,
+      };
+    });
+
+    const work = mutations.createMany.mutateAsync({
+      tournamentId,
+      matches: payload,
+    });
+    void toast.promise(work, {
+      loading: `Generating ${pairCount} random match${pairCount === 1 ? "" : "es"}…`,
+      success: () =>
+        leftOutTeam
+          ? `Created ${pairCount} matches. ${leftOutTeam.name ?? "One team"} has no opponent this round.`
+          : `Created ${pairCount} matches.`,
+      error: "Could not auto-generate matches",
+    });
+    setAutoMatchPreviewOpen(false);
+  }, [
+    autoMatchPreview,
+    mutations.createMany,
+    tournamentEligible,
+    tournamentId,
+  ]);
+
+  const updateAutoMatchPreviewRow = useCallback(
+    (
+      index: number,
+      patch: Partial<Pick<AutoMatchPreviewRow, "round" | "order" | "bestOf">>,
+    ) => {
+      setAutoMatchPreview((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          rows: prev.rows.map((row, i) => (i === index ? { ...row, ...patch } : row)),
+        };
+      });
+    },
+    [],
+  );
+
+  const updateAllAutoMatchPreviewRows = useCallback(
+    (patch: Partial<Pick<AutoMatchPreviewRow, "round" | "bestOf">>) => {
+      setAutoMatchPreview((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          rows: prev.rows.map((row) => ({ ...row, ...patch })),
+        };
+      });
+    },
+    [],
+  );
+
+  const autoPreviewRoundValue = useMemo(() => {
+    if (!autoMatchPreview || autoMatchPreview.rows.length < 1) return "";
+    const first = autoMatchPreview.rows[0]?.round ?? "";
+    return autoMatchPreview.rows.every((row) => row.round === first)
+      ? first
+      : "-";
+  }, [autoMatchPreview]);
+
+  const autoPreviewBestOfValue = useMemo(() => {
+    if (!autoMatchPreview || autoMatchPreview.rows.length < 1) return "";
+    const first = autoMatchPreview.rows[0]?.bestOf ?? 3;
+    return autoMatchPreview.rows.every((row) => row.bestOf === first)
+      ? String(first)
+      : "-";
+  }, [autoMatchPreview]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -212,6 +453,19 @@ function MatchesPage() {
             <Archive className="size-4 shrink-0" aria-hidden />
             Archived
           </Link>
+          <Button
+            variant="outline"
+            onClick={openAutoMatchesDialog}
+            disabled={
+              !tournamentEligible ||
+              collectionMissing ||
+              teamsForAutoMatches.length < 2 ||
+              mutations.createMany.isPending
+            }
+          >
+            <Shuffle className="size-4" />
+            Auto matches
+          </Button>
           <Button
             onClick={() => setAddOpen(true)}
             disabled={!tournamentEligible || collectionMissing}
@@ -304,6 +558,45 @@ function MatchesPage() {
         </CardContent>
       </Card>
 
+      {tournamentId && tournamentEligible && !isError ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Age group category</CardTitle>
+            <CardDescription>
+              Toggle matches by team age bracket category.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant={matchesAgeCategory === "all" ? "default" : "outline"}
+                onClick={() => setMatchesAgeCategory("all")}
+              >
+                All
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={matchesAgeCategory === "under18" ? "default" : "outline"}
+                onClick={() => setMatchesAgeCategory("under18")}
+              >
+                Under 18
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={matchesAgeCategory === "18+" ? "default" : "outline"}
+                onClick={() => setMatchesAgeCategory("18+")}
+              >
+                18 and above
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
       {isError && collectionMissing ? (
         <Card className="border-destructive/50 bg-destructive/5">
           <CardHeader>
@@ -346,16 +639,17 @@ function MatchesPage() {
           <Skeleton className="block bg-transparent p-0 shadow-none ring-0">
             <FxAppMatchesList />
           </Skeleton>
-        ) : matches?.length === 0 ? (
+        ) : groupedMatches.length === 0 ? (
         <Empty>
           <EmptyHeader>
             <EmptyMedia variant="icon">
               <Swords className="size-4" />
             </EmptyMedia>
-            <EmptyTitle>No matches yet</EmptyTitle>
+            <EmptyTitle>No matches in this category</EmptyTitle>
             <EmptyDescription>
-              Create matches for this tournament or seed them from your bracket
-              tool.
+              {matchesAgeCategory === "all"
+                ? "Create matches for this tournament or seed them from your bracket tool."
+                : "No matches currently fit this age-group category. Switch category or generate new matches."}
             </EmptyDescription>
           </EmptyHeader>
           <Button
@@ -365,6 +659,17 @@ function MatchesPage() {
           >
             <Plus className="size-4" />
             Add first match
+          </Button>
+          <Button
+            onClick={openAutoMatchesDialog}
+            disabled={
+              !tournamentEligible ||
+              teamsForAutoMatches.length < 2 ||
+              mutations.createMany.isPending
+            }
+          >
+            <Shuffle className="size-4" />
+            Auto matches
           </Button>
         </Empty>
           ) : (
@@ -536,6 +841,249 @@ function MatchesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={autoMatchOpen} onOpenChange={setAutoMatchOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Auto matches</DialogTitle>
+            <DialogDescription>
+              Pick an age bracket. Teams are included only if more than half of
+              their members are in that bracket.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2">
+            <Label>Age bracket</Label>
+            <RadioGroup
+              value={autoMatchBracket}
+              onValueChange={(v) =>
+                setAutoMatchBracket(v as AutoMatchBracket)
+              }
+              className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+            >
+              <Label
+                htmlFor="auto-bracket-under18"
+                className={cn(
+                  "flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-3 transition-colors",
+                  autoMatchBracket === "under18"
+                    ? "border-primary bg-primary/10"
+                    : "border-input bg-transparent hover:bg-muted/40",
+                )}
+              >
+                <RadioGroupItem id="auto-bracket-under18" value="under18" />
+                <span className="flex flex-col leading-tight">
+                  <span className="font-medium">Under 18</span>
+                  <span className="text-sm text-muted-foreground">
+                    Majority minors
+                  </span>
+                </span>
+              </Label>
+              <Label
+                htmlFor="auto-bracket-18plus"
+                className={cn(
+                  "flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-3 transition-colors",
+                  autoMatchBracket === "18+"
+                    ? "border-primary bg-primary/10"
+                    : "border-input bg-transparent hover:bg-muted/40",
+                )}
+              >
+                <RadioGroupItem id="auto-bracket-18plus" value="18+" />
+                <span className="flex flex-col leading-tight">
+                  <span className="font-medium">18 and above</span>
+                  <span className="text-sm text-muted-foreground">
+                    Majority adults
+                  </span>
+                </span>
+              </Label>
+            </RadioGroup>
+            <p className="text-xs text-muted-foreground">
+              Eligible teams: {autoMatchBracketTeams.length}. Teams without a
+              strict majority are skipped.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setAutoMatchOpen(false)}
+              disabled={mutations.createMany.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={openAutoMatchPreview}
+              disabled={mutations.createMany.isPending || autoMatchBracketTeams.length < 2}
+            >
+              Preview matches
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={autoMatchPreviewOpen} onOpenChange={setAutoMatchPreviewOpen}>
+        <DialogContent className="flex max-h-[min(90vh,720px)] flex-col overflow-hidden sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Auto match preview</DialogTitle>
+            <DialogDescription>
+              Review the generated pairings before creating matches.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            {!autoMatchPreview ? (
+              <p className="text-sm text-muted-foreground">No preview available.</p>
+            ) : (
+              <div className="flex flex-col gap-3">
+                <div className="grid grid-cols-1 gap-2 rounded-lg border border-border/70 bg-muted/20 p-3 sm:grid-cols-2">
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs text-muted-foreground">
+                      Round (apply to all)
+                    </Label>
+                    <Input
+                      value={autoPreviewRoundValue}
+                      onChange={(e) =>
+                        updateAllAutoMatchPreviewRows({
+                          round: e.target.value,
+                        })
+                      }
+                      placeholder="Round 1"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs text-muted-foreground">
+                      Best of (apply to all)
+                    </Label>
+                    <Input
+                      inputMode="numeric"
+                      value={autoPreviewBestOfValue}
+                      onChange={(e) => {
+                        const next = e.target.value.trim();
+                        if (next === "-" || next === "") return;
+                        const parsed = Number.parseInt(next, 10);
+                        if (!Number.isFinite(parsed)) return;
+                        updateAllAutoMatchPreviewRows({
+                          bestOf: Math.max(1, parsed),
+                        });
+                      }}
+                      placeholder="3"
+                    />
+                  </div>
+                </div>
+                <div className="overflow-hidden rounded-lg border border-border/70 divide-y divide-border">
+                  {autoMatchPreview.rows.map((row, index) => (
+                    <div
+                      key={`${row.teamA.id}-${row.teamB.id}-${index}`}
+                      className="flex flex-col gap-3 px-3 py-3"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Badge variant="outline" className="font-mono text-xs">
+                          M{index + 1}
+                        </Badge>
+                        <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 text-sm">
+                          <span className="truncate text-right font-medium">
+                            {row.teamA.name ?? row.teamA.id}
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className="h-6 px-2 text-[10px] tracking-wide uppercase text-muted-foreground"
+                          >
+                            VS
+                          </Badge>
+                          <span className="truncate text-left font-medium">
+                            {row.teamB.name ?? row.teamB.id}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                        <div className="flex flex-col gap-1">
+                          <Label className="text-xs text-muted-foreground">
+                            Round
+                          </Label>
+                          <Input
+                            value={row.round}
+                            onChange={(e) =>
+                              updateAutoMatchPreviewRow(index, {
+                                round: e.target.value,
+                              })
+                            }
+                            placeholder="Round 1"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <Label className="text-xs text-muted-foreground">
+                            Order
+                          </Label>
+                          <Input
+                            type="number"
+                            min={1}
+                            value={String(row.order)}
+                            onChange={(e) =>
+                              updateAutoMatchPreviewRow(index, {
+                                order: Number.parseInt(e.target.value, 10) || 1,
+                              })
+                            }
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <Label className="text-xs text-muted-foreground">
+                            Best of
+                          </Label>
+                          <Input
+                            type="number"
+                            min={1}
+                            value={String(row.bestOf)}
+                            onChange={(e) =>
+                              updateAutoMatchPreviewRow(index, {
+                                bestOf: Number.parseInt(e.target.value, 10) || 1,
+                              })
+                            }
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {autoMatchPreview.leftOut ? (
+                  <div className="rounded-lg border border-border/70 bg-muted/20 px-3 py-2 text-sm">
+                    <span className="text-muted-foreground">Unpaired team:</span>{" "}
+                    <span className="font-medium">
+                      {autoMatchPreview.leftOut.name ?? autoMatchPreview.leftOut.id}
+                    </span>
+                  </div>
+                ) : null}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setAutoMatchPreviewOpen(false);
+                setAutoMatchOpen(true);
+              }}
+              disabled={mutations.createMany.isPending}
+            >
+              Back
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setAutoMatchPreview(buildAutoMatchPreview(autoMatchBracket))}
+              disabled={mutations.createMany.isPending}
+            >
+              <Shuffle className="size-4" />
+              Shuffle
+            </Button>
+            <Button
+              onClick={handleAutoMatches}
+              disabled={
+                mutations.createMany.isPending ||
+                !autoMatchPreview ||
+                autoMatchPreview.rows.length < 1
+              }
+            >
+              {mutations.createMany.isPending ? "Generating…" : "Confirm & generate"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
