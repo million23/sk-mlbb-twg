@@ -21,6 +21,7 @@ import { Route as AppIdRouteRouteImport } from './routes/app/$id/route'
 import { Route as AppIdIndexRouteImport } from './routes/app/$id/index'
 import { Route as AppAuthLoginRouteImport } from './routes/app/auth/login'
 import { Route as AppAuthCheckRouteImport } from './routes/app/auth/check'
+import { Route as AppIdTeamStandingRouteImport } from './routes/app/$id/team-standing'
 import { Route as AppIdAuditLogsRouteImport } from './routes/app/$id/audit-logs'
 import { Route as AppIdAdminsRouteImport } from './routes/app/$id/admins'
 import { Route as AppIdTournamentIndexRouteImport } from './routes/app/$id/tournament/index'
@@ -92,6 +93,11 @@ const AppAuthCheckRoute = AppAuthCheckRouteImport.update({
   path: '/app/auth/check',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppIdTeamStandingRoute = AppIdTeamStandingRouteImport.update({
+  id: '/team-standing',
+  path: '/team-standing',
+  getParentRoute: () => AppIdRouteRoute,
+} as any)
 const AppIdAuditLogsRoute = AppIdAuditLogsRouteImport.update({
   id: '/audit-logs',
   path: '/audit-logs',
@@ -156,6 +162,7 @@ export interface FileRoutesByFullPath {
   '/p/': typeof PIndexRoute
   '/app/$id/admins': typeof AppIdAdminsRoute
   '/app/$id/audit-logs': typeof AppIdAuditLogsRoute
+  '/app/$id/team-standing': typeof AppIdTeamStandingRoute
   '/app/auth/check': typeof AppAuthCheckRoute
   '/app/auth/login': typeof AppAuthLoginRoute
   '/app/$id/': typeof AppIdIndexRoute
@@ -178,6 +185,7 @@ export interface FileRoutesByTo {
   '/p': typeof PIndexRoute
   '/app/$id/admins': typeof AppIdAdminsRoute
   '/app/$id/audit-logs': typeof AppIdAuditLogsRoute
+  '/app/$id/team-standing': typeof AppIdTeamStandingRoute
   '/app/auth/check': typeof AppAuthCheckRoute
   '/app/auth/login': typeof AppAuthLoginRoute
   '/app/$id': typeof AppIdIndexRoute
@@ -203,6 +211,7 @@ export interface FileRoutesById {
   '/p/': typeof PIndexRoute
   '/app/$id/admins': typeof AppIdAdminsRoute
   '/app/$id/audit-logs': typeof AppIdAuditLogsRoute
+  '/app/$id/team-standing': typeof AppIdTeamStandingRoute
   '/app/auth/check': typeof AppAuthCheckRoute
   '/app/auth/login': typeof AppAuthLoginRoute
   '/app/$id/': typeof AppIdIndexRoute
@@ -229,6 +238,7 @@ export interface FileRouteTypes {
     | '/p/'
     | '/app/$id/admins'
     | '/app/$id/audit-logs'
+    | '/app/$id/team-standing'
     | '/app/auth/check'
     | '/app/auth/login'
     | '/app/$id/'
@@ -251,6 +261,7 @@ export interface FileRouteTypes {
     | '/p'
     | '/app/$id/admins'
     | '/app/$id/audit-logs'
+    | '/app/$id/team-standing'
     | '/app/auth/check'
     | '/app/auth/login'
     | '/app/$id'
@@ -275,6 +286,7 @@ export interface FileRouteTypes {
     | '/p/'
     | '/app/$id/admins'
     | '/app/$id/audit-logs'
+    | '/app/$id/team-standing'
     | '/app/auth/check'
     | '/app/auth/login'
     | '/app/$id/'
@@ -383,6 +395,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAuthCheckRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app/$id/team-standing': {
+      id: '/app/$id/team-standing'
+      path: '/team-standing'
+      fullPath: '/app/$id/team-standing'
+      preLoaderRoute: typeof AppIdTeamStandingRouteImport
+      parentRoute: typeof AppIdRouteRoute
+    }
     '/app/$id/audit-logs': {
       id: '/app/$id/audit-logs'
       path: '/audit-logs'
@@ -478,6 +497,7 @@ const PRouteRouteWithChildren =
 interface AppIdRouteRouteChildren {
   AppIdAdminsRoute: typeof AppIdAdminsRoute
   AppIdAuditLogsRoute: typeof AppIdAuditLogsRoute
+  AppIdTeamStandingRoute: typeof AppIdTeamStandingRoute
   AppIdIndexRoute: typeof AppIdIndexRoute
   AppIdMatchesArchivedRoute: typeof AppIdMatchesArchivedRoute
   AppIdParticipantsArchivedRoute: typeof AppIdParticipantsArchivedRoute
@@ -492,6 +512,7 @@ interface AppIdRouteRouteChildren {
 const AppIdRouteRouteChildren: AppIdRouteRouteChildren = {
   AppIdAdminsRoute: AppIdAdminsRoute,
   AppIdAuditLogsRoute: AppIdAuditLogsRoute,
+  AppIdTeamStandingRoute: AppIdTeamStandingRoute,
   AppIdIndexRoute: AppIdIndexRoute,
   AppIdMatchesArchivedRoute: AppIdMatchesArchivedRoute,
   AppIdParticipantsArchivedRoute: AppIdParticipantsArchivedRoute,

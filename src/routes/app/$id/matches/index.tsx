@@ -682,6 +682,8 @@ function MatchesPage() {
               <div className="overflow-hidden rounded-lg border border-border divide-y divide-border">
                 {rows.map((m) => {
                   const st = getMatchStatusStyle(m.status);
+                  const teamAName = teamName(m, "A");
+                  const teamBName = teamName(m, "B");
                   return (
                     <div
                       key={m.id}
@@ -689,12 +691,30 @@ function MatchesPage() {
                     >
                       <div className="min-w-0 flex-1 flex flex-col gap-1">
                         <p className="font-medium text-sm">
-                          {m.matchLabel?.trim() ||
-                            `${teamName(m, "A")} vs ${teamName(m, "B")}`}
+                          {m.matchLabel?.trim() ? (
+                            m.matchLabel.trim()
+                          ) : (
+                            <span className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
+                              <span className="truncate text-right">
+                                {teamAName}
+                              </span>
+                              <Badge
+                                variant="outline"
+                                className="h-5 px-1.5 text-[10px] tracking-wide uppercase"
+                              >
+                                VS
+                              </Badge>
+                              <span className="truncate text-left">
+                                {teamBName}
+                              </span>
+                            </span>
+                          )}
                         </p>
                         <p className="text-muted-foreground text-xs">
-                          {teamName(m, "A")} · {teamName(m, "B")}
-                          {m.bestOf != null ? ` · Bo${m.bestOf}` : ""}
+                          {(m.round?.trim() || "General") +
+                            " · " +
+                            `Order ${m.order ?? 0}` +
+                            (m.bestOf != null ? ` · Bo${m.bestOf}` : "")}
                         </p>
                         {m.winner ? (
                           <p className="text-xs font-medium text-success">
@@ -1368,15 +1388,25 @@ function MatchResultsDialog({
 
   const teamALabel = match ? teamName(match, "A") : "Team A";
   const teamBLabel = match ? teamName(match, "B") : "Team B";
+  const bestOfLimit = match?.bestOf ?? 0;
   const headline =
     match?.matchLabel?.trim() ||
     (match ? `${teamALabel} vs ${teamBLabel}` : "");
 
   const handleSave = () => {
     if (isSubmitting) return;
+    const parsedScoreA = Math.max(0, Number.parseInt(scoreA, 10) || 0);
+    const parsedScoreB = Math.max(0, Number.parseInt(scoreB, 10) || 0);
+    if (
+      bestOfLimit > 0 &&
+      (parsedScoreA > bestOfLimit || parsedScoreB > bestOfLimit)
+    ) {
+      toast.error(`Score cannot exceed Best of ${bestOfLimit}`);
+      return;
+    }
     onSubmit({
-      scoreA: Number.parseInt(scoreA, 10) || 0,
-      scoreB: Number.parseInt(scoreB, 10) || 0,
+      scoreA: parsedScoreA,
+      scoreB: parsedScoreB,
       winner: winner || undefined,
       status: "completed",
     });
@@ -1400,6 +1430,7 @@ function MatchResultsDialog({
                 id="r-sa"
                 type="number"
                 min={0}
+                max={bestOfLimit > 0 ? bestOfLimit : undefined}
                 value={scoreA}
                 onChange={(e) => setScoreA(e.target.value)}
               />
@@ -1410,6 +1441,7 @@ function MatchResultsDialog({
                 id="r-sb"
                 type="number"
                 min={0}
+                max={bestOfLimit > 0 ? bestOfLimit : undefined}
                 value={scoreB}
                 onChange={(e) => setScoreB(e.target.value)}
               />

@@ -58,6 +58,7 @@ import {
 import {
   ChevronsUpDown,
   LayoutDashboard,
+  ListOrdered,
   LogOut,
   Menu,
   Moon,
@@ -87,9 +88,10 @@ export const Route = createFileRoute("/app/$id")({
 });
 
 const primaryNavItems = [
-  { to: "/app/$id/", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/app/$id", label: "Dashboard", icon: LayoutDashboard },
   { to: "/app/$id/participants", label: "Participants", icon: Users },
   { to: "/app/$id/teams", label: "Teams", icon: UsersRound },
+  { to: "/app/$id/team-standing", label: "Team Standing", icon: ListOrdered },
   { to: "/app/$id/tournament", label: "Tournament", icon: Trophy },
   { to: "/app/$id/matches", label: "Matches", icon: Swords },
 ] as const;
@@ -179,7 +181,7 @@ function AdminLayoutContent() {
                 size="lg"
                 render={
                   <Link
-                    to="/app/$id/"
+                    to="/app/$id"
                     params={{ id }}
                     activeOptions={{ exact: true }}
                     onClick={closeMobileSidebar}
@@ -219,7 +221,7 @@ function AdminLayoutContent() {
                         <Link
                           to={item.to as ToPathOption}
                           params={{ id }}
-                          activeOptions={{ exact: item.to === "/app/$id/" }}
+                          activeOptions={{ exact: item.to === "/app/$id" }}
                           onClick={closeMobileSidebar}
                         />
                       }
@@ -248,7 +250,7 @@ function AdminLayoutContent() {
                     <Link
                       to={item.to as ToPathOption}
                       params={{ id }}
-                      activeOptions={{ exact: item.to === "/app/$id/" }}
+                      activeOptions={{ exact: true }}
                       onClick={closeMobileSidebar}
                     />
                   }
