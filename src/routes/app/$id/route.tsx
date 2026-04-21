@@ -163,8 +163,19 @@ function AdminLayoutContent() {
   const isActive = (path: string) => {
     const resolved = path.replace("$id", id).replace(/\/$/, "");
     const pathNorm = location.pathname.replace(/\/$/, "") || "/";
-    if (path === "/app/$id/") return pathNorm === `/app/${id}`;
-    return pathNorm === resolved || pathNorm.startsWith(resolved + "/");
+    if (path === "/app/$id" || path === "/app/$id/") {
+      return pathNorm === `/app/${id}`;
+    }
+    if (pathNorm === resolved) return true;
+    const isArchivedPath = /\/archived(?:\/|$)/.test(pathNorm);
+    const primaryWithArchivedPages = new Set([
+      "/app/$id/participants",
+      "/app/$id/teams",
+      "/app/$id/tournament",
+      "/app/$id/matches",
+    ]);
+    if (isArchivedPath && primaryWithArchivedPages.has(path)) return false;
+    return pathNorm.startsWith(resolved + "/");
   };
 
   const { displayName, email, initials } = userDisplay(record);
