@@ -26,6 +26,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
+import {
   Empty,
   EmptyDescription,
   EmptyHeader,
@@ -51,12 +59,30 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   FxAppMatchesList,
   FxAppMatchesTournamentSelect,
 } from "@/lib/loading-placeholders";
 import { Textarea } from "@/components/ui/textarea";
+import { useMatchResultMutations } from "@/hooks/use-match-result-mutations";
+import { useMatchResultsForMatch } from "@/hooks/use-match-results";
 import { useMatchMutations } from "@/hooks/use-match-mutations";
 import {
   type MatchRecord,
@@ -72,9 +98,19 @@ import { cn } from "@/lib/utils";
 import type { Collections } from "@/types/pocketbase-types";
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { ClientResponseError } from "pocketbase";
-import { Archive, Medal, Pencil, Plus, Shuffle, Swords } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Archive,
+  BarChart3,
+  Check,
+  Medal,
+  Pencil,
+  Plus,
+  Shuffle,
+  Swords,
+} from "lucide-react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export const Route = createFileRoute("/app/$id/matches/")({
   component: MatchesPage,
@@ -130,6 +166,7 @@ type MatchesAgeCategory = "all" | "under18" | "18+";
 function MatchesPage() {
   const params = useParams({ strict: false });
   const appId = (params as { id?: string })?.id ?? "";
+  const isMobile = useIsMobile();
   const { data: tournaments, isLoading: tournamentsLoading } = useTournaments();
   const { data: teams } = useTeams();
   const { data: participants } = useParticipants();
@@ -166,6 +203,7 @@ function MatchesPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [editMatch, setEditMatch] = useState<MatchRecord | null>(null);
   const [resultsMatch, setResultsMatch] = useState<MatchRecord | null>(null);
+  const [matchStatsMatch, setMatchStatsMatch] = useState<MatchRecord | null>(null);
   const [archiveId, setArchiveId] = useState<string | null>(null);
   const [autoMatchOpen, setAutoMatchOpen] = useState(false);
   const [autoMatchPreviewOpen, setAutoMatchPreviewOpen] = useState(false);
@@ -743,6 +781,14 @@ function MatchesPage() {
                         <Button
                           variant="ghost"
                           size="icon-sm"
+                          onClick={() => setMatchStatsMatch(m)}
+                          title="Add/edit match result stats"
+                        >
+                          <BarChart3 className="size-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
                           onClick={() => setEditMatch(m)}
                           title="Edit match details"
                         >
@@ -828,6 +874,13 @@ function MatchesPage() {
         }}
       />
 
+      <MatchStatsDialog
+        open={!!matchStatsMatch}
+        onOpenChange={(o) => !o && setMatchStatsMatch(null)}
+        match={matchStatsMatch}
+        participants={participants ?? []}
+      />
+
       <AlertDialog open={!!archiveId} onOpenChange={() => setArchiveId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -862,248 +915,501 @@ function MatchesPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <Dialog open={autoMatchOpen} onOpenChange={setAutoMatchOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Auto matches</DialogTitle>
-            <DialogDescription>
-              Pick an age bracket. Teams are included only if more than half of
-              their members are in that bracket.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col gap-2">
-            <Label>Age bracket</Label>
-            <RadioGroup
-              value={autoMatchBracket}
-              onValueChange={(v) =>
-                setAutoMatchBracket(v as AutoMatchBracket)
-              }
-              className="grid grid-cols-1 gap-3 sm:grid-cols-2"
-            >
-              <Label
-                htmlFor="auto-bracket-under18"
-                className={cn(
-                  "flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-3 transition-colors",
-                  autoMatchBracket === "under18"
-                    ? "border-primary bg-primary/10"
-                    : "border-input bg-transparent hover:bg-muted/40",
-                )}
-              >
-                <RadioGroupItem id="auto-bracket-under18" value="under18" />
-                <span className="flex flex-col leading-tight">
-                  <span className="font-medium">Under 18</span>
-                  <span className="text-sm text-muted-foreground">
-                    Majority minors
-                  </span>
-                </span>
-              </Label>
-              <Label
-                htmlFor="auto-bracket-18plus"
-                className={cn(
-                  "flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-3 transition-colors",
-                  autoMatchBracket === "18+"
-                    ? "border-primary bg-primary/10"
-                    : "border-input bg-transparent hover:bg-muted/40",
-                )}
-              >
-                <RadioGroupItem id="auto-bracket-18plus" value="18+" />
-                <span className="flex flex-col leading-tight">
-                  <span className="font-medium">18 and above</span>
-                  <span className="text-sm text-muted-foreground">
-                    Majority adults
-                  </span>
-                </span>
-              </Label>
-            </RadioGroup>
-            <p className="text-xs text-muted-foreground">
-              Eligible teams: {autoMatchBracketTeams.length}. Teams without a
-              strict majority are skipped.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setAutoMatchOpen(false)}
-              disabled={mutations.createMany.isPending}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={openAutoMatchPreview}
-              disabled={mutations.createMany.isPending || autoMatchBracketTeams.length < 2}
-            >
-              Preview matches
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={autoMatchPreviewOpen} onOpenChange={setAutoMatchPreviewOpen}>
-        <DialogContent className="flex max-h-[min(90vh,720px)] flex-col overflow-hidden sm:max-w-xl">
-          <DialogHeader>
-            <DialogTitle>Auto match preview</DialogTitle>
-            <DialogDescription>
-              Review the generated pairings before creating matches.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="min-h-0 flex-1 overflow-y-auto">
-            {!autoMatchPreview ? (
-              <p className="text-sm text-muted-foreground">No preview available.</p>
-            ) : (
-              <div className="flex flex-col gap-3">
-                <div className="grid grid-cols-1 gap-2 rounded-lg border border-border/70 bg-muted/20 p-3 sm:grid-cols-2">
-                  <div className="flex flex-col gap-1">
-                    <Label className="text-xs text-muted-foreground">
-                      Round (apply to all)
-                    </Label>
-                    <Input
-                      value={autoPreviewRoundValue}
-                      onChange={(e) =>
-                        updateAllAutoMatchPreviewRows({
-                          round: e.target.value,
-                        })
-                      }
-                      placeholder="Round 1"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <Label className="text-xs text-muted-foreground">
-                      Best of (apply to all)
-                    </Label>
-                    <Input
-                      inputMode="numeric"
-                      value={autoPreviewBestOfValue}
-                      onChange={(e) => {
-                        const next = e.target.value.trim();
-                        if (next === "-" || next === "") return;
-                        const parsed = Number.parseInt(next, 10);
-                        if (!Number.isFinite(parsed)) return;
-                        updateAllAutoMatchPreviewRows({
-                          bestOf: Math.max(1, parsed),
-                        });
-                      }}
-                      placeholder="3"
-                    />
-                  </div>
-                </div>
-                <div className="overflow-hidden rounded-lg border border-border/70 divide-y divide-border">
-                  {autoMatchPreview.rows.map((row, index) => (
-                    <div
-                      key={`${row.teamA.id}-${row.teamB.id}-${index}`}
-                      className="flex flex-col gap-3 px-3 py-3"
-                    >
-                      <div className="flex items-center gap-3">
-                        <Badge variant="outline" className="font-mono text-xs">
-                          M{index + 1}
-                        </Badge>
-                        <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 text-sm">
-                          <span className="truncate text-right font-medium">
-                            {row.teamA.name ?? row.teamA.id}
-                          </span>
-                          <Badge
-                            variant="outline"
-                            className="h-6 px-2 text-[10px] tracking-wide uppercase text-muted-foreground"
-                          >
-                            VS
-                          </Badge>
-                          <span className="truncate text-left font-medium">
-                            {row.teamB.name ?? row.teamB.id}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                        <div className="flex flex-col gap-1">
-                          <Label className="text-xs text-muted-foreground">
-                            Round
-                          </Label>
-                          <Input
-                            value={row.round}
-                            onChange={(e) =>
-                              updateAutoMatchPreviewRow(index, {
-                                round: e.target.value,
-                              })
-                            }
-                            placeholder="Round 1"
-                          />
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <Label className="text-xs text-muted-foreground">
-                            Order
-                          </Label>
-                          <Input
-                            type="number"
-                            min={1}
-                            value={String(row.order)}
-                            onChange={(e) =>
-                              updateAutoMatchPreviewRow(index, {
-                                order: Number.parseInt(e.target.value, 10) || 1,
-                              })
-                            }
-                          />
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <Label className="text-xs text-muted-foreground">
-                            Best of
-                          </Label>
-                          <Input
-                            type="number"
-                            min={1}
-                            value={String(row.bestOf)}
-                            onChange={(e) =>
-                              updateAutoMatchPreviewRow(index, {
-                                bestOf: Number.parseInt(e.target.value, 10) || 1,
-                              })
-                            }
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                {autoMatchPreview.leftOut ? (
-                  <div className="rounded-lg border border-border/70 bg-muted/20 px-3 py-2 text-sm">
-                    <span className="text-muted-foreground">Unpaired team:</span>{" "}
-                    <span className="font-medium">
-                      {autoMatchPreview.leftOut.name ?? autoMatchPreview.leftOut.id}
+      {isMobile ? (
+        <Drawer open={autoMatchOpen} onOpenChange={setAutoMatchOpen} direction="bottom">
+          <DrawerContent className="max-h-[85vh] flex w-full flex-col overflow-hidden">
+            <DrawerHeader className="shrink-0 px-4 text-left">
+              <DrawerTitle>Auto matches</DrawerTitle>
+              <DrawerDescription>
+                Pick an age bracket. Teams are included only if more than half of
+                their members are in that bracket.
+              </DrawerDescription>
+            </DrawerHeader>
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+              <div className="flex flex-col gap-2">
+                <Label>Age bracket</Label>
+                <RadioGroup
+                  value={autoMatchBracket}
+                  onValueChange={(v) =>
+                    setAutoMatchBracket(v as AutoMatchBracket)
+                  }
+                  className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+                >
+                  <Label
+                    htmlFor="auto-bracket-under18"
+                    className={cn(
+                      "flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-3 transition-colors",
+                      autoMatchBracket === "under18"
+                        ? "border-primary bg-primary/10"
+                        : "border-input bg-transparent hover:bg-muted/40",
+                    )}
+                  >
+                    <RadioGroupItem id="auto-bracket-under18" value="under18" />
+                    <span className="flex flex-col leading-tight">
+                      <span className="font-medium">Under 18</span>
+                      <span className="text-sm text-muted-foreground">
+                        Majority minors
+                      </span>
                     </span>
-                  </div>
-                ) : null}
+                  </Label>
+                  <Label
+                    htmlFor="auto-bracket-18plus"
+                    className={cn(
+                      "flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-3 transition-colors",
+                      autoMatchBracket === "18+"
+                        ? "border-primary bg-primary/10"
+                        : "border-input bg-transparent hover:bg-muted/40",
+                    )}
+                  >
+                    <RadioGroupItem id="auto-bracket-18plus" value="18+" />
+                    <span className="flex flex-col leading-tight">
+                      <span className="font-medium">18 and above</span>
+                      <span className="text-sm text-muted-foreground">
+                        Majority adults
+                      </span>
+                    </span>
+                  </Label>
+                </RadioGroup>
+                <p className="text-xs text-muted-foreground">
+                  Eligible teams: {autoMatchBracketTeams.length}. Teams without a
+                  strict majority are skipped.
+                </p>
               </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setAutoMatchPreviewOpen(false);
-                setAutoMatchOpen(true);
-              }}
-              disabled={mutations.createMany.isPending}
-            >
-              Back
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setAutoMatchPreview(buildAutoMatchPreview(autoMatchBracket))}
-              disabled={mutations.createMany.isPending}
-            >
-              <Shuffle className="size-4" />
-              Shuffle
-            </Button>
-            <Button
-              onClick={handleAutoMatches}
-              disabled={
-                mutations.createMany.isPending ||
-                !autoMatchPreview ||
-                autoMatchPreview.rows.length < 1
-              }
-            >
-              {mutations.createMany.isPending ? "Generating…" : "Confirm & generate"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </div>
+            <DrawerFooter className="shrink-0 border-t border-border px-4 pt-3 pb-4">
+              <Button
+                onClick={openAutoMatchPreview}
+                disabled={mutations.createMany.isPending || autoMatchBracketTeams.length < 2}
+              >
+                Preview matches
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setAutoMatchOpen(false)}
+                disabled={mutations.createMany.isPending}
+              >
+                Cancel
+              </Button>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Dialog open={autoMatchOpen} onOpenChange={setAutoMatchOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Auto matches</DialogTitle>
+              <DialogDescription>
+                Pick an age bracket. Teams are included only if more than half of
+                their members are in that bracket.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-2">
+              <Label>Age bracket</Label>
+              <RadioGroup
+                value={autoMatchBracket}
+                onValueChange={(v) =>
+                  setAutoMatchBracket(v as AutoMatchBracket)
+                }
+                className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+              >
+                <Label
+                  htmlFor="auto-bracket-under18"
+                  className={cn(
+                    "flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-3 transition-colors",
+                    autoMatchBracket === "under18"
+                      ? "border-primary bg-primary/10"
+                      : "border-input bg-transparent hover:bg-muted/40",
+                  )}
+                >
+                  <RadioGroupItem id="auto-bracket-under18" value="under18" />
+                  <span className="flex flex-col leading-tight">
+                    <span className="font-medium">Under 18</span>
+                    <span className="text-sm text-muted-foreground">
+                      Majority minors
+                    </span>
+                  </span>
+                </Label>
+                <Label
+                  htmlFor="auto-bracket-18plus"
+                  className={cn(
+                    "flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-3 transition-colors",
+                    autoMatchBracket === "18+"
+                      ? "border-primary bg-primary/10"
+                      : "border-input bg-transparent hover:bg-muted/40",
+                  )}
+                >
+                  <RadioGroupItem id="auto-bracket-18plus" value="18+" />
+                  <span className="flex flex-col leading-tight">
+                    <span className="font-medium">18 and above</span>
+                    <span className="text-sm text-muted-foreground">
+                      Majority adults
+                    </span>
+                  </span>
+                </Label>
+              </RadioGroup>
+              <p className="text-xs text-muted-foreground">
+                Eligible teams: {autoMatchBracketTeams.length}. Teams without a
+                strict majority are skipped.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setAutoMatchOpen(false)}
+                disabled={mutations.createMany.isPending}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={openAutoMatchPreview}
+                disabled={mutations.createMany.isPending || autoMatchBracketTeams.length < 2}
+              >
+                Preview matches
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {isMobile ? (
+        <Drawer
+          open={autoMatchPreviewOpen}
+          onOpenChange={setAutoMatchPreviewOpen}
+          direction="bottom"
+        >
+          <DrawerContent className="flex max-h-[92vh] w-full flex-col overflow-hidden">
+            <DrawerHeader className="shrink-0 px-4 text-left">
+              <DrawerTitle>Auto match preview</DrawerTitle>
+              <DrawerDescription>
+                Review the generated pairings before creating matches.
+              </DrawerDescription>
+            </DrawerHeader>
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+              {!autoMatchPreview ? (
+                <p className="text-sm text-muted-foreground">No preview available.</p>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  <div className="grid grid-cols-1 gap-2 rounded-lg border border-border/70 bg-muted/20 p-3 sm:grid-cols-2">
+                    <div className="flex flex-col gap-1">
+                      <Label className="text-xs text-muted-foreground">
+                        Round (apply to all)
+                      </Label>
+                      <Input
+                        value={autoPreviewRoundValue}
+                        onChange={(e) =>
+                          updateAllAutoMatchPreviewRows({
+                            round: e.target.value,
+                          })
+                        }
+                        placeholder="Round 1"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <Label className="text-xs text-muted-foreground">
+                        Best of (apply to all)
+                      </Label>
+                      <Input
+                        inputMode="numeric"
+                        value={autoPreviewBestOfValue}
+                        onChange={(e) => {
+                          const next = e.target.value.trim();
+                          if (next === "-" || next === "") return;
+                          const parsed = Number.parseInt(next, 10);
+                          if (!Number.isFinite(parsed)) return;
+                          updateAllAutoMatchPreviewRows({
+                            bestOf: Math.max(1, parsed),
+                          });
+                        }}
+                        placeholder="3"
+                      />
+                    </div>
+                  </div>
+                  <div className="overflow-hidden rounded-lg border border-border/70 divide-y divide-border">
+                    {autoMatchPreview.rows.map((row, index) => (
+                      <div
+                        key={`${row.teamA.id}-${row.teamB.id}-${index}`}
+                        className="flex flex-col gap-3 px-3 py-3"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Badge variant="outline" className="font-mono text-xs">
+                            M{index + 1}
+                          </Badge>
+                          <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 text-sm">
+                            <span className="truncate text-right font-medium">
+                              {row.teamA.name ?? row.teamA.id}
+                            </span>
+                            <Badge
+                              variant="outline"
+                              className="h-6 px-2 text-[10px] tracking-wide uppercase text-muted-foreground"
+                            >
+                              VS
+                            </Badge>
+                            <span className="truncate text-left font-medium">
+                              {row.teamB.name ?? row.teamB.id}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                          <div className="flex flex-col gap-1">
+                            <Label className="text-xs text-muted-foreground">
+                              Round
+                            </Label>
+                            <Input
+                              value={row.round}
+                              onChange={(e) =>
+                                updateAutoMatchPreviewRow(index, {
+                                  round: e.target.value,
+                                })
+                              }
+                              placeholder="Round 1"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <Label className="text-xs text-muted-foreground">
+                              Order
+                            </Label>
+                            <Input
+                              type="number"
+                              min={1}
+                              value={String(row.order)}
+                              onChange={(e) =>
+                                updateAutoMatchPreviewRow(index, {
+                                  order: Number.parseInt(e.target.value, 10) || 1,
+                                })
+                              }
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <Label className="text-xs text-muted-foreground">
+                              Best of
+                            </Label>
+                            <Input
+                              type="number"
+                              min={1}
+                              value={String(row.bestOf)}
+                              onChange={(e) =>
+                                updateAutoMatchPreviewRow(index, {
+                                  bestOf: Number.parseInt(e.target.value, 10) || 1,
+                                })
+                              }
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {autoMatchPreview.leftOut ? (
+                    <div className="rounded-lg border border-border/70 bg-muted/20 px-3 py-2 text-sm">
+                      <span className="text-muted-foreground">Unpaired team:</span>{" "}
+                      <span className="font-medium">
+                        {autoMatchPreview.leftOut.name ?? autoMatchPreview.leftOut.id}
+                      </span>
+                    </div>
+                  ) : null}
+                </div>
+              )}
+            </div>
+            <DrawerFooter className="shrink-0 border-t border-border px-4 pt-3 pb-4">
+              <Button
+                onClick={handleAutoMatches}
+                disabled={
+                  mutations.createMany.isPending ||
+                  !autoMatchPreview ||
+                  autoMatchPreview.rows.length < 1
+                }
+              >
+                {mutations.createMany.isPending ? "Generating…" : "Confirm & generate"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setAutoMatchPreview(buildAutoMatchPreview(autoMatchBracket))}
+                disabled={mutations.createMany.isPending}
+              >
+                <Shuffle className="size-4" />
+                Shuffle
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setAutoMatchPreviewOpen(false);
+                  setAutoMatchOpen(true);
+                }}
+                disabled={mutations.createMany.isPending}
+              >
+                Back
+              </Button>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Dialog open={autoMatchPreviewOpen} onOpenChange={setAutoMatchPreviewOpen}>
+          <DialogContent className="flex max-h-[min(90vh,720px)] flex-col overflow-hidden sm:max-w-xl">
+            <DialogHeader>
+              <DialogTitle>Auto match preview</DialogTitle>
+              <DialogDescription>
+                Review the generated pairings before creating matches.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              {!autoMatchPreview ? (
+                <p className="text-sm text-muted-foreground">No preview available.</p>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  <div className="grid grid-cols-1 gap-2 rounded-lg border border-border/70 bg-muted/20 p-3 sm:grid-cols-2">
+                    <div className="flex flex-col gap-1">
+                      <Label className="text-xs text-muted-foreground">
+                        Round (apply to all)
+                      </Label>
+                      <Input
+                        value={autoPreviewRoundValue}
+                        onChange={(e) =>
+                          updateAllAutoMatchPreviewRows({
+                            round: e.target.value,
+                          })
+                        }
+                        placeholder="Round 1"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <Label className="text-xs text-muted-foreground">
+                        Best of (apply to all)
+                      </Label>
+                      <Input
+                        inputMode="numeric"
+                        value={autoPreviewBestOfValue}
+                        onChange={(e) => {
+                          const next = e.target.value.trim();
+                          if (next === "-" || next === "") return;
+                          const parsed = Number.parseInt(next, 10);
+                          if (!Number.isFinite(parsed)) return;
+                          updateAllAutoMatchPreviewRows({
+                            bestOf: Math.max(1, parsed),
+                          });
+                        }}
+                        placeholder="3"
+                      />
+                    </div>
+                  </div>
+                  <div className="overflow-hidden rounded-lg border border-border/70 divide-y divide-border">
+                    {autoMatchPreview.rows.map((row, index) => (
+                      <div
+                        key={`${row.teamA.id}-${row.teamB.id}-${index}`}
+                        className="flex flex-col gap-3 px-3 py-3"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Badge variant="outline" className="font-mono text-xs">
+                            M{index + 1}
+                          </Badge>
+                          <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 text-sm">
+                            <span className="truncate text-right font-medium">
+                              {row.teamA.name ?? row.teamA.id}
+                            </span>
+                            <Badge
+                              variant="outline"
+                              className="h-6 px-2 text-[10px] tracking-wide uppercase text-muted-foreground"
+                            >
+                              VS
+                            </Badge>
+                            <span className="truncate text-left font-medium">
+                              {row.teamB.name ?? row.teamB.id}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                          <div className="flex flex-col gap-1">
+                            <Label className="text-xs text-muted-foreground">
+                              Round
+                            </Label>
+                            <Input
+                              value={row.round}
+                              onChange={(e) =>
+                                updateAutoMatchPreviewRow(index, {
+                                  round: e.target.value,
+                                })
+                              }
+                              placeholder="Round 1"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <Label className="text-xs text-muted-foreground">
+                              Order
+                            </Label>
+                            <Input
+                              type="number"
+                              min={1}
+                              value={String(row.order)}
+                              onChange={(e) =>
+                                updateAutoMatchPreviewRow(index, {
+                                  order: Number.parseInt(e.target.value, 10) || 1,
+                                })
+                              }
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <Label className="text-xs text-muted-foreground">
+                              Best of
+                            </Label>
+                            <Input
+                              type="number"
+                              min={1}
+                              value={String(row.bestOf)}
+                              onChange={(e) =>
+                                updateAutoMatchPreviewRow(index, {
+                                  bestOf: Number.parseInt(e.target.value, 10) || 1,
+                                })
+                              }
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {autoMatchPreview.leftOut ? (
+                    <div className="rounded-lg border border-border/70 bg-muted/20 px-3 py-2 text-sm">
+                      <span className="text-muted-foreground">Unpaired team:</span>{" "}
+                      <span className="font-medium">
+                        {autoMatchPreview.leftOut.name ?? autoMatchPreview.leftOut.id}
+                      </span>
+                    </div>
+                  ) : null}
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setAutoMatchPreviewOpen(false);
+                  setAutoMatchOpen(true);
+                }}
+                disabled={mutations.createMany.isPending}
+              >
+                Back
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setAutoMatchPreview(buildAutoMatchPreview(autoMatchBracket))}
+                disabled={mutations.createMany.isPending}
+              >
+                <Shuffle className="size-4" />
+                Shuffle
+              </Button>
+              <Button
+                onClick={handleAutoMatches}
+                disabled={
+                  mutations.createMany.isPending ||
+                  !autoMatchPreview ||
+                  autoMatchPreview.rows.length < 1
+                }
+              >
+                {mutations.createMany.isPending ? "Generating…" : "Confirm & generate"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
@@ -1125,6 +1431,7 @@ function MatchFormDialog({
   isSubmitting?: boolean;
   onSubmit: (data: Partial<Collections["matches"]>) => void;
 }) {
+  const isMobile = useIsMobile();
   const [matchLabel, setMatchLabel] = useState("");
   const [round, setRound] = useState("");
   const [order, setOrder] = useState("0");
@@ -1177,6 +1484,189 @@ function MatchFormDialog({
     });
   };
 
+  const formBody = (
+    <>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="m-label">Label</Label>
+        <Input
+          id="m-label"
+          value={matchLabel}
+          onChange={(e) => setMatchLabel(e.target.value)}
+          placeholder="e.g. Upper bracket — semifinal"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-3">
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="m-round">Round</Label>
+          <Input
+            id="m-round"
+            value={round}
+            onChange={(e) => setRound(e.target.value)}
+            placeholder="Round 1"
+          />
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="m-order">Order</Label>
+          <Input
+            id="m-order"
+            type="number"
+            min={0}
+            value={order}
+            onChange={(e) => setOrder(e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="m-bo">Best of</Label>
+        <Input
+          id="m-bo"
+          type="number"
+          min={1}
+          value={bestOf}
+          onChange={(e) => setBestOf(e.target.value)}
+        />
+      </div>
+
+      <div className="flex flex-col gap-3 border-t border-border pt-4">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          Teams
+        </p>
+        <div className="flex flex-col gap-2">
+          <Label>Team A</Label>
+          <Select
+            value={teamA || "__none__"}
+            onValueChange={(v) => setTeamA(v === "__none__" || v == null ? "" : v)}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select team">
+                {(value) =>
+                  value && value !== "__none__"
+                    ? (teams.find((t) => t.id === value)?.name ?? value)
+                    : "TBD"
+                }
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent disablePortal={isMobile}>
+              <SelectGroup>
+                <SelectItem value="__none__">TBD</SelectItem>
+                {teams.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.name ?? t.id}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label>Team B</Label>
+          <Select
+            value={teamB || "__none__"}
+            onValueChange={(v) => setTeamB(v === "__none__" || v == null ? "" : v)}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select team">
+                {(value) =>
+                  value && value !== "__none__"
+                    ? (teams.find((t) => t.id === value)?.name ?? value)
+                    : "TBD"
+                }
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent disablePortal={isMobile}>
+              <SelectGroup>
+                <SelectItem value="__none__">TBD</SelectItem>
+                {teams.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.name ?? t.id}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {initial ? (
+        <div className="flex flex-col gap-2 border-t border-border pt-4">
+          <Label>Status</Label>
+          <Select
+            value={status}
+            onValueChange={(v) =>
+              setStatus(v as NonNullable<Collections["matches"]["status"]>)
+            }
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Status">
+                {(value) =>
+                  value
+                    ? (MATCH_STATUSES.find((x) => x.value === value)
+                        ?.label ?? String(value))
+                    : null
+                }
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent disablePortal={isMobile}>
+              <SelectGroup>
+                {MATCH_STATUSES.map((s) => (
+                  <SelectItem key={s.value} value={s.value}>
+                    {s.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
+      ) : null}
+
+      <div className="flex flex-col gap-2 border-t border-border pt-4">
+        <Label htmlFor="m-notes">Notes</Label>
+        <Textarea
+          id="m-notes"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="Optional staff notes"
+          rows={3}
+          className="min-h-18 resize-y"
+        />
+      </div>
+    </>
+  );
+
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={onOpenChange} direction="bottom">
+        <DrawerContent className="flex max-h-[92vh] w-full flex-col overflow-hidden">
+          <DrawerHeader className="shrink-0 px-4 text-left">
+            <DrawerTitle>{initial ? "Edit match" : "Add match"}</DrawerTitle>
+            <DrawerDescription>
+              {initial
+                ? "Bracket slot, teams, and schedule metadata. Use the medal button on the list for scores and winner."
+                : "Create a bracket row for the selected tournament."}
+            </DrawerDescription>
+          </DrawerHeader>
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+            <div className="flex flex-col gap-5">{formBody}</div>
+          </div>
+          <DrawerFooter className="shrink-0 border-t border-border px-4 pt-3 pb-4">
+            <Button onClick={handleSave} disabled={isSubmitting}>
+              {isSubmitting ? "Saving…" : initial ? "Save" : "Create"}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[min(90vh,720px)] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
@@ -1188,156 +1678,9 @@ function MatchFormDialog({
               : "Create a bracket row for the selected tournament."}
           </DialogDescription>
         </DialogHeader>
-
         <div className="min-h-0 flex-1 flex flex-col gap-5 overflow-y-auto px-6 py-4">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="m-label">Label</Label>
-            <Input
-              id="m-label"
-              value={matchLabel}
-              onChange={(e) => setMatchLabel(e.target.value)}
-              placeholder="e.g. Upper bracket — semifinal"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-3">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="m-round">Round</Label>
-              <Input
-                id="m-round"
-                value={round}
-                onChange={(e) => setRound(e.target.value)}
-                placeholder="Round 1"
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="m-order">Order</Label>
-              <Input
-                id="m-order"
-                type="number"
-                min={0}
-                value={order}
-                onChange={(e) => setOrder(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="m-bo">Best of</Label>
-            <Input
-              id="m-bo"
-              type="number"
-              min={1}
-              value={bestOf}
-              onChange={(e) => setBestOf(e.target.value)}
-            />
-          </div>
-
-          <div className="flex flex-col gap-3 border-t border-border pt-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Teams
-            </p>
-            <div className="flex flex-col gap-2">
-              <Label>Team A</Label>
-              <Select
-                value={teamA || "__none__"}
-                onValueChange={(v) => setTeamA(v === "__none__" ? "" : v)}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select team">
-                    {(value) =>
-                      value && value !== "__none__"
-                        ? (teams.find((t) => t.id === value)?.name ?? value)
-                        : "TBD"
-                    }
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="__none__">TBD</SelectItem>
-                    {teams.map((t) => (
-                      <SelectItem key={t.id} value={t.id}>
-                        {t.name ?? t.id}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label>Team B</Label>
-              <Select
-                value={teamB || "__none__"}
-                onValueChange={(v) => setTeamB(v === "__none__" ? "" : v)}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select team">
-                    {(value) =>
-                      value && value !== "__none__"
-                        ? (teams.find((t) => t.id === value)?.name ?? value)
-                        : "TBD"
-                    }
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="__none__">TBD</SelectItem>
-                    {teams.map((t) => (
-                      <SelectItem key={t.id} value={t.id}>
-                        {t.name ?? t.id}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {initial ? (
-            <div className="flex flex-col gap-2 border-t border-border pt-4">
-              <Label>Status</Label>
-              <Select
-                value={status}
-                onValueChange={(v) =>
-                  setStatus(v as NonNullable<Collections["matches"]["status"]>)
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Status">
-                    {(value) =>
-                      value
-                        ? (MATCH_STATUSES.find((x) => x.value === value)
-                            ?.label ?? String(value))
-                        : null
-                    }
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {MATCH_STATUSES.map((s) => (
-                      <SelectItem key={s.value} value={s.value}>
-                        {s.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-          ) : null}
-
-          <div className="flex flex-col gap-2 border-t border-border pt-4">
-            <Label htmlFor="m-notes">Notes</Label>
-            <Textarea
-              id="m-notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Optional staff notes"
-              rows={3}
-              className="min-h-18 resize-y"
-            />
-          </div>
+          {formBody}
         </div>
-
         <DialogFooter className="mx-0! mb-0! mt-auto shrink-0 flex-col-reverse gap-3 border-t border-border bg-muted/40 px-6 pt-4 pb-5 sm:flex-row sm:justify-end">
           <Button
             variant="outline"
@@ -1375,6 +1718,7 @@ function MatchResultsDialog({
     >
   ) => void;
 }) {
+  const isMobile = useIsMobile();
   const [scoreA, setScoreA] = useState("0");
   const [scoreB, setScoreB] = useState("0");
   const [winner, setWinner] = useState("");
@@ -1412,6 +1756,98 @@ function MatchResultsDialog({
     });
   };
 
+  const resultsBody = (
+    <>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="r-sa">{teamALabel} — wins</Label>
+          <Input
+            id="r-sa"
+            type="number"
+            min={0}
+            max={bestOfLimit > 0 ? bestOfLimit : undefined}
+            value={scoreA}
+            onChange={(e) => setScoreA(e.target.value)}
+          />
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="r-sb">{teamBLabel} — wins</Label>
+          <Input
+            id="r-sb"
+            type="number"
+            min={0}
+            max={bestOfLimit > 0 ? bestOfLimit : undefined}
+            value={scoreB}
+            onChange={(e) => setScoreB(e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label>Winner</Label>
+        <Select
+          value={winner || "__none__"}
+          onValueChange={(v) => setWinner(v === "__none__" || v == null ? "" : v)}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Winner">
+              {(value) =>
+                value && value !== "__none__"
+                  ? (teams.find((t) => t.id === value)?.name ?? value)
+                  : "None"
+              }
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent disablePortal={isMobile}>
+            <SelectGroup>
+              <SelectItem value="__none__">None</SelectItem>
+              {match?.teamA ? (
+                <SelectItem value={match.teamA}>{teamALabel}</SelectItem>
+              ) : null}
+              {match?.teamB ? (
+                <SelectItem value={match.teamB}>{teamBLabel}</SelectItem>
+              ) : null}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">
+          Only the two sides in this match are listed. Clear winner with
+          &quot;None&quot;.
+        </p>
+      </div>
+    </>
+  );
+
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={onOpenChange} direction="bottom">
+        <DrawerContent className="flex max-h-[85vh] w-full flex-col overflow-hidden">
+          <DrawerHeader className="shrink-0 px-4 text-left">
+            <DrawerTitle>Score & winner</DrawerTitle>
+            <DrawerDescription className="line-clamp-2">
+              {headline || "Match result"}
+            </DrawerDescription>
+          </DrawerHeader>
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+            <div className="flex flex-col gap-5">{resultsBody}</div>
+          </div>
+          <DrawerFooter className="shrink-0 border-t border-border px-4 pt-3 pb-4">
+            <Button onClick={handleSave} disabled={isSubmitting || !match}>
+              {isSubmitting ? "Saving…" : "Save result"}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[min(90vh,560px)] flex-col gap-0 overflow-hidden p-0 sm:max-w-md">
@@ -1421,67 +1857,7 @@ function MatchResultsDialog({
             {headline || "Match result"}
           </DialogDescription>
         </DialogHeader>
-
-        <div className="flex flex-col gap-5 px-6 py-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="r-sa">{teamALabel} — wins</Label>
-              <Input
-                id="r-sa"
-                type="number"
-                min={0}
-                max={bestOfLimit > 0 ? bestOfLimit : undefined}
-                value={scoreA}
-                onChange={(e) => setScoreA(e.target.value)}
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="r-sb">{teamBLabel} — wins</Label>
-              <Input
-                id="r-sb"
-                type="number"
-                min={0}
-                max={bestOfLimit > 0 ? bestOfLimit : undefined}
-                value={scoreB}
-                onChange={(e) => setScoreB(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label>Winner</Label>
-            <Select
-              value={winner || "__none__"}
-              onValueChange={(v) => setWinner(v === "__none__" ? "" : v)}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Winner">
-                  {(value) =>
-                    value && value !== "__none__"
-                      ? (teams.find((t) => t.id === value)?.name ?? value)
-                      : "None"
-                  }
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectItem value="__none__">None</SelectItem>
-                  {match?.teamA ? (
-                    <SelectItem value={match.teamA}>{teamALabel}</SelectItem>
-                  ) : null}
-                  {match?.teamB ? (
-                    <SelectItem value={match.teamB}>{teamBLabel}</SelectItem>
-                  ) : null}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              Only the two sides in this match are listed. Clear winner with
-              &quot;None&quot;.
-            </p>
-          </div>
-        </div>
-
+        <div className="flex flex-col gap-5 px-6 py-4">{resultsBody}</div>
         <DialogFooter className="mx-0! mb-0! mt-auto shrink-0 flex-col-reverse gap-3 border-t border-border bg-muted/40 px-6 pt-4 pb-5 sm:flex-row sm:justify-end">
           <Button
             variant="outline"
@@ -1496,5 +1872,507 @@ function MatchResultsDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+const MATCH_RESULT_LANES: {
+  value: NonNullable<Collections["match_result"]["lane"]>;
+  label: string;
+}[] = [
+  { value: "mid", label: "Mid" },
+  { value: "gold", label: "Gold" },
+  { value: "exp", label: "Exp" },
+  { value: "support", label: "Support" },
+  { value: "jungle", label: "Jungle" },
+];
+
+function MatchStatsDialog({
+  open,
+  onOpenChange,
+  match,
+  participants,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  match: MatchRecord | null;
+  participants: Collections["participants"][];
+}) {
+  const mutations = useMatchResultMutations();
+  const { data: matchResults, isLoading } = useMatchResultsForMatch(match?.id, {
+    enabled: open,
+  });
+  const headline =
+    match?.matchLabel?.trim() ||
+    (match ? `${teamName(match, "A")} vs ${teamName(match, "B")}` : "");
+  const [rows, setRows] = useState<
+    Array<{
+      playerId: string;
+      playerLabel: string;
+      teamLabel: string;
+      resultId?: string;
+      lane: string;
+      kda: string;
+      rating: string;
+      gold: string;
+      isEditing: boolean;
+      dirty: boolean;
+    }>
+  >([]);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const laneLabelByValue = useMemo(
+    () =>
+      new Map(
+        MATCH_RESULT_LANES.map((laneOption) => [laneOption.value, laneOption.label]),
+      ),
+    [],
+  );
+
+  const initialRows = useMemo(() => {
+    if (!match) return [];
+    const matchedTeamIds = new Set([match.teamA, match.teamB].filter(Boolean));
+    const resultsByPlayer = new Map(
+      (matchResults ?? [])
+        .filter((result) => Boolean(result.player))
+        .map((result) => [result.player as string, result]),
+    );
+
+    return [...participants]
+      .filter(
+        (p) =>
+          p.archived !== true &&
+          matchedTeamIds.size > 0 &&
+          Boolean(p.team) &&
+          matchedTeamIds.has(p.team),
+      )
+      .sort((a, b) => {
+        const gameA = a.gameID?.trim() ?? "";
+        const gameB = b.gameID?.trim() ?? "";
+        const byGameId = gameA.localeCompare(gameB);
+        if (byGameId !== 0) return byGameId;
+        return (a.name?.trim() ?? "").localeCompare(b.name?.trim() ?? "");
+      })
+      .map((participant) => {
+        const existing = resultsByPlayer.get(participant.id);
+        const gameId = participant.gameID?.trim();
+        const name = participant.name?.trim();
+        const playerLabel =
+          gameId && name ? `${gameId} - ${name}` : gameId || name || participant.id;
+        return {
+          playerId: participant.id,
+          playerLabel,
+          teamLabel:
+            participant.team === match.teamA
+              ? teamName(match, "A")
+              : participant.team === match.teamB
+                ? teamName(match, "B")
+                : participant.team ?? "-",
+          resultId: existing?.id,
+          lane: existing?.lane ?? "",
+          kda:
+            existing?.kills != null ||
+            existing?.deaths != null ||
+            existing?.assists != null
+              ? `${existing.kills ?? 0}/${existing.deaths ?? 0}/${existing.assists ?? 0}`
+              : "",
+          rating:
+            existing?.game_performance_rating != null
+              ? String(existing.game_performance_rating)
+              : "",
+          gold:
+            existing?.accumulated_gold != null ? String(existing.accumulated_gold) : "",
+          isEditing: false,
+          dirty: false,
+        };
+      });
+  }, [match, matchResults, participants]);
+
+  useEffect(() => {
+    if (!open) return;
+    setRows(initialRows);
+  }, [open, initialRows]);
+
+  const hasDirtyRows = rows.some((row) => row.dirty);
+  const groupedRows = useMemo(() => {
+    const grouped = new Map<string, typeof rows>();
+    for (const row of rows) {
+      const key = row.teamLabel || "Unassigned";
+      const list = grouped.get(key) ?? [];
+      list.push(row);
+      grouped.set(key, list);
+    }
+
+    const preferredTeamOrder = match
+      ? [teamName(match, "A"), teamName(match, "B")]
+      : [];
+
+    return [...grouped.entries()]
+      .sort(([teamA], [teamB]) => {
+        const aIdx = preferredTeamOrder.indexOf(teamA);
+        const bIdx = preferredTeamOrder.indexOf(teamB);
+        const aRank = aIdx === -1 ? Number.MAX_SAFE_INTEGER : aIdx;
+        const bRank = bIdx === -1 ? Number.MAX_SAFE_INTEGER : bIdx;
+        if (aRank !== bRank) return aRank - bRank;
+        return teamA.localeCompare(teamB);
+      })
+      .map(([team, players]) => ({ team, players }));
+  }, [rows, match]);
+
+  const updateRow = (
+    playerId: string,
+    patch: Partial<(typeof rows)[number]>,
+    markDirty = true,
+  ) => {
+    setRows((prev) =>
+      prev.map((row) =>
+        row.playerId === playerId
+          ? { ...row, ...patch, dirty: markDirty ? true : row.dirty }
+          : row,
+      ),
+    );
+  };
+
+  const parseKda = (
+    value: string,
+  ): { kills?: number; deaths?: number; assists?: number } | null => {
+    const text = value.trim();
+    if (!text) return {};
+    const parts = text.split("/").map((part) => part.trim());
+    if (parts.length !== 3) return null;
+    const [kills, deaths, assists] = parts.map((part) => Number.parseInt(part, 10));
+    if ([kills, deaths, assists].some((n) => Number.isNaN(n) || n < 0)) {
+      return null;
+    }
+    return { kills, deaths, assists };
+  };
+
+  const normalizeKdaInput = (value: string) => {
+    const cleaned = value.replace(/[^\d/\s]/g, "");
+    const condensed = cleaned.replace(/\s+/g, "/").replace(/\/{2,}/g, "/");
+    let slashCount = 0;
+    let result = "";
+    for (const ch of condensed) {
+      if (ch === "/") {
+        if (slashCount >= 2) continue;
+        slashCount += 1;
+      }
+      result += ch;
+    }
+    return result;
+  };
+
+  const normalizeIntegerInput = (value: string) => value.replace(/\D+/g, "");
+
+  const normalizeDecimalInput = (value: string) => {
+    const cleaned = value.replace(/[^\d.]/g, "");
+    const [whole, ...rest] = cleaned.split(".");
+    if (rest.length < 1) return whole;
+    return `${whole}.${rest.join("")}`;
+  };
+
+  const handleSubmit = async () => {
+    if (!match || isSaving) return;
+    const changedRowsByTeam = groupedRows
+      .map((group) => ({
+        team: group.team,
+        rows: group.players.filter((row) => row.dirty),
+      }))
+      .filter((group) => group.rows.length > 0);
+    const changedRows = changedRowsByTeam.flatMap((group) => group.rows);
+    if (changedRows.length < 1) {
+      toast.message("No edited players to submit");
+      return;
+    }
+
+    setIsSaving(true);
+    let savedCount = 0;
+    try {
+      const createdIds = new Map<string, string>();
+      for (const group of changedRowsByTeam) {
+        for (const row of group.rows) {
+          const kda = parseKda(row.kda);
+          if (!kda) {
+            throw new Error(`Invalid KDA for ${row.playerLabel}. Use k/d/a format.`);
+          }
+
+          const parsedRating =
+            row.rating.trim() === "" ? undefined : Number.parseFloat(row.rating);
+          if (parsedRating != null && Number.isNaN(parsedRating)) {
+            throw new Error(`Invalid performance rating for ${row.playerLabel}.`);
+          }
+
+          const parsedGold =
+            row.gold.trim() === ""
+              ? undefined
+              : Math.max(0, Number.parseInt(row.gold, 10) || 0);
+
+          const payload: Partial<Collections["match_result"]> = {
+            match: match.id,
+            player: row.playerId,
+            lane: (row.lane || undefined) as Collections["match_result"]["lane"] | undefined,
+            kills: kda.kills,
+            deaths: kda.deaths,
+            assists: kda.assists,
+            game_performance_rating: parsedRating,
+            accumulated_gold: parsedGold,
+          };
+
+          if (row.resultId) {
+            await mutations.update.mutateAsync({ id: row.resultId, ...payload });
+          } else {
+            const created = await mutations.create.mutateAsync(payload);
+            createdIds.set(row.playerId, created.id);
+          }
+          savedCount += 1;
+        }
+      }
+
+      setRows((prev) =>
+        prev.map((row) => {
+          if (!row.dirty) return row;
+          return {
+            ...row,
+            resultId: row.resultId ?? createdIds.get(row.playerId),
+            isEditing: false,
+            dirty: false,
+          };
+        }),
+      );
+
+      toast.success(`Saved ${savedCount} player result${savedCount > 1 ? "s" : ""}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not submit results");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="data-[side=right]:w-[98vw] data-[side=right]:max-w-[98vw] data-[side=right]:sm:w-[92vw] data-[side=right]:sm:max-w-[1500px] flex h-full flex-col gap-0 p-0">
+        <SheetHeader className="shrink-0 border-b border-border px-4 py-4 text-left sm:px-6">
+          <SheetTitle>Match player results</SheetTitle>
+          <SheetDescription className="line-clamp-2">
+            {headline || "Match result stats"}
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="min-h-0 flex-1 overflow-auto px-4 py-4 sm:px-6">
+          {isLoading ? (
+            <div className="rounded-lg border border-border/70">
+              <div className="grid min-w-[900px] grid-cols-[1.3fr_1fr_0.9fr_0.9fr_0.9fr_0.9fr_110px] gap-2 border-b border-border/70 px-3 py-2">
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-14" />
+                <Skeleton className="h-4 w-12" />
+                <Skeleton className="h-4 w-10" />
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-4 w-12" />
+                <Skeleton className="ml-auto h-4 w-12" />
+              </div>
+              {[
+                "row-1",
+                "row-2",
+                "row-3",
+                "row-4",
+                "row-5",
+                "row-6",
+                "row-7",
+                "row-8",
+              ].map((rowKey) => (
+                <div
+                  key={`match-stats-skeleton-${rowKey}`}
+                  className="grid min-w-[900px] grid-cols-[1.3fr_1fr_0.9fr_0.9fr_0.9fr_0.9fr_110px] gap-2 border-b border-border/50 px-3 py-2 last:border-b-0"
+                >
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="ml-auto h-8 w-16" />
+                </div>
+              ))}
+            </div>
+          ) : rows.length < 1 ? (
+            <div className="rounded-md border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
+              No players found for this match. Assign teams and team members first.
+            </div>
+          ) : (
+            <Table className="min-w-[900px]">
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>Player</TableHead>
+                  <TableHead>Team</TableHead>
+                  <TableHead>Lane</TableHead>
+                  <TableHead>KDA</TableHead>
+                  <TableHead>Perf rating</TableHead>
+                  <TableHead>Gold</TableHead>
+                  <TableHead className="w-[110px] text-right">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {groupedRows.map((group, groupIdx) => (
+                  <Fragment key={`team-group-${group.team}`}>
+                    {groupIdx > 0 ? (
+                      <TableRow className="hover:bg-transparent">
+                        <TableCell colSpan={7} className="h-3 bg-transparent p-0">
+                          <div className="h-px w-full bg-border/70" />
+                        </TableCell>
+                      </TableRow>
+                    ) : null}
+                    <TableRow className="bg-muted/20 hover:bg-muted/20">
+                      <TableCell
+                        colSpan={7}
+                        className="py-2 text-xs font-semibold tracking-wide uppercase text-muted-foreground"
+                      >
+                        {group.team}
+                      </TableCell>
+                    </TableRow>
+                    {group.players.map((row) => (
+                      <TableRow key={row.playerId}>
+                        <TableCell className="font-medium">{row.playerLabel}</TableCell>
+                        <TableCell>{row.teamLabel}</TableCell>
+                        <TableCell>
+                          <Select
+                            value={row.lane || "__none__"}
+                            onValueChange={(value) =>
+                              updateRow(row.playerId, {
+                                lane:
+                                  value === "__none__" || value == null
+                                    ? ""
+                                    : value,
+                              })
+                            }
+                            disabled={!row.isEditing}
+                          >
+                            <SelectTrigger className="h-8 min-w-[124px]">
+                              <SelectValue placeholder="Lane">
+                                {(value) =>
+                                  value && value !== "__none__"
+                                    ? (laneLabelByValue.get(
+                                        value as NonNullable<
+                                          Collections["match_result"]["lane"]
+                                        >,
+                                      ) ?? value)
+                                    : "None"
+                                }
+                              </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectGroup>
+                                <SelectItem value="__none__">None</SelectItem>
+                                {MATCH_RESULT_LANES.map((laneOption) => (
+                                  <SelectItem key={laneOption.value} value={laneOption.value}>
+                                    {laneOption.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectGroup>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            value={row.kda}
+                            onChange={(e) =>
+                              updateRow(row.playerId, {
+                              kda: normalizeKdaInput(e.target.value),
+                              })
+                            }
+                          onKeyDown={(e) => {
+                            if (e.key !== " " && e.code !== "Space") return;
+                            e.preventDefault();
+                            const input = e.currentTarget;
+                            const start = input.selectionStart ?? input.value.length;
+                            const end = input.selectionEnd ?? input.value.length;
+                            const nextValue = normalizeKdaInput(
+                              `${input.value.slice(0, start)}/${input.value.slice(end)}`,
+                            );
+                            updateRow(row.playerId, { kda: nextValue });
+                          }}
+                            placeholder="0/0/0"
+                            className="h-8 min-w-[112px]"
+                            disabled={!row.isEditing}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            value={row.rating}
+                            onChange={(e) =>
+                              updateRow(row.playerId, {
+                              rating: normalizeDecimalInput(e.target.value),
+                              })
+                            }
+                            placeholder="e.g. 7.8"
+                            type="number"
+                            step="0.01"
+                            min={0}
+                            className="h-8 min-w-[112px]"
+                            disabled={!row.isEditing}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            value={row.gold}
+                            onChange={(e) =>
+                              updateRow(row.playerId, {
+                              gold: normalizeIntegerInput(e.target.value),
+                              })
+                            }
+                            placeholder="e.g. 12000"
+                            type="number"
+                            min={0}
+                            className="h-8 min-w-[112px]"
+                            disabled={!row.isEditing}
+                          />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5"
+                            onClick={() =>
+                              updateRow(row.playerId, { isEditing: !row.isEditing }, false)
+                            }
+                          >
+                            {row.isEditing ? (
+                              <>
+                                <Check className="size-3.5" />
+                                Done
+                              </>
+                            ) : (
+                              <>
+                                <Pencil className="size-3.5" />
+                                Edit
+                              </>
+                            )}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </Fragment>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </div>
+
+        <SheetFooter className="shrink-0 border-t border-border px-4 py-4 sm:flex-row sm:justify-end sm:px-6">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isSaving}
+          >
+            Close
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={!match || isSaving || !hasDirtyRows}
+          >
+            {isSaving ? "Submitting one by one..." : "Submit player results"}
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   );
 }

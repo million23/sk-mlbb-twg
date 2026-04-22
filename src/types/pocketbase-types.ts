@@ -67,17 +67,19 @@ export interface Collections {
         updated?: string;
     };
 
-    match_drafts: {
+    match_result: {
         id: string;
-        tournament?: string;
-        teamA?: string;
-        teamB?: string;
-        matchLabel?: string;
-        gameNumber?: number;
-        firstPickTeam?: string;
-        status?: "pending" | "active" | "completed";
-        bans?: any;
-        picks?: any;
+        match?: string; // match id
+        player?: string; //
+        lane?: "mid" | "gold" | "exp" | "support" | "jungle";
+        kills?: number;
+        deaths?: number;
+        assists?: number;
+        game_performance_rating?: number;
+        accumulated_gold?: number;
+        archived?: boolean;
+        updated_by?: string; // admin id
+        created_by?: string; // admin id
         created?: string;
         updated?: string;
     };
@@ -131,19 +133,6 @@ export interface Collections {
         updatedBy?: string;
         createdBy?: string;
         archived?: boolean;
-        created?: string;
-        updated?: string;
-    };
-
-    tournament_drafts: {
-        id: string;
-        title?: string;
-        format?: string;
-        rules?: string;
-        maxTeams?: number;
-        scheduledAt?: string;
-        notes?: string;
-        publishToTournament?: string;
         created?: string;
         updated?: string;
     };

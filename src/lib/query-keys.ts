@@ -12,6 +12,7 @@ export const queryKeys = {
   tournamentDrafts: ["tournament_drafts"] as const,
   matchDrafts: ["match_drafts"] as const,
   matches: ["matches"] as const,
+  matchResults: ["match_result"] as const,
   draftSuggestions: ["draft_suggestions"] as const,
   publicUpcoming: ["public", "upcoming"] as const,
   publicCurrent: ["public", "current"] as const,
