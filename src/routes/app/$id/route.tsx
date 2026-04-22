@@ -293,7 +293,7 @@ function AdminLayoutContent() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ) : null}
-            <SidebarMenuItem>
+            <SidebarMenuItem className={!isMobile ? "mt-2" : undefined}>
               <DropdownMenu>
                 <DropdownMenuTrigger
                   render={
