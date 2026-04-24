@@ -14,12 +14,25 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import { Spinner } from "@/components/ui/spinner";
+import { useParticipants } from "@/hooks/use-participants";
 import { useTeams } from "@/hooks/use-teams";
+import {
+  teamMajorityTournamentAgeGroup,
+  type TournamentAgeGroupKey,
+} from "@/lib/age";
 import { getTeamStatusStyle } from "@/lib/team-status";
 import { cn } from "@/lib/utils";
 import { createFileRoute } from "@tanstack/react-router";
 import { Search, UsersRound } from "lucide-react";
 import { useMemo, useState } from "react";
+
+type AgeFilter = "all" | Exclude<TournamentAgeGroupKey, "unknown">;
+
+const AGE_FILTERS: { value: AgeFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "under18", label: "Under 18" },
+  { value: "18+", label: "18 and above" },
+];
 
 export const Route = createFileRoute("/p/teams")({
   component: PublicTeamsPage,
@@ -27,7 +40,9 @@ export const Route = createFileRoute("/p/teams")({
 
 function PublicTeamsPage() {
   const [query, setQuery] = useState("");
+  const [ageFilter, setAgeFilter] = useState<AgeFilter>("all");
   const { data: teams, isLoading, isError, error } = useTeams();
+  const { data: participants } = useParticipants();
   const { openTeamRoster } = usePublicTeamRosterModal();
 
   const list = teams ?? [];
@@ -41,15 +56,28 @@ function PublicTeamsPage() {
     [list],
   );
 
+  const teamAgeGroupMap = useMemo(() => {
+    const map = new Map<string, Exclude<TournamentAgeGroupKey, "unknown"> | null>();
+    for (const team of sorted) {
+      const members = (participants ?? []).filter((p) => p.team === team.id);
+      map.set(team.id, teamMajorityTournamentAgeGroup(members));
+    }
+    return map;
+  }, [sorted, participants]);
+
   const needle = query.trim().toLowerCase();
   const filtered = useMemo(() => {
-    if (!needle) return sorted;
     return sorted.filter((t) => {
+      if (ageFilter !== "all") {
+        const group = teamAgeGroupMap.get(t.id);
+        if (group !== ageFilter) return false;
+      }
+      if (!needle) return true;
       const name = (t.name ?? "").toLowerCase();
       const st = getTeamStatusStyle(t.status).label.toLowerCase();
       return name.includes(needle) || st.includes(needle);
     });
-  }, [sorted, needle]);
+  }, [sorted, needle, ageFilter, teamAgeGroupMap]);
 
   if (isLoading) {
     return (
@@ -94,21 +122,41 @@ function PublicTeamsPage() {
         description="Registered squads and readiness—each tile is a quick scan for who cleared check-in."
         icon={UsersRound}
       />
-      <div className="mx-auto w-full max-w-lg">
-        <InputGroup className="h-9">
-          <InputGroupAddon aria-hidden>
-            <Search />
-          </InputGroupAddon>
-          <InputGroupInput
-            type="search"
-            placeholder="Search by team name or status…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            aria-label="Search teams"
-            autoComplete="off"
-            spellCheck={false}
-          />
-        </InputGroup>
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-full max-w-lg">
+          <InputGroup className="h-9">
+            <InputGroupAddon aria-hidden>
+              <Search />
+            </InputGroupAddon>
+            <InputGroupInput
+              type="search"
+              placeholder="Search by team name or status…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              aria-label="Search teams"
+              autoComplete="off"
+              spellCheck={false}
+            />
+          </InputGroup>
+        </div>
+        <fieldset className="flex gap-2 border-0 p-0 m-0"><legend className="sr-only">Filter by age group</legend>
+          {AGE_FILTERS.map(({ value, label }) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setAgeFilter(value)}
+              aria-pressed={ageFilter === value}
+              className={cn(
+                "rounded-full border px-4 py-2 text-sm transition-[color,background-color,border-color]",
+                ageFilter === value
+                  ? "border-primary/40 bg-primary/15 text-primary shadow-[0_0_20px_-8px] shadow-primary/50"
+                  : "border-border/60 bg-muted/20 text-muted-foreground hover:border-border hover:bg-muted/60 hover:text-foreground",
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </fieldset>
       </div>
       {filtered.length === 0 ? (
         <p className="text-center text-muted-foreground text-sm">

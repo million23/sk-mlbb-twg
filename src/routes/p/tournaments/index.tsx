@@ -19,11 +19,11 @@ import { getTournamentStatusLabel } from "@/lib/tournament-status";
 import { tournamentLabel } from "@/lib/tournament-label";
 import type { Collections } from "@/types/pocketbase-types";
 import { cn } from "@/lib/utils";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { format } from "date-fns";
-import { MapPin, Trophy } from "lucide-react";
+import { MapPin, Swords, Trophy } from "lucide-react";
 
-export const Route = createFileRoute("/p/tournaments")({
+export const Route = createFileRoute("/p/tournaments/")({
   component: PublicTournamentsPage,
 });
 
@@ -115,44 +115,54 @@ function PublicTournamentsPage() {
           const end = formatWhen(t.endAt);
           return (
             <li key={t.id}>
-              <Card
-                className={cn(
-                  "h-full overflow-hidden border-border/80 border-l-4 bg-card/55 backdrop-blur-[2px] transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/20",
-                  statusRailClass(t.status),
-                )}
+              <Link
+                to="/p/tournaments/$id"
+                params={{ id: t.id }}
+                className="group block h-full"
               >
-                <CardHeader className="pb-2">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <CardTitle className="font-serif text-xl leading-snug sm:text-2xl">
-                      {tournamentLabel(t)}
-                    </CardTitle>
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "shrink-0 border-primary/25 font-mono text-[0.65rem] uppercase tracking-wider",
-                        t.status === "live" && "border-primary/50 bg-primary/10 text-primary",
-                      )}
-                    >
-                      {getTournamentStatusLabel(t.status)}
-                    </Badge>
-                  </div>
-                  {t.description ? (
-                    <CardDescription className="line-clamp-3 text-pretty">
-                      {t.description}
-                    </CardDescription>
-                  ) : null}
-                </CardHeader>
-                <CardContent className="flex flex-col gap-2 border-border/50 border-t border-dashed pt-3 text-muted-foreground text-sm">
-                  {t.venue ? (
-                    <p className="flex items-center gap-2">
-                      <MapPin className="size-3.5 shrink-0 text-primary/80" />
-                      {t.venue}
-                    </p>
-                  ) : null}
-                  {start ? <p className="font-mono text-xs tracking-wide">Starts {start}</p> : null}
-                  {end ? <p className="font-mono text-xs tracking-wide">Ends {end}</p> : null}
-                </CardContent>
-              </Card>
+                <Card
+                  className={cn(
+                    "h-full overflow-hidden border-border/80 border-l-4 bg-card/55 backdrop-blur-[2px] transition-[transform,box-shadow,border-color] duration-300 ease-out group-hover:-translate-y-1 group-hover:border-primary/30 group-hover:shadow-lg group-hover:shadow-primary/20",
+                    statusRailClass(t.status),
+                  )}
+                >
+                  <CardHeader className="pb-2">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <CardTitle className="font-serif text-xl leading-snug sm:text-2xl">
+                        {tournamentLabel(t)}
+                      </CardTitle>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "shrink-0 border-primary/25 font-mono text-[0.65rem] uppercase tracking-wider",
+                          t.status === "live" && "border-primary/50 bg-primary/10 text-primary",
+                        )}
+                      >
+                        {getTournamentStatusLabel(t.status)}
+                      </Badge>
+                    </div>
+                    {t.description ? (
+                      <CardDescription className="line-clamp-3 text-pretty">
+                        {t.description}
+                      </CardDescription>
+                    ) : null}
+                  </CardHeader>
+                  <CardContent className="flex flex-col gap-2 border-border/50 border-t border-dashed pt-3 text-muted-foreground text-sm">
+                    {t.venue ? (
+                      <p className="flex items-center gap-2">
+                        <MapPin className="size-3.5 shrink-0 text-primary/80" />
+                        {t.venue}
+                      </p>
+                    ) : null}
+                    {start ? <p className="font-mono text-xs tracking-wide">Starts {start}</p> : null}
+                    {end ? <p className="font-mono text-xs tracking-wide">Ends {end}</p> : null}
+                    <span className="mt-1 flex w-fit items-center gap-1.5 font-mono text-[0.7rem] uppercase tracking-widest text-primary/80 transition-colors group-hover:text-primary">
+                      <Swords className="size-3 shrink-0" aria-hidden />
+                      View Matches →
+                    </span>
+                  </CardContent>
+                </Card>
+              </Link>
             </li>
           );
         })}

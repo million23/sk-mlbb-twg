@@ -13,15 +13,6 @@ import {
   EmptyHeader,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import {
   type MatchRecord,
@@ -31,34 +22,24 @@ import { usePublicTournaments } from "@/hooks/use-tournaments";
 import { getMatchStatusStyle } from "@/lib/match-status";
 import { tournamentLabel } from "@/lib/tournament-label";
 import { cn } from "@/lib/utils";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { format } from "date-fns";
-import { Crown, Swords } from "lucide-react";
-import { useEffect, useMemo } from "react";
+import { ArrowLeft, Crown, Swords } from "lucide-react";
+import { useMemo } from "react";
 
-type MatchesSearch = { tournament?: string };
-
-export const Route = createFileRoute("/p/matches")({
-  validateSearch: (search: Record<string, unknown>): MatchesSearch => ({
-    tournament:
-      typeof search.tournament === "string" && search.tournament.length > 0
-        ? search.tournament
-        : undefined,
-  }),
-  component: PublicMatchesPage,
+export const Route = createFileRoute("/p/tournaments/$id")({
+  component: TournamentMatchesPage,
 });
 
 function teamName(m: MatchRecord, side: "A" | "B"): string {
   const key = side === "A" ? "teamA" : "teamB";
-  const id = side === "A" ? m.teamA : m.teamB;
-  const expanded = m.expand?.[key];
-  return expanded?.name ?? id ?? "TBD";
+  const rawId = side === "A" ? m.teamA : m.teamB;
+  return m.expand?.[key]?.name ?? rawId ?? "TBD";
 }
 
 function winnerName(m: MatchRecord): string {
-  const id = m.winner;
-  if (!id) return "";
-  return m.expand?.winner?.name ?? id;
+  if (!m.winner) return "";
+  return m.expand?.winner?.name ?? m.winner;
 }
 
 function formatScheduled(iso: string | undefined) {
@@ -70,59 +51,24 @@ function formatScheduled(iso: string | undefined) {
   }
 }
 
-function PublicMatchesPage() {
-  const navigate = useNavigate();
-  const { tournament: tidSearch } = Route.useSearch();
+function TournamentMatchesPage() {
+  const { id } = Route.useParams();
   const { data: tournaments, isLoading: tournamentsLoading } =
     usePublicTournaments();
 
-  const sortedTournaments = useMemo(
-    () =>
-      [...(tournaments ?? [])].sort((a, b) => {
-        const order = (s: string | undefined) =>
-          s === "live" ? 0 : s === "upcoming" ? 1 : s === "draft" ? 2 : 3;
-        return order(a.status) - order(b.status);
-      }),
-    [tournaments],
+  const tournament = useMemo(
+    () => (tournaments ?? []).find((t) => t.id === id),
+    [tournaments, id],
   );
 
-  const tournamentId = useMemo(() => {
-    if (!sortedTournaments.length) return "";
-    const valid =
-      tidSearch && sortedTournaments.some((t) => t.id === tidSearch);
-    if (valid) return tidSearch;
-    return sortedTournaments[0]?.id ?? "";
-  }, [sortedTournaments, tidSearch]);
-
-  useEffect(() => {
-    if (!sortedTournaments.length) return;
-    const valid =
-      tidSearch && sortedTournaments.some((t) => t.id === tidSearch);
-    if (!valid && sortedTournaments[0]) {
-      navigate({
-        to: "/p/matches",
-        search: { tournament: sortedTournaments[0].id },
-        replace: true,
-      });
-    }
-  }, [sortedTournaments, tidSearch, navigate]);
-
-  const selectedTournament = useMemo(
-    () => sortedTournaments.find((t) => t.id === tournamentId),
-    [sortedTournaments, tournamentId],
-  );
-
-  const tournamentEligible =
-    Boolean(selectedTournament) && selectedTournament?.archived !== true;
+  const eligible = Boolean(tournament) && tournament?.archived !== true;
 
   const {
     data: matches,
     isLoading: matchesLoading,
     isError,
     error,
-  } = useMatchesForTournament(tournamentId || undefined, {
-    enabled: tournamentEligible,
-  });
+  } = useMatchesForTournament(id, { enabled: eligible });
 
   const matchesByRound = useMemo(() => {
     const rows = matches ?? [];
@@ -138,72 +84,53 @@ function PublicMatchesPage() {
     );
   }, [matches]);
 
-  const setTournament = (id: string) => {
-    navigate({
-      to: "/p/matches",
-      search: { tournament: id },
-      replace: true,
-    });
-  };
+  const backLink = (
+    <Link
+      to="/p/tournaments"
+      className="flex w-fit items-center gap-1.5 font-mono text-[0.7rem] uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
+    >
+      <ArrowLeft className="size-3 shrink-0" aria-hidden />
+      All Tournaments
+    </Link>
+  );
 
   if (tournamentsLoading) {
     return (
       <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3">
         <Spinner className="size-8 text-primary" />
-        <p className="text-muted-foreground text-sm">Loading tournaments…</p>
+        <p className="text-muted-foreground text-sm">Loading…</p>
       </div>
     );
   }
 
-  if (!sortedTournaments.length) {
+  if (!tournament) {
     return (
-      <Empty className="min-h-[40vh] border border-dashed">
-        <EmptyHeader>
-          <EmptyTitle>No upcoming or live tournaments</EmptyTitle>
-          <EmptyDescription>
-            Match listings appear when an event is scheduled or live.
-          </EmptyDescription>
-        </EmptyHeader>
-      </Empty>
+      <div className="flex flex-col gap-6">
+        {backLink}
+        <Empty className="min-h-[40vh] border border-dashed">
+          <EmptyHeader>
+            <EmptyTitle>Tournament not found</EmptyTitle>
+            <EmptyDescription>
+              This tournament doesn't exist or is no longer available.
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      </div>
     );
   }
 
   return (
     <div className="flex flex-col gap-10">
+      {backLink}
+
       <PublicPageHeader
-        eyebrow="Scoreboard lane"
+        eyebrow={tournamentLabel(tournament)}
         title="Matches"
-        description="Read-only bracket rows for the selected tournament. URL carries the event id so you can share a direct link to this feed."
+        description="Read-only bracket rows for this tournament. Share the URL to link directly to this feed."
         icon={Swords}
       />
 
-      <div className="max-w-md flex flex-col gap-2">
-        <Label
-          htmlFor="public-match-tournament"
-          className="font-mono text-[0.65rem] uppercase tracking-[0.18em] text-muted-foreground"
-        >
-          Tournament
-        </Label>
-        <Select value={tournamentId} onValueChange={setTournament}>
-          <SelectTrigger
-            id="public-match-tournament"
-            className="h-11 rounded-xl border-border/80 bg-card/40 shadow-inner"
-          >
-            <SelectValue placeholder="Select tournament" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              {sortedTournaments.map((t) => (
-                <SelectItem key={t.id} value={t.id}>
-                  {tournamentLabel(t)}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {!tournamentEligible ? (
+      {!eligible ? (
         <p className="text-muted-foreground text-sm">
           This tournament is not available for public match listing.
         </p>
@@ -224,9 +151,9 @@ function PublicMatchesPage() {
       ) : !(matches ?? []).length ? (
         <Empty className="border border-dashed">
           <EmptyHeader>
-            <EmptyTitle>No matches in this tournament</EmptyTitle>
+            <EmptyTitle>No matches yet</EmptyTitle>
             <EmptyDescription>
-              Schedule rows will show here once they are added.
+              Schedule rows will appear here once they are added.
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
@@ -297,19 +224,11 @@ function PublicMatchesPage() {
                             </span>
                             {scoreKnown ? (
                               <span className="flex shrink-0 items-center gap-2 rounded-xl border border-border/70 bg-background/80 px-4 py-2 font-mono text-lg tabular-nums tracking-tight shadow-inner">
-                                <span
-                                  className={cn(
-                                    win && win === teamA && "text-primary",
-                                  )}
-                                >
+                                <span className={cn(win && win === teamA && "text-primary")}>
                                   {scoreA}
                                 </span>
                                 <span className="text-muted-foreground">:</span>
-                                <span
-                                  className={cn(
-                                    win && win === teamB && "text-primary",
-                                  )}
-                                >
+                                <span className={cn(win && win === teamB && "text-primary")}>
                                   {scoreB}
                                 </span>
                               </span>

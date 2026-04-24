@@ -13,12 +13,12 @@ import { Route as ComponentsRouteImport } from './routes/components'
 import { Route as PRouteRouteImport } from './routes/p/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PIndexRouteImport } from './routes/p/index'
-import { Route as PTournamentsRouteImport } from './routes/p/tournaments'
 import { Route as PTeamsRouteImport } from './routes/p/teams'
 import { Route as PParticipantsRouteImport } from './routes/p/participants'
-import { Route as PMatchesRouteImport } from './routes/p/matches'
 import { Route as AppIdRouteRouteImport } from './routes/app/$id/route'
+import { Route as PTournamentsIndexRouteImport } from './routes/p/tournaments/index'
 import { Route as AppIdIndexRouteImport } from './routes/app/$id/index'
+import { Route as PTournamentsIdRouteImport } from './routes/p/tournaments/$id'
 import { Route as AppAuthLoginRouteImport } from './routes/app/auth/login'
 import { Route as AppAuthCheckRouteImport } from './routes/app/auth/check'
 import { Route as AppIdTeamStandingRouteImport } from './routes/app/$id/team-standing'
@@ -53,11 +53,6 @@ const PIndexRoute = PIndexRouteImport.update({
   path: '/',
   getParentRoute: () => PRouteRoute,
 } as any)
-const PTournamentsRoute = PTournamentsRouteImport.update({
-  id: '/tournaments',
-  path: '/tournaments',
-  getParentRoute: () => PRouteRoute,
-} as any)
 const PTeamsRoute = PTeamsRouteImport.update({
   id: '/teams',
   path: '/teams',
@@ -68,20 +63,25 @@ const PParticipantsRoute = PParticipantsRouteImport.update({
   path: '/participants',
   getParentRoute: () => PRouteRoute,
 } as any)
-const PMatchesRoute = PMatchesRouteImport.update({
-  id: '/matches',
-  path: '/matches',
-  getParentRoute: () => PRouteRoute,
-} as any)
 const AppIdRouteRoute = AppIdRouteRouteImport.update({
   id: '/app/$id',
   path: '/app/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PTournamentsIndexRoute = PTournamentsIndexRouteImport.update({
+  id: '/tournaments/',
+  path: '/tournaments/',
+  getParentRoute: () => PRouteRoute,
+} as any)
 const AppIdIndexRoute = AppIdIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppIdRouteRoute,
+} as any)
+const PTournamentsIdRoute = PTournamentsIdRouteImport.update({
+  id: '/tournaments/$id',
+  path: '/tournaments/$id',
+  getParentRoute: () => PRouteRoute,
 } as any)
 const AppAuthLoginRoute = AppAuthLoginRouteImport.update({
   id: '/app/auth/login',
@@ -155,17 +155,17 @@ export interface FileRoutesByFullPath {
   '/p': typeof PRouteRouteWithChildren
   '/components': typeof ComponentsRoute
   '/app/$id': typeof AppIdRouteRouteWithChildren
-  '/p/matches': typeof PMatchesRoute
   '/p/participants': typeof PParticipantsRoute
   '/p/teams': typeof PTeamsRoute
-  '/p/tournaments': typeof PTournamentsRoute
   '/p/': typeof PIndexRoute
   '/app/$id/admins': typeof AppIdAdminsRoute
   '/app/$id/audit-logs': typeof AppIdAuditLogsRoute
   '/app/$id/team-standing': typeof AppIdTeamStandingRoute
   '/app/auth/check': typeof AppAuthCheckRoute
   '/app/auth/login': typeof AppAuthLoginRoute
+  '/p/tournaments/$id': typeof PTournamentsIdRoute
   '/app/$id/': typeof AppIdIndexRoute
+  '/p/tournaments/': typeof PTournamentsIndexRoute
   '/app/$id/matches/archived': typeof AppIdMatchesArchivedRoute
   '/app/$id/participants/archived': typeof AppIdParticipantsArchivedRoute
   '/app/$id/teams/archived': typeof AppIdTeamsArchivedRoute
@@ -178,17 +178,17 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/components': typeof ComponentsRoute
-  '/p/matches': typeof PMatchesRoute
   '/p/participants': typeof PParticipantsRoute
   '/p/teams': typeof PTeamsRoute
-  '/p/tournaments': typeof PTournamentsRoute
   '/p': typeof PIndexRoute
   '/app/$id/admins': typeof AppIdAdminsRoute
   '/app/$id/audit-logs': typeof AppIdAuditLogsRoute
   '/app/$id/team-standing': typeof AppIdTeamStandingRoute
   '/app/auth/check': typeof AppAuthCheckRoute
   '/app/auth/login': typeof AppAuthLoginRoute
+  '/p/tournaments/$id': typeof PTournamentsIdRoute
   '/app/$id': typeof AppIdIndexRoute
+  '/p/tournaments': typeof PTournamentsIndexRoute
   '/app/$id/matches/archived': typeof AppIdMatchesArchivedRoute
   '/app/$id/participants/archived': typeof AppIdParticipantsArchivedRoute
   '/app/$id/teams/archived': typeof AppIdTeamsArchivedRoute
@@ -204,17 +204,17 @@ export interface FileRoutesById {
   '/p': typeof PRouteRouteWithChildren
   '/components': typeof ComponentsRoute
   '/app/$id': typeof AppIdRouteRouteWithChildren
-  '/p/matches': typeof PMatchesRoute
   '/p/participants': typeof PParticipantsRoute
   '/p/teams': typeof PTeamsRoute
-  '/p/tournaments': typeof PTournamentsRoute
   '/p/': typeof PIndexRoute
   '/app/$id/admins': typeof AppIdAdminsRoute
   '/app/$id/audit-logs': typeof AppIdAuditLogsRoute
   '/app/$id/team-standing': typeof AppIdTeamStandingRoute
   '/app/auth/check': typeof AppAuthCheckRoute
   '/app/auth/login': typeof AppAuthLoginRoute
+  '/p/tournaments/$id': typeof PTournamentsIdRoute
   '/app/$id/': typeof AppIdIndexRoute
+  '/p/tournaments/': typeof PTournamentsIndexRoute
   '/app/$id/matches/archived': typeof AppIdMatchesArchivedRoute
   '/app/$id/participants/archived': typeof AppIdParticipantsArchivedRoute
   '/app/$id/teams/archived': typeof AppIdTeamsArchivedRoute
@@ -231,17 +231,17 @@ export interface FileRouteTypes {
     | '/p'
     | '/components'
     | '/app/$id'
-    | '/p/matches'
     | '/p/participants'
     | '/p/teams'
-    | '/p/tournaments'
     | '/p/'
     | '/app/$id/admins'
     | '/app/$id/audit-logs'
     | '/app/$id/team-standing'
     | '/app/auth/check'
     | '/app/auth/login'
+    | '/p/tournaments/$id'
     | '/app/$id/'
+    | '/p/tournaments/'
     | '/app/$id/matches/archived'
     | '/app/$id/participants/archived'
     | '/app/$id/teams/archived'
@@ -254,17 +254,17 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/components'
-    | '/p/matches'
     | '/p/participants'
     | '/p/teams'
-    | '/p/tournaments'
     | '/p'
     | '/app/$id/admins'
     | '/app/$id/audit-logs'
     | '/app/$id/team-standing'
     | '/app/auth/check'
     | '/app/auth/login'
+    | '/p/tournaments/$id'
     | '/app/$id'
+    | '/p/tournaments'
     | '/app/$id/matches/archived'
     | '/app/$id/participants/archived'
     | '/app/$id/teams/archived'
@@ -279,17 +279,17 @@ export interface FileRouteTypes {
     | '/p'
     | '/components'
     | '/app/$id'
-    | '/p/matches'
     | '/p/participants'
     | '/p/teams'
-    | '/p/tournaments'
     | '/p/'
     | '/app/$id/admins'
     | '/app/$id/audit-logs'
     | '/app/$id/team-standing'
     | '/app/auth/check'
     | '/app/auth/login'
+    | '/p/tournaments/$id'
     | '/app/$id/'
+    | '/p/tournaments/'
     | '/app/$id/matches/archived'
     | '/app/$id/participants/archived'
     | '/app/$id/teams/archived'
@@ -339,13 +339,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PIndexRouteImport
       parentRoute: typeof PRouteRoute
     }
-    '/p/tournaments': {
-      id: '/p/tournaments'
-      path: '/tournaments'
-      fullPath: '/p/tournaments'
-      preLoaderRoute: typeof PTournamentsRouteImport
-      parentRoute: typeof PRouteRoute
-    }
     '/p/teams': {
       id: '/p/teams'
       path: '/teams'
@@ -360,13 +353,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PParticipantsRouteImport
       parentRoute: typeof PRouteRoute
     }
-    '/p/matches': {
-      id: '/p/matches'
-      path: '/matches'
-      fullPath: '/p/matches'
-      preLoaderRoute: typeof PMatchesRouteImport
-      parentRoute: typeof PRouteRoute
-    }
     '/app/$id': {
       id: '/app/$id'
       path: '/app/$id'
@@ -374,12 +360,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIdRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/p/tournaments/': {
+      id: '/p/tournaments/'
+      path: '/tournaments'
+      fullPath: '/p/tournaments/'
+      preLoaderRoute: typeof PTournamentsIndexRouteImport
+      parentRoute: typeof PRouteRoute
+    }
     '/app/$id/': {
       id: '/app/$id/'
       path: '/'
       fullPath: '/app/$id/'
       preLoaderRoute: typeof AppIdIndexRouteImport
       parentRoute: typeof AppIdRouteRoute
+    }
+    '/p/tournaments/$id': {
+      id: '/p/tournaments/$id'
+      path: '/tournaments/$id'
+      fullPath: '/p/tournaments/$id'
+      preLoaderRoute: typeof PTournamentsIdRouteImport
+      parentRoute: typeof PRouteRoute
     }
     '/app/auth/login': {
       id: '/app/auth/login'
@@ -476,19 +476,19 @@ declare module '@tanstack/react-router' {
 }
 
 interface PRouteRouteChildren {
-  PMatchesRoute: typeof PMatchesRoute
   PParticipantsRoute: typeof PParticipantsRoute
   PTeamsRoute: typeof PTeamsRoute
-  PTournamentsRoute: typeof PTournamentsRoute
   PIndexRoute: typeof PIndexRoute
+  PTournamentsIdRoute: typeof PTournamentsIdRoute
+  PTournamentsIndexRoute: typeof PTournamentsIndexRoute
 }
 
 const PRouteRouteChildren: PRouteRouteChildren = {
-  PMatchesRoute: PMatchesRoute,
   PParticipantsRoute: PParticipantsRoute,
   PTeamsRoute: PTeamsRoute,
-  PTournamentsRoute: PTournamentsRoute,
   PIndexRoute: PIndexRoute,
+  PTournamentsIdRoute: PTournamentsIdRoute,
+  PTournamentsIndexRoute: PTournamentsIndexRoute,
 }
 
 const PRouteRouteWithChildren =
