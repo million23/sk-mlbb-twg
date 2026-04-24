@@ -3,7 +3,6 @@ import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -141,11 +140,6 @@ function PublicTournamentsPage() {
                         {getTournamentStatusLabel(t.status)}
                       </Badge>
                     </div>
-                    {t.description ? (
-                      <CardDescription className="line-clamp-3 text-pretty">
-                        {t.description}
-                      </CardDescription>
-                    ) : null}
                   </CardHeader>
                   <CardContent className="flex flex-col gap-2 border-border/50 border-t border-dashed pt-3 text-muted-foreground text-sm">
                     {t.venue ? (
