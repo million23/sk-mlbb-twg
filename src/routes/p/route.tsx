@@ -12,7 +12,7 @@ import {
   Outlet,
   useLocation,
 } from "@tanstack/react-router";
-import { Home, Trophy, Users, UsersRound } from "lucide-react";
+import { Home, ListOrdered, Trophy, Users, UsersRound } from "lucide-react";
 
 export const Route = createFileRoute("/p")({
   component: PublicShell,
@@ -20,6 +20,7 @@ export const Route = createFileRoute("/p")({
 
 const nav = [
   { to: "/p/tournaments" as const, label: "Tournaments", icon: Trophy },
+  { to: "/p/standing" as const, label: "Standing", icon: ListOrdered },
   { to: "/p/teams" as const, label: "Teams", icon: UsersRound },
   { to: "/p/participants" as const, label: "Participants", icon: Users },
 ];
