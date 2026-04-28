@@ -16,6 +16,7 @@ import { Route as PIndexRouteImport } from './routes/p/index'
 import { Route as PTeamsRouteImport } from './routes/p/teams'
 import { Route as PStandingRouteImport } from './routes/p/standing'
 import { Route as PParticipantsRouteImport } from './routes/p/participants'
+import { Route as PNotAvailableRouteImport } from './routes/p/not-available'
 import { Route as AppIdRouteRouteImport } from './routes/app/$id/route'
 import { Route as PTournamentsIndexRouteImport } from './routes/p/tournaments/index'
 import { Route as AppIdIndexRouteImport } from './routes/app/$id/index'
@@ -67,6 +68,11 @@ const PStandingRoute = PStandingRouteImport.update({
 const PParticipantsRoute = PParticipantsRouteImport.update({
   id: '/participants',
   path: '/participants',
+  getParentRoute: () => PRouteRoute,
+} as any)
+const PNotAvailableRoute = PNotAvailableRouteImport.update({
+  id: '/not-available',
+  path: '/not-available',
   getParentRoute: () => PRouteRoute,
 } as any)
 const AppIdRouteRoute = AppIdRouteRouteImport.update({
@@ -161,6 +167,7 @@ export interface FileRoutesByFullPath {
   '/p': typeof PRouteRouteWithChildren
   '/components': typeof ComponentsRoute
   '/app/$id': typeof AppIdRouteRouteWithChildren
+  '/p/not-available': typeof PNotAvailableRoute
   '/p/participants': typeof PParticipantsRoute
   '/p/standing': typeof PStandingRoute
   '/p/teams': typeof PTeamsRoute
@@ -185,6 +192,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/components': typeof ComponentsRoute
+  '/p/not-available': typeof PNotAvailableRoute
   '/p/participants': typeof PParticipantsRoute
   '/p/standing': typeof PStandingRoute
   '/p/teams': typeof PTeamsRoute
@@ -212,6 +220,7 @@ export interface FileRoutesById {
   '/p': typeof PRouteRouteWithChildren
   '/components': typeof ComponentsRoute
   '/app/$id': typeof AppIdRouteRouteWithChildren
+  '/p/not-available': typeof PNotAvailableRoute
   '/p/participants': typeof PParticipantsRoute
   '/p/standing': typeof PStandingRoute
   '/p/teams': typeof PTeamsRoute
@@ -240,6 +249,7 @@ export interface FileRouteTypes {
     | '/p'
     | '/components'
     | '/app/$id'
+    | '/p/not-available'
     | '/p/participants'
     | '/p/standing'
     | '/p/teams'
@@ -264,6 +274,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/components'
+    | '/p/not-available'
     | '/p/participants'
     | '/p/standing'
     | '/p/teams'
@@ -290,6 +301,7 @@ export interface FileRouteTypes {
     | '/p'
     | '/components'
     | '/app/$id'
+    | '/p/not-available'
     | '/p/participants'
     | '/p/standing'
     | '/p/teams'
@@ -370,6 +382,13 @@ declare module '@tanstack/react-router' {
       path: '/participants'
       fullPath: '/p/participants'
       preLoaderRoute: typeof PParticipantsRouteImport
+      parentRoute: typeof PRouteRoute
+    }
+    '/p/not-available': {
+      id: '/p/not-available'
+      path: '/not-available'
+      fullPath: '/p/not-available'
+      preLoaderRoute: typeof PNotAvailableRouteImport
       parentRoute: typeof PRouteRoute
     }
     '/app/$id': {
@@ -495,6 +514,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface PRouteRouteChildren {
+  PNotAvailableRoute: typeof PNotAvailableRoute
   PParticipantsRoute: typeof PParticipantsRoute
   PStandingRoute: typeof PStandingRoute
   PTeamsRoute: typeof PTeamsRoute
@@ -504,6 +524,7 @@ interface PRouteRouteChildren {
 }
 
 const PRouteRouteChildren: PRouteRouteChildren = {
+  PNotAvailableRoute: PNotAvailableRoute,
   PParticipantsRoute: PParticipantsRoute,
   PStandingRoute: PStandingRoute,
   PTeamsRoute: PTeamsRoute,

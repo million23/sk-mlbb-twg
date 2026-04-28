@@ -10,12 +10,23 @@ import {
   createFileRoute,
   Link,
   Outlet,
+  redirect,
   useLocation,
 } from "@tanstack/react-router";
 import { Home, ListOrdered, Trophy, Users, UsersRound } from "lucide-react";
 
+const PUBLIC_UNAVAILABLE = "/p/not-available" as const;
+
 export const Route = createFileRoute("/p")({
   component: PublicShell,
+  beforeLoad: ({ location }) => {
+    const path = location.pathname;
+    const onUnavailable =
+      path === PUBLIC_UNAVAILABLE || path.startsWith(`${PUBLIC_UNAVAILABLE}/`);
+    if (!onUnavailable) {
+      throw redirect({ to: PUBLIC_UNAVAILABLE, replace: true });
+    }
+  },
 });
 
 const nav = [
@@ -34,7 +45,7 @@ function PublicShell() {
 
   return (
     <PublicTeamRosterModalProvider>
-    <div className="relative isolate flex min-h-svh flex-col bg-background bg-linear-to-b from-primary/[0.06] via-background to-background text-foreground">
+    <div className="relative isolate flex min-h-svh flex-col bg-background bg-linear-to-b from-primary/6 via-background to-background text-foreground">
       <header className="sticky top-0 z-20 border-b border-border/70 bg-background/80 backdrop-blur-md supports-backdrop-filter:bg-background/65">
         <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-3 sm:min-h-14 sm:flex-row sm:items-center sm:gap-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-2 sm:contents">
