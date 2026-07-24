@@ -1,5 +1,5 @@
-import { NetworkProviderBadge } from "@/lib/mobile-network-provider";
-import { sanitizePhilippineMobileInput } from "@/lib/philippine-mobile";
+import { NetworkProviderBadge } from "@/lib/legacy/mobile-network-provider";
+import { sanitizePhilippineMobileInput } from "@/lib/legacy/philippine-mobile";
 import { cn } from "@/lib/utils";
 
 export function ParticipantContactWithBadge({

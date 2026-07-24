@@ -1,7 +1,7 @@
 "use client";
 
-import type { AuditLogRow } from "@/hooks/use-audit-log";
-import { getAuditLogSummaryParts } from "@/lib/audit-log-summary";
+import type { AuditLogRow } from "@/hooks/legacy/use-audit-log";
+import { getAuditLogSummaryParts } from "@/lib/legacy/audit-log-summary";
 import { cn } from "@/lib/utils";
 
 const codeChip = cn(

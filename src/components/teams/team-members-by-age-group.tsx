@@ -1,7 +1,8 @@
 import { GeneratedAvatar } from "@/components/ui/avatar";
-import { getAvatarUrl } from "@/lib/avatar";
-import { groupParticipantsByTournamentAge } from "@/lib/age";
-import { cn, formatParticipantNameDisplay } from "@/lib/utils";
+import { getAvatarUrl } from "@/lib/legacy/avatar";
+import { groupParticipantsByTournamentAge } from "@/lib/legacy/age";
+import { formatParticipantNameDisplay } from "@/lib/legacy/participant-normalize";
+import { cn } from "@/lib/utils";
 
 export type TeamMemberWithBirthdate = {
   id: string;

@@ -9,11 +9,11 @@ const STORAGE_KEY = "sk-mlbb-twg-public-cookie-notice";
 
 function isPublicPath(pathname: string): boolean {
   if (pathname === "/") return true;
-  return pathname === "/p" || pathname.startsWith("/p/");
+  return pathname === "/legacy/p" || pathname.startsWith("/legacy/p/");
 }
 
 /**
- * Renders only on `/` and `/p/*`. Fixed bottom-right; dismissed state in localStorage.
+ * Renders only on `/` and `/legacy/p/*`. Fixed bottom-right; dismissed state in localStorage.
  */
 export function PublicCookieBannerGate() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });

@@ -3,9 +3,9 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { AuditLogDetailOpenButton } from "@/components/audit-log-detail-sheet";
 import { AuditLogSummaryLine } from "@/components/audit-log-summary-line";
-import type { AuditLogRow } from "@/hooks/use-audit-log";
-import { formatAuditDate } from "@/lib/audit-log-display";
-import { formatAuditLogSummaryLine } from "@/lib/audit-log-summary";
+import type { AuditLogRow } from "@/hooks/legacy/use-audit-log";
+import { formatAuditDate } from "@/lib/legacy/audit-log-display";
+import { formatAuditLogSummaryLine } from "@/lib/legacy/audit-log-summary";
 
 export type AuditLogTableMeta = {
   adminNameById: ReadonlyMap<string, string>;
