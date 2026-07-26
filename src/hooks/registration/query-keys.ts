@@ -7,4 +7,11 @@ export const registrationKeys = {
 		[...registrationKeys.tournaments(), "open"] as const,
 	listedTeams: (tournamentId: string) =>
 		[...registrationKeys.all, "listed-teams", tournamentId] as const,
+	emailAvailable: (tournamentId: string, email: string) =>
+		[
+			...registrationKeys.all,
+			"email-available",
+			tournamentId,
+			email,
+		] as const,
 };

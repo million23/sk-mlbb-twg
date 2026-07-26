@@ -11,6 +11,11 @@ export {
 	type RegistrationTournament,
 } from "./use-registration-tournaments";
 export {
+	fetchRegistrationEmailAvailable,
+	registrationEmailAvailableQueryOptions,
+	useRegistrationEmailAvailable,
+} from "./use-registration-email-available";
+export {
 	registrationApiErrorMessage,
 	useSubmitRegistration,
 } from "./use-submit-registration";

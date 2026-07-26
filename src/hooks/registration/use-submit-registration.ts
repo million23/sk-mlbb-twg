@@ -9,8 +9,8 @@ import { useMutation } from "@tanstack/react-query";
 export function useSubmitRegistration() {
 	return useMutation({
 		mutationKey: ["registration", "submit"],
-		mutationFn: async ({ draft }: SubmitRegistrationInput) =>
-			createParticipantRecord(draft),
+		mutationFn: async (input: SubmitRegistrationInput) =>
+			createParticipantRecord(input),
 		meta: {
 			errorMessage: registrationApiErrorMessage,
 		},

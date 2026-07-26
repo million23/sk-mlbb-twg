@@ -86,6 +86,10 @@ export function mapTeamRecord(team: TeamsRecord): ListedTeam | null {
 
 export type SubmitRegistrationInput = {
 	draft: RegistrationDraft;
+	/** Cloudflare Turnstile token from the uploads step. */
+	turnstileToken?: string | null;
+	/** Honeypot — must stay empty. */
+	website?: string;
 };
 
 const UPLOAD_FIELD_NAMES = [
@@ -99,17 +103,23 @@ export function generateRegistrationStatusCode(): string {
 	return String(Math.floor(100000 + Math.random() * 900000));
 }
 
+type BuildParticipantFormOptions = {
+	statusCode?: string;
+};
+
 /** Build multipart body for public participant create (files + fields). */
 export function buildParticipantFormData(
 	draft: RegistrationDraft,
-	statusCode: string = generateRegistrationStatusCode(),
+	options: BuildParticipantFormOptions = {},
 ): FormData {
+	const statusCode =
+		options.statusCode ?? generateRegistrationStatusCode();
 	const c = draft.credentials;
 	const form = new FormData();
 
 	form.append("tournament", draft.tournament_id);
 	form.append("name", c.name.trim());
-	form.append("email", c.email.trim());
+	form.append("email", c.email.trim().toLowerCase());
 	form.append("ign", c.ign.trim());
 	form.append("birthdate", c.birthdate);
 	form.append("user_id", c.user_id.trim());
@@ -149,6 +159,9 @@ export function buildParticipantFormData(
 		form.append("consent_accepted_at", draft.consent_accepted_at);
 	}
 
+	// Turnstile / honeypot are sent as query params on the POST URL (see
+	// createParticipantRecord) — not as FormData keys.
+
 	for (const key of UPLOAD_FIELD_NAMES) {
 		const file = draft.uploads[key];
 		if (file instanceof File && file.size > 0) {
@@ -161,20 +174,29 @@ export function buildParticipantFormData(
 
 /**
  * Create participant via Orval path + FormData (JSON Orval POST cannot attach files).
- * Mail is sent by PocketBase `onRecordAfterCreateSuccess` (Settings → Mail SMTP).
+ * Mail is sent by PocketBase hooks (Settings → Mail SMTP).
  */
 export async function createParticipantRecord(
-	draft: RegistrationDraft,
+	input: SubmitRegistrationInput,
 ): Promise<ParticipantsRecord> {
+	const { draft, turnstileToken, website } = input;
 	const statusCode = generateRegistrationStatusCode();
-	const body = buildParticipantFormData(draft, statusCode);
-	const res = await customInstance<unknown>(
-		getPostCollectionsParticipantsRecordsUrl(),
-		{
-			method: "POST",
-			body,
-		},
-	);
+	const body = buildParticipantFormData(draft, { statusCode });
+
+	// Query params (not FormData fields / custom headers): PB rejects unknown
+	// collection keys, and CORS often strips X-* on multipart POSTs.
+	const path = getPostCollectionsParticipantsRecordsUrl();
+	const qs = new URLSearchParams();
+	if (turnstileToken?.trim()) {
+		qs.set("turnstile_token", turnstileToken.trim());
+	}
+	qs.set("website", website ?? "");
+	const url = `${path}?${qs.toString()}`;
+
+	const res = await customInstance<unknown>(url, {
+		method: "POST",
+		body,
+	});
 	const record = unwrapOrvalRecord<ParticipantsRecord>(res);
 	// Response may omit the field; keep the code we submitted for the success screen.
 	return {
@@ -186,12 +208,18 @@ export async function createParticipantRecord(
 export function registrationApiErrorMessage(error: unknown): string {
 	if (error instanceof ApiError) {
 		const data = error.data;
-		if (data && typeof data === "object" && "data" in data) {
-			const fields = (data as { data?: Record<string, { message?: string }> })
-				.data;
-			if (fields && typeof fields === "object") {
-				const first = Object.values(fields).find((v) => v?.message)?.message;
+		if (data && typeof data === "object") {
+			const envelope = data as {
+				message?: string;
+				data?: Record<string, { message?: string; code?: string }>;
+			};
+			if (envelope.data && typeof envelope.data === "object") {
+				const first = Object.values(envelope.data).find((v) => v?.message)
+					?.message;
 				if (first) return first;
+			}
+			if (typeof envelope.message === "string" && envelope.message.trim()) {
+				return envelope.message;
 			}
 		}
 		return error.message;

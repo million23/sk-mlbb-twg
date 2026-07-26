@@ -1,9 +1,10 @@
 import {
+  fetchRegistrationEmailAvailable,
+  registrationApiErrorMessage,
   useListedTeams,
   useOpenRegistrationTournaments,
   useRegistrationTournament,
   useSubmitRegistration,
-  registrationApiErrorMessage,
 } from "@/hooks/registration";
 import {
   canAdvance,
@@ -15,9 +16,13 @@ import {
 } from "@/lib/registration/flow";
 import { Link } from "@tanstack/react-router";
 import { House } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { ErrorBanner, NavRow, STEP_LABELS, StepBody } from "./steps";
+import {
+  isTurnstileConfigured,
+  TurnstileField,
+} from "./turnstile-field";
 import { useRegistrationFlow } from "./use-registration-flow";
 
 type RegisterPageProps = {
@@ -36,6 +41,9 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
   const tournament = useRegistrationTournament(selectedId);
   const teams = useListedTeams(selectedId);
   const submit = useSubmitRegistration();
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [honeypot, setHoneypot] = useState("");
+  const [checkingEmail, setCheckingEmail] = useState(false);
 
   const tournamentRecord = tournament.data;
   const listedTeams = teams.data;
@@ -78,6 +86,38 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
           ? "Registration is closed for this tournament."
           : null;
 
+  const handleContinue = async () => {
+    const localErr = canAdvance(state);
+    if (localErr) {
+      dispatch({ type: "SET_LAST_ERROR", message: localErr });
+      return;
+    }
+
+    if (state.step === "credentials") {
+      setCheckingEmail(true);
+      try {
+        const available = await fetchRegistrationEmailAvailable(
+          state.tournament_id,
+          state.credentials.email,
+        );
+        if (!available) {
+          dispatch({
+            type: "SET_LAST_ERROR",
+            message:
+              "This email already has a pending or approved registration for this tournament.",
+          });
+          return;
+        }
+      } catch {
+        // Server guard still enforces on submit; allow continue if pre-check is down.
+      } finally {
+        setCheckingEmail(false);
+      }
+    }
+
+    dispatch({ type: "NEXT" });
+  };
+
   const handleSubmit = async () => {
     if (state.step !== "uploads") return;
     const err =
@@ -94,13 +134,25 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
       dispatch({ type: "SET_LAST_ERROR", message: "Consent required" });
       return;
     }
+    if (isTurnstileConfigured() && !turnstileToken) {
+      dispatch({
+        type: "SET_LAST_ERROR",
+        message: "Complete the human verification challenge.",
+      });
+      return;
+    }
     try {
-      const record = await submit.mutateAsync({ draft: state });
+      const record = await submit.mutateAsync({
+        draft: state,
+        turnstileToken,
+        website: honeypot,
+      });
       dispatch({
         type: "SUBMIT_SUCCESS",
         statusCode: record.registration_status_code ?? null,
       });
     } catch (error) {
+      setTurnstileToken(null);
       dispatch({
         type: "SET_LAST_ERROR",
         message: registrationApiErrorMessage(error),
@@ -187,12 +239,39 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
                 ) : null}
                 <div className="flex flex-col gap-4">
                   <StepBody state={state} dispatch={dispatch} />
+                  {state.step === "uploads" ? (
+                    <>
+                      {/* Honeypot — leave empty (off-screen for bots that autofill) */}
+                      <div
+                        aria-hidden="true"
+                        className="pointer-events-none fixed top-0 -left-2500 h-px w-px overflow-hidden opacity-0"
+                      >
+                        <label htmlFor="reg-website">Company website</label>
+                        <input
+                          id="reg-website"
+                          name="website"
+                          type="text"
+                          tabIndex={-1}
+                          autoComplete="off"
+                          value={honeypot}
+                          onChange={(e) => setHoneypot(e.target.value)}
+                        />
+                      </div>
+                      <TurnstileField onToken={setTurnstileToken} />
+                    </>
+                  ) : null}
                   <ErrorBanner state={state} />
                   <NavRow
                     state={state}
                     dispatch={dispatch}
+                    onContinue={handleContinue}
                     onSubmit={handleSubmit}
-                    submitting={submit.isPending}
+                    submitting={submit.isPending || checkingEmail}
+                    submitDisabled={
+                      state.step === "uploads" &&
+                      isTurnstileConfigured() &&
+                      !turnstileToken
+                    }
                   />
                 </div>
               </div>

@@ -37,6 +37,8 @@ Remote layout after deploy:
 sk-mlbb-twg/
   pb_data/
   pb_hooks/
+    registration_guard.pb.js
+    registration_guard_lib.js
     registration_mail.pb.js
     admins_mail.pb.js
     sk_mail.js
@@ -44,6 +46,32 @@ sk-mlbb-twg/
 ```
 
 After a test register, logs should show `[sk-mail] registration-received → …`.
+
+## Registration guards
+
+[`registration_guard.pb.js`](./registration_guard.pb.js) runs on public `participants` create:
+
+- Honeypot field `website` (must be empty)
+- Cloudflare Turnstile token `turnstile_token` (skipped for admin auth)
+- Duplicate **email** and **user_id + server_id** per tournament when status is `pending` / `approved`
+
+Public pre-check (used by the Vite form):
+
+`GET /sk/registration/email-available?tournament=ID&email=you@example.com` → `{ available: boolean }`
+
+### PocketHost env
+
+Set on the instance (dashboard env / secrets), then **restart**:
+
+| Variable | Purpose |
+| --- | --- |
+| `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile secret (**required** — no silent skip) |
+| `TURNSTILE_SKIP=1` | Only local escape hatch; otherwise create fails if secret is missing |
+
+Vite app needs matching `VITE_TURNSTILE_SITE_KEY` in `.env` only (public).  
+**Do not** put the secret in any `VITE_*` variable — set it only on PocketHost.
+
+Cloudflare always-pass test keys: [Turnstile testing](https://developers.cloudflare.com/turnstile/troubleshooting/testing/).
 
 ## Mail settings
 

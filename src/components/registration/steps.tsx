@@ -835,11 +835,17 @@ export function NavRow({
 	dispatch,
 	showSubmit,
 	onSubmit,
+	onContinue,
 	submitting,
+	submitDisabled,
 }: Props & {
 	showSubmit?: boolean;
 	onSubmit?: () => void;
+	/** Async/sync continue (e.g. email availability). Defaults to `NEXT`. */
+	onContinue?: () => void | Promise<void>;
 	submitting?: boolean;
+	/** Extra gate (e.g. Turnstile token not ready yet). */
+	submitDisabled?: boolean;
 }) {
 	const fillable =
 		state.step === "consent" ||
@@ -864,17 +870,24 @@ export function NavRow({
 				<Button
 					type="button"
 					onClick={() => onSubmit?.()}
-					disabled={submitting || !onSubmit}
+					disabled={submitting || !onSubmit || submitDisabled}
 				>
-					{submitting ? "Submitting…" : "Submit registration"}
+					{submitting
+						? "Submitting…"
+						: submitDisabled
+							? "Complete verification…"
+							: "Submit registration"}
 				</Button>
 			) : (
 				<Button
 					type="button"
-					onClick={() => dispatch({ type: "NEXT" })}
+					onClick={() => {
+						if (onContinue) void onContinue();
+						else dispatch({ type: "NEXT" });
+					}}
 					disabled={submitting}
 				>
-					Continue
+					{submitting ? "Checking…" : "Continue"}
 				</Button>
 			)}
 		</div>
