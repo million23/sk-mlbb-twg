@@ -524,4 +524,10 @@
   [data-slot="drawer-content"][data-state="open"] .drawer-content-inner {
     animation: none;
   }
+
+  .tournament-overview-stagger {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }
