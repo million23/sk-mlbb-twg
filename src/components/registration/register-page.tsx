@@ -1,0 +1,205 @@
+import {
+  useListedTeams,
+  useOpenRegistrationTournaments,
+  useRegistrationTournament,
+  useSubmitRegistration,
+  registrationApiErrorMessage,
+} from "@/hooks/registration";
+import {
+  canAdvance,
+  validateCredentials,
+  validateTeamDetails,
+  validateTeamIntent,
+  validateUploads,
+  wizardStepsFor,
+} from "@/lib/registration/flow";
+import { Link } from "@tanstack/react-router";
+import { House } from "lucide-react";
+import { useEffect } from "react";
+
+import { ErrorBanner, NavRow, STEP_LABELS, StepBody } from "./steps";
+import { useRegistrationFlow } from "./use-registration-flow";
+
+type RegisterPageProps = {
+  tournamentId?: string;
+};
+
+/** Public registration — stepper wizard wired to Orval-backed hooks. */
+export function RegisterPage({ tournamentId }: RegisterPageProps) {
+  const { state, dispatch } = useRegistrationFlow();
+  const openTournaments = useOpenRegistrationTournaments();
+  const selectedId =
+    tournamentId ||
+    openTournaments.data?.[0]?.id ||
+    state.tournament_id ||
+    undefined;
+  const tournament = useRegistrationTournament(selectedId);
+  const teams = useListedTeams(selectedId);
+  const submit = useSubmitRegistration();
+
+  const tournamentRecord = tournament.data;
+  const listedTeams = teams.data;
+
+  useEffect(() => {
+    if (!tournamentRecord?.id) return;
+    dispatch({
+      type: "HYDRATE",
+      patch: {
+        tournament_id: tournamentRecord.id,
+        tournament_day: tournamentRecord.tournament_day,
+        registration_open: tournamentRecord.registration_open,
+        listed_teams: listedTeams ?? [],
+      },
+    });
+  }, [dispatch, tournamentRecord, listedTeams]);
+
+  const wizard = wizardStepsFor(state);
+  const focusStep =
+    state.step === "approved" || state.step === "rejected"
+      ? "pending"
+      : state.step === "closed"
+        ? "consent"
+        : state.step;
+  const activeIdx = wizard.indexOf(focusStep);
+
+  const loading =
+    openTournaments.isLoading ||
+    (!!selectedId && tournament.isLoading) ||
+    (!!selectedId && teams.isLoading);
+
+  const bootError =
+    openTournaments.error || tournament.error || teams.error
+      ? registrationApiErrorMessage(
+          openTournaments.error || tournament.error || teams.error,
+        )
+      : !loading && !selectedId
+        ? "No tournament is open for registration right now."
+        : tournament.data && !tournament.data.registration_open
+          ? "Registration is closed for this tournament."
+          : null;
+
+  const handleSubmit = async () => {
+    if (state.step !== "uploads") return;
+    const err =
+      canAdvance(state) ??
+      validateCredentials(state) ??
+      validateTeamIntent(state) ??
+      validateTeamDetails(state) ??
+      validateUploads(state);
+    if (err) {
+      dispatch({ type: "SET_LAST_ERROR", message: err });
+      return;
+    }
+    if (!state.consent_accepted) {
+      dispatch({ type: "SET_LAST_ERROR", message: "Consent required" });
+      return;
+    }
+    try {
+      const record = await submit.mutateAsync({ draft: state });
+      dispatch({
+        type: "SUBMIT_SUCCESS",
+        statusCode: record.registration_status_code ?? null,
+      });
+    } catch (error) {
+      dispatch({
+        type: "SET_LAST_ERROR",
+        message: registrationApiErrorMessage(error),
+      });
+    }
+  };
+
+  return (
+    <div className="flex min-h-svh flex-col bg-background text-foreground">
+      <div className="flex flex-1 flex-col px-4 py-6 sm:px-6 md:items-center md:justify-center md:py-10">
+        <div className="flex w-full max-w-2xl flex-col gap-6">
+          <header className="flex items-start justify-between gap-3">
+            <div>
+              <p className="font-mono text-[0.65rem] text-primary uppercase tracking-[0.2em]">
+                Public registration
+              </p>
+              <h1 className="font-serif text-2xl tracking-tight">
+                Register for the tournament
+              </h1>
+              {tournament.data?.title ? (
+                <p className="mt-1 text-muted-foreground text-sm">
+                  {tournament.data.title}
+                </p>
+              ) : null}
+            </div>
+            <Link
+              to="/"
+              className="inline-flex shrink-0 items-center gap-1.5 pt-1 text-muted-foreground text-sm hover:text-foreground"
+            >
+              <House className="size-4" aria-hidden />
+              Home
+            </Link>
+          </header>
+
+          {loading ? (
+            <p className="text-muted-foreground text-sm">Loading registration…</p>
+          ) : bootError ? (
+            <div className="rounded-3xl border border-border/80 bg-card p-5 sm:p-6">
+              <p className="text-sm">{bootError}</p>
+              <Link
+                to="/"
+                className="mt-4 inline-flex text-primary text-sm hover:underline"
+              >
+                Back to home
+              </Link>
+            </div>
+          ) : (
+            <>
+              <ol className="flex flex-wrap gap-1">
+                {wizard.map((step, i) => {
+                  const done = activeIdx > i || state.step === "approved";
+                  const current =
+                    focusStep === step ||
+                    (step === "pending" &&
+                      (state.step === "approved" || state.step === "rejected"));
+                  return (
+                    <li
+                      key={step}
+                      className={`rounded-full px-3 py-1 font-mono text-[0.65rem] uppercase tracking-wider ${
+                        current
+                          ? "bg-primary text-primary-foreground"
+                          : done
+                            ? "bg-muted text-foreground"
+                            : "bg-muted/40 text-muted-foreground"
+                      }`}
+                    >
+                      {String(i + 1).padStart(2, "0")} {STEP_LABELS[step]}
+                    </li>
+                  );
+                })}
+              </ol>
+
+              <div className="rounded-3xl border border-border/80 bg-card p-5 sm:p-6">
+                {state.step !== "pending" &&
+                state.step !== "approved" &&
+                state.step !== "rejected" ? (
+                  <h2 className="mb-4 font-serif text-xl tracking-tight">
+                    {state.step === "team_details"
+                      ? state.team_intent === "create_team"
+                        ? "Name your team"
+                        : "Pick a team"
+                      : STEP_LABELS[state.step]}
+                  </h2>
+                ) : null}
+                <div className="flex flex-col gap-4">
+                  <StepBody state={state} dispatch={dispatch} />
+                  <ErrorBanner state={state} />
+                  <NavRow
+                    state={state}
+                    dispatch={dispatch}
+                    onSubmit={handleSubmit}
+                    submitting={submit.isPending}
+                  />
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

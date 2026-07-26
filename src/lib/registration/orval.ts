@@ -1,0 +1,201 @@
+import type { ParticipantsRecord } from "@/hooks/orval/model/participantsRecord";
+import type { TeamsRecord } from "@/hooks/orval/model/teamsRecord";
+import type { TournamentsRecord } from "@/hooks/orval/model/tournamentsRecord";
+import { getPostCollectionsParticipantsRecordsUrl } from "@/hooks/orval/participants-collection/participants-collection";
+import { ApiError, customInstance } from "@/lib/api/mutator/custom-instance";
+import {
+	CONSENT_VERSION,
+	type EligiblePhase,
+	type ListedTeam,
+	type RegistrationDraft,
+} from "@/lib/registration/flow";
+
+/** Orval response wrappers don't match PocketBase JSON; unwrap list bodies. */
+export function unwrapOrvalListItems<T>(res: unknown): T[] {
+	if (!res || typeof res !== "object") return [];
+	const body = res as { items?: T[]; data?: { items?: T[] } };
+	if (Array.isArray(body.items)) return body.items;
+	if (Array.isArray(body.data?.items)) return body.data.items;
+	return [];
+}
+
+export function unwrapOrvalRecord<T>(res: unknown): T {
+	if (!res || typeof res !== "object") {
+		throw new Error("Empty API response");
+	}
+	const body = res as { data?: T } & T;
+	if ("data" in body && body.data && typeof body.data === "object") {
+		return body.data;
+	}
+	return body as T;
+}
+
+/** Prefer the calendar date from an ISO/date string (avoids TZ day-shift). */
+export function tournamentDayFromStartAt(startAt?: string): string {
+	if (!startAt?.trim()) return "";
+	const m = /^(\d{4}-\d{2}-\d{2})/.exec(startAt.trim());
+	if (m) return m[1]!;
+	const d = new Date(startAt);
+	if (Number.isNaN(d.getTime())) return "";
+	const y = d.getFullYear();
+	const mo = String(d.getMonth() + 1).padStart(2, "0");
+	const day = String(d.getDate()).padStart(2, "0");
+	return `${y}-${mo}-${day}`;
+}
+
+/** Age-check day: tournament start, else registration window end/start. */
+export function resolveTournamentDay(t: TournamentsRecord): string {
+	return (
+		tournamentDayFromStartAt(t.start_at) ||
+		tournamentDayFromStartAt(t.registration_close_at) ||
+		tournamentDayFromStartAt(t.registration_open_at) ||
+		""
+	);
+}
+
+export function isRegistrationWindowOpen(
+	t: TournamentsRecord,
+	now = new Date(),
+): boolean {
+	if (t.archived || !t.registration_enabled) return false;
+	if (
+		t.status === "draft" ||
+		t.status === "archived" ||
+		t.status === "completed"
+	) {
+		return false;
+	}
+	if (t.registration_open_at && new Date(t.registration_open_at) > now) {
+		return false;
+	}
+	if (t.registration_close_at && new Date(t.registration_close_at) < now) {
+		return false;
+	}
+	return true;
+}
+
+export function mapTeamRecord(team: TeamsRecord): ListedTeam | null {
+	if (!team.id) return null;
+	return {
+		id: team.id,
+		name: team.name,
+		/** Until public API exposes member phases / has_phase_9. */
+		member_phases: [] as EligiblePhase[],
+	};
+}
+
+export type SubmitRegistrationInput = {
+	draft: RegistrationDraft;
+};
+
+const UPLOAD_FIELD_NAMES = [
+	"school_id_front",
+	"school_id_back",
+	"purok_endorsement",
+] as const;
+
+/** 6-digit status-lookup code (fallback when pb_hooks are not deployed yet). */
+export function generateRegistrationStatusCode(): string {
+	return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+/** Build multipart body for public participant create (files + fields). */
+export function buildParticipantFormData(
+	draft: RegistrationDraft,
+	statusCode: string = generateRegistrationStatusCode(),
+): FormData {
+	const c = draft.credentials;
+	const form = new FormData();
+
+	form.append("tournament", draft.tournament_id);
+	form.append("name", c.name.trim());
+	form.append("email", c.email.trim());
+	form.append("ign", c.ign.trim());
+	form.append("birthdate", c.birthdate);
+	form.append("user_id", c.user_id.trim());
+	form.append("server_id", c.server_id.trim());
+	form.append("address_phase", c.address_phase);
+	form.append("address_package", c.address_package.trim());
+	form.append("address_block", c.address_block.trim());
+	form.append("address_lot", c.address_lot.trim());
+	form.append("preferred_lane", c.preferred_lane);
+	// PocketBase multi-select: repeat the key (not a JSON string).
+	if (c.preferred_lane) {
+		form.append("preferred_roles", c.preferred_lane);
+	}
+	form.append("status", "unassigned");
+	// Required on participants; public create also forced by pb_hooks when deployed.
+	form.append("registration_status", "pending");
+	form.append("archived", "false");
+	// Fallback if create hooks are not on the host; server hook overwrites when deployed.
+	form.append("registration_status_code", statusCode);
+
+	if (c.contact_number.trim()) {
+		form.append("contact_number", c.contact_number.trim());
+	}
+
+	if (draft.team_intent) {
+		form.append("team_intent", draft.team_intent);
+	}
+	if (draft.team_intent === "join_team" && draft.preferred_team) {
+		form.append("preferred_team", draft.preferred_team);
+	}
+	if (draft.team_intent === "create_team" && draft.preferred_team_name.trim()) {
+		form.append("preferred_team_name", draft.preferred_team_name.trim());
+	}
+
+	form.append("consent_version", draft.consent_version ?? CONSENT_VERSION);
+	if (draft.consent_accepted_at) {
+		form.append("consent_accepted_at", draft.consent_accepted_at);
+	}
+
+	for (const key of UPLOAD_FIELD_NAMES) {
+		const file = draft.uploads[key];
+		if (file instanceof File && file.size > 0) {
+			form.append(key, file, file.name);
+		}
+	}
+
+	return form;
+}
+
+/**
+ * Create participant via Orval path + FormData (JSON Orval POST cannot attach files).
+ * Mail is sent by PocketBase `onRecordAfterCreateSuccess` (Settings → Mail SMTP).
+ */
+export async function createParticipantRecord(
+	draft: RegistrationDraft,
+): Promise<ParticipantsRecord> {
+	const statusCode = generateRegistrationStatusCode();
+	const body = buildParticipantFormData(draft, statusCode);
+	const res = await customInstance<unknown>(
+		getPostCollectionsParticipantsRecordsUrl(),
+		{
+			method: "POST",
+			body,
+		},
+	);
+	const record = unwrapOrvalRecord<ParticipantsRecord>(res);
+	// Response may omit the field; keep the code we submitted for the success screen.
+	return {
+		...record,
+		registration_status_code: record.registration_status_code || statusCode,
+	};
+}
+
+export function registrationApiErrorMessage(error: unknown): string {
+	if (error instanceof ApiError) {
+		const data = error.data;
+		if (data && typeof data === "object" && "data" in data) {
+			const fields = (data as { data?: Record<string, { message?: string }> })
+				.data;
+			if (fields && typeof fields === "object") {
+				const first = Object.values(fields).find((v) => v?.message)?.message;
+				if (first) return first;
+			}
+		}
+		return error.message;
+	}
+	if (error instanceof Error) return error.message;
+	return "Registration failed";
+}

@@ -18,7 +18,11 @@ export const customInstance = async <T>(
     : `${base}/api${url.startsWith("/") ? url : `/${url}`}`;
 
   const headers = new Headers(options.headers);
-  if (!headers.has("Content-Type") && !(options.body instanceof FormData)) {
+  const isFormData = options.body instanceof FormData;
+  // Browser must set multipart boundary for FormData — never force JSON here.
+  if (isFormData) {
+    headers.delete("Content-Type");
+  } else if (!headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
 

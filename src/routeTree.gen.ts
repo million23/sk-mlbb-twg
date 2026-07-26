@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as RegisterRouteImport } from './routes/register'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LegacyIndexRouteImport } from './routes/legacy/index'
 import { Route as LegacyComponentsRouteImport } from './routes/legacy/components'
@@ -36,6 +37,11 @@ import { Route as LegacyAppIdTeamsArchivedRouteImport } from './routes/legacy/ap
 import { Route as LegacyAppIdParticipantsArchivedRouteImport } from './routes/legacy/app/$id/participants/archived'
 import { Route as LegacyAppIdMatchesArchivedRouteImport } from './routes/legacy/app/$id/matches/archived'
 
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -175,6 +181,7 @@ const LegacyAppIdMatchesArchivedRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/register': typeof RegisterRoute
   '/legacy/p': typeof LegacyPRouteRouteWithChildren
   '/legacy/components': typeof LegacyComponentsRoute
   '/legacy/': typeof LegacyIndexRoute
@@ -203,6 +210,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/register': typeof RegisterRoute
   '/legacy/components': typeof LegacyComponentsRoute
   '/legacy': typeof LegacyIndexRoute
   '/legacy/p/not-available': typeof LegacyPNotAvailableRoute
@@ -230,6 +238,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/register': typeof RegisterRoute
   '/legacy/p': typeof LegacyPRouteRouteWithChildren
   '/legacy/components': typeof LegacyComponentsRoute
   '/legacy/': typeof LegacyIndexRoute
@@ -260,6 +269,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/register'
     | '/legacy/p'
     | '/legacy/components'
     | '/legacy/'
@@ -288,6 +298,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/register'
     | '/legacy/components'
     | '/legacy'
     | '/legacy/p/not-available'
@@ -314,6 +325,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/register'
     | '/legacy/p'
     | '/legacy/components'
     | '/legacy/'
@@ -343,6 +355,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  RegisterRoute: typeof RegisterRoute
   LegacyPRouteRoute: typeof LegacyPRouteRouteWithChildren
   LegacyComponentsRoute: typeof LegacyComponentsRoute
   LegacyIndexRoute: typeof LegacyIndexRoute
@@ -353,6 +366,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -597,6 +617,7 @@ const LegacyAppIdRouteRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  RegisterRoute: RegisterRoute,
   LegacyPRouteRoute: LegacyPRouteRouteWithChildren,
   LegacyComponentsRoute: LegacyComponentsRoute,
   LegacyIndexRoute: LegacyIndexRoute,

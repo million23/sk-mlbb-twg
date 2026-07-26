@@ -44,15 +44,10 @@ export const LANDING_WHO = [
   },
 ] as const;
 
-/** Temporary until public register / verify routes exist. */
-export function stubRegister() {
-  toast.message("Registration form coming next", {
-    description: "You’ll pick a tournament with an open registration window.",
-  });
-}
-
+/** Temporary until the verify-registration route exists. */
 export function stubVerify() {
   toast.message("Verify registration coming next", {
-    description: "Check status with the email you used to register.",
+    description:
+      "Check status with the code emailed to you after you register.",
   });
 }

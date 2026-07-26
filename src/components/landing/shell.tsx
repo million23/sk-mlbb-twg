@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 
-import { LANDING_SITE_TITLE, stubRegister, stubVerify } from "./content";
+import { LANDING_SITE_TITLE, stubVerify } from "./content";
 
 type LandingShellProps = {
   children: ReactNode;
@@ -27,21 +27,25 @@ export function LandingShell({
             : "border-b border-border/70 bg-background/80 backdrop-blur-md",
         )}
       >
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3 sm:px-6 sm:py-4">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-3 px-5 py-3 sm:px-8 sm:py-4 lg:px-12">
           <Link
             to="/"
-            className="min-w-0 truncate font-semibold tracking-tight text-sm text-foreground sm:text-base"
+            className="min-w-0 flex-1 truncate font-semibold tracking-tight text-sm text-foreground sm:flex-none sm:text-base"
           >
-            {LANDING_SITE_TITLE}
+            <span className="sm:hidden">SK 176-E MLBB</span>
+            <span className="hidden sm:inline">{LANDING_SITE_TITLE}</span>
           </Link>
 
           <nav
-            className="flex flex-wrap items-center justify-end gap-1 sm:gap-2"
+            className="flex shrink-0 items-center gap-0.5 sm:gap-2"
             aria-label="Primary"
           >
             <Link
               to="/legacy/p/tournaments"
-              className={buttonVariants({ variant: "ghost", size: "sm" })}
+              className={cn(
+                buttonVariants({ variant: "ghost", size: "sm" }),
+                "px-2 sm:px-3",
+              )}
             >
               Tournaments
             </Link>
@@ -49,12 +53,13 @@ export function LandingShell({
               type="button"
               variant="ghost"
               size="sm"
+              className="px-2 sm:px-3"
               onClick={stubVerify}
             >
               <span className="sm:hidden">Verify</span>
               <span className="hidden sm:inline">Verify registration</span>
             </Button>
-            <Button type="button" size="sm" onClick={stubRegister}>
+            <Button size="sm" className="px-3" render={<Link to="/register" />}>
               Register
             </Button>
             <PublicThemeToggle />
