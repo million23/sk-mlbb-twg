@@ -13,29 +13,43 @@ import { Route as RegisterRouteImport } from './routes/register'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LegacyIndexRouteImport } from './routes/legacy/index'
 import { Route as LegacyComponentsRouteImport } from './routes/legacy/components'
+import { Route as AppLoginRouteImport } from './routes/app/login'
 import { Route as LegacyPRouteRouteImport } from './routes/legacy/p/route'
+import { Route as AppAuthRouteRouteImport } from './routes/app/auth/route'
+import { Route as AppAuthedRouteRouteImport } from './routes/app/_authed/route'
 import { Route as LegacyPIndexRouteImport } from './routes/legacy/p/index'
+import { Route as AppAuthedIndexRouteImport } from './routes/app/_authed/index'
 import { Route as LegacyPTeamsRouteImport } from './routes/legacy/p/teams'
 import { Route as LegacyPStandingRouteImport } from './routes/legacy/p/standing'
 import { Route as LegacyPParticipantsRouteImport } from './routes/legacy/p/participants'
 import { Route as LegacyPNotAvailableRouteImport } from './routes/legacy/p/not-available'
+import { Route as AppAuthLoginRouteImport } from './routes/app/auth/login'
+import { Route as AppAuthedAuditLogsRouteImport } from './routes/app/_authed/audit-logs'
+import { Route as AppAuthedAdminsRouteImport } from './routes/app/_authed/admins'
 import { Route as LegacyAppIdRouteRouteImport } from './routes/legacy/app/$id/route'
 import { Route as LegacyPTournamentsIndexRouteImport } from './routes/legacy/p/tournaments/index'
 import { Route as LegacyAppIdIndexRouteImport } from './routes/legacy/app/$id/index'
+import { Route as AppAuthedTournamentsIndexRouteImport } from './routes/app/_authed/tournaments/index'
 import { Route as LegacyPTournamentsIdRouteImport } from './routes/legacy/p/tournaments/$id'
 import { Route as LegacyAppAuthLoginRouteImport } from './routes/legacy/app/auth/login'
 import { Route as LegacyAppAuthCheckRouteImport } from './routes/legacy/app/auth/check'
 import { Route as LegacyAppIdTeamStandingRouteImport } from './routes/legacy/app/$id/team-standing'
 import { Route as LegacyAppIdAuditLogsRouteImport } from './routes/legacy/app/$id/audit-logs'
 import { Route as LegacyAppIdAdminsRouteImport } from './routes/legacy/app/$id/admins'
+import { Route as AppAuthedTournamentsTournamentIdRouteRouteImport } from './routes/app/_authed/tournaments/$tournamentId/route'
 import { Route as LegacyAppIdTournamentIndexRouteImport } from './routes/legacy/app/$id/tournament/index'
 import { Route as LegacyAppIdTeamsIndexRouteImport } from './routes/legacy/app/$id/teams/index'
 import { Route as LegacyAppIdParticipantsIndexRouteImport } from './routes/legacy/app/$id/participants/index'
 import { Route as LegacyAppIdMatchesIndexRouteImport } from './routes/legacy/app/$id/matches/index'
+import { Route as AppAuthedTournamentsTournamentIdIndexRouteImport } from './routes/app/_authed/tournaments/$tournamentId/index'
 import { Route as LegacyAppIdTournamentArchivedRouteImport } from './routes/legacy/app/$id/tournament/archived'
 import { Route as LegacyAppIdTeamsArchivedRouteImport } from './routes/legacy/app/$id/teams/archived'
 import { Route as LegacyAppIdParticipantsArchivedRouteImport } from './routes/legacy/app/$id/participants/archived'
 import { Route as LegacyAppIdMatchesArchivedRouteImport } from './routes/legacy/app/$id/matches/archived'
+import { Route as AppAuthedTournamentsTournamentIdTeamsRouteImport } from './routes/app/_authed/tournaments/$tournamentId/teams'
+import { Route as AppAuthedTournamentsTournamentIdTeamStandingRouteImport } from './routes/app/_authed/tournaments/$tournamentId/team-standing'
+import { Route as AppAuthedTournamentsTournamentIdParticipantsRouteImport } from './routes/app/_authed/tournaments/$tournamentId/participants'
+import { Route as AppAuthedTournamentsTournamentIdMatchesRouteImport } from './routes/app/_authed/tournaments/$tournamentId/matches'
 
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
@@ -57,15 +71,35 @@ const LegacyComponentsRoute = LegacyComponentsRouteImport.update({
   path: '/legacy/components',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppLoginRoute = AppLoginRouteImport.update({
+  id: '/app/login',
+  path: '/app/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LegacyPRouteRoute = LegacyPRouteRouteImport.update({
   id: '/legacy/p',
   path: '/legacy/p',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppAuthRouteRoute = AppAuthRouteRouteImport.update({
+  id: '/app/auth',
+  path: '/app/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppAuthedRouteRoute = AppAuthedRouteRouteImport.update({
+  id: '/app/_authed',
+  path: '/app',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LegacyPIndexRoute = LegacyPIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => LegacyPRouteRoute,
+} as any)
+const AppAuthedIndexRoute = AppAuthedIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppAuthedRouteRoute,
 } as any)
 const LegacyPTeamsRoute = LegacyPTeamsRouteImport.update({
   id: '/teams',
@@ -87,6 +121,21 @@ const LegacyPNotAvailableRoute = LegacyPNotAvailableRouteImport.update({
   path: '/not-available',
   getParentRoute: () => LegacyPRouteRoute,
 } as any)
+const AppAuthLoginRoute = AppAuthLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => AppAuthRouteRoute,
+} as any)
+const AppAuthedAuditLogsRoute = AppAuthedAuditLogsRouteImport.update({
+  id: '/audit-logs',
+  path: '/audit-logs',
+  getParentRoute: () => AppAuthedRouteRoute,
+} as any)
+const AppAuthedAdminsRoute = AppAuthedAdminsRouteImport.update({
+  id: '/admins',
+  path: '/admins',
+  getParentRoute: () => AppAuthedRouteRoute,
+} as any)
 const LegacyAppIdRouteRoute = LegacyAppIdRouteRouteImport.update({
   id: '/legacy/app/$id',
   path: '/legacy/app/$id',
@@ -102,6 +151,12 @@ const LegacyAppIdIndexRoute = LegacyAppIdIndexRouteImport.update({
   path: '/',
   getParentRoute: () => LegacyAppIdRouteRoute,
 } as any)
+const AppAuthedTournamentsIndexRoute =
+  AppAuthedTournamentsIndexRouteImport.update({
+    id: '/tournaments/',
+    path: '/tournaments/',
+    getParentRoute: () => AppAuthedRouteRoute,
+  } as any)
 const LegacyPTournamentsIdRoute = LegacyPTournamentsIdRouteImport.update({
   id: '/tournaments/$id',
   path: '/tournaments/$id',
@@ -132,6 +187,12 @@ const LegacyAppIdAdminsRoute = LegacyAppIdAdminsRouteImport.update({
   path: '/admins',
   getParentRoute: () => LegacyAppIdRouteRoute,
 } as any)
+const AppAuthedTournamentsTournamentIdRouteRoute =
+  AppAuthedTournamentsTournamentIdRouteRouteImport.update({
+    id: '/tournaments/$tournamentId',
+    path: '/tournaments/$tournamentId',
+    getParentRoute: () => AppAuthedRouteRoute,
+  } as any)
 const LegacyAppIdTournamentIndexRoute =
   LegacyAppIdTournamentIndexRouteImport.update({
     id: '/tournament/',
@@ -154,6 +215,12 @@ const LegacyAppIdMatchesIndexRoute = LegacyAppIdMatchesIndexRouteImport.update({
   path: '/matches/',
   getParentRoute: () => LegacyAppIdRouteRoute,
 } as any)
+const AppAuthedTournamentsTournamentIdIndexRoute =
+  AppAuthedTournamentsTournamentIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AppAuthedTournamentsTournamentIdRouteRoute,
+  } as any)
 const LegacyAppIdTournamentArchivedRoute =
   LegacyAppIdTournamentArchivedRouteImport.update({
     id: '/tournament/archived',
@@ -178,31 +245,69 @@ const LegacyAppIdMatchesArchivedRoute =
     path: '/matches/archived',
     getParentRoute: () => LegacyAppIdRouteRoute,
   } as any)
+const AppAuthedTournamentsTournamentIdTeamsRoute =
+  AppAuthedTournamentsTournamentIdTeamsRouteImport.update({
+    id: '/teams',
+    path: '/teams',
+    getParentRoute: () => AppAuthedTournamentsTournamentIdRouteRoute,
+  } as any)
+const AppAuthedTournamentsTournamentIdTeamStandingRoute =
+  AppAuthedTournamentsTournamentIdTeamStandingRouteImport.update({
+    id: '/team-standing',
+    path: '/team-standing',
+    getParentRoute: () => AppAuthedTournamentsTournamentIdRouteRoute,
+  } as any)
+const AppAuthedTournamentsTournamentIdParticipantsRoute =
+  AppAuthedTournamentsTournamentIdParticipantsRouteImport.update({
+    id: '/participants',
+    path: '/participants',
+    getParentRoute: () => AppAuthedTournamentsTournamentIdRouteRoute,
+  } as any)
+const AppAuthedTournamentsTournamentIdMatchesRoute =
+  AppAuthedTournamentsTournamentIdMatchesRouteImport.update({
+    id: '/matches',
+    path: '/matches',
+    getParentRoute: () => AppAuthedTournamentsTournamentIdRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/register': typeof RegisterRoute
+  '/app': typeof AppAuthedRouteRouteWithChildren
+  '/app/auth': typeof AppAuthRouteRouteWithChildren
   '/legacy/p': typeof LegacyPRouteRouteWithChildren
+  '/app/login': typeof AppLoginRoute
   '/legacy/components': typeof LegacyComponentsRoute
   '/legacy/': typeof LegacyIndexRoute
   '/legacy/app/$id': typeof LegacyAppIdRouteRouteWithChildren
+  '/app/admins': typeof AppAuthedAdminsRoute
+  '/app/audit-logs': typeof AppAuthedAuditLogsRoute
+  '/app/auth/login': typeof AppAuthLoginRoute
   '/legacy/p/not-available': typeof LegacyPNotAvailableRoute
   '/legacy/p/participants': typeof LegacyPParticipantsRoute
   '/legacy/p/standing': typeof LegacyPStandingRoute
   '/legacy/p/teams': typeof LegacyPTeamsRoute
+  '/app/': typeof AppAuthedIndexRoute
   '/legacy/p/': typeof LegacyPIndexRoute
+  '/app/tournaments/$tournamentId': typeof AppAuthedTournamentsTournamentIdRouteRouteWithChildren
   '/legacy/app/$id/admins': typeof LegacyAppIdAdminsRoute
   '/legacy/app/$id/audit-logs': typeof LegacyAppIdAuditLogsRoute
   '/legacy/app/$id/team-standing': typeof LegacyAppIdTeamStandingRoute
   '/legacy/app/auth/check': typeof LegacyAppAuthCheckRoute
   '/legacy/app/auth/login': typeof LegacyAppAuthLoginRoute
   '/legacy/p/tournaments/$id': typeof LegacyPTournamentsIdRoute
+  '/app/tournaments/': typeof AppAuthedTournamentsIndexRoute
   '/legacy/app/$id/': typeof LegacyAppIdIndexRoute
   '/legacy/p/tournaments/': typeof LegacyPTournamentsIndexRoute
+  '/app/tournaments/$tournamentId/matches': typeof AppAuthedTournamentsTournamentIdMatchesRoute
+  '/app/tournaments/$tournamentId/participants': typeof AppAuthedTournamentsTournamentIdParticipantsRoute
+  '/app/tournaments/$tournamentId/team-standing': typeof AppAuthedTournamentsTournamentIdTeamStandingRoute
+  '/app/tournaments/$tournamentId/teams': typeof AppAuthedTournamentsTournamentIdTeamsRoute
   '/legacy/app/$id/matches/archived': typeof LegacyAppIdMatchesArchivedRoute
   '/legacy/app/$id/participants/archived': typeof LegacyAppIdParticipantsArchivedRoute
   '/legacy/app/$id/teams/archived': typeof LegacyAppIdTeamsArchivedRoute
   '/legacy/app/$id/tournament/archived': typeof LegacyAppIdTournamentArchivedRoute
+  '/app/tournaments/$tournamentId/': typeof AppAuthedTournamentsTournamentIdIndexRoute
   '/legacy/app/$id/matches/': typeof LegacyAppIdMatchesIndexRoute
   '/legacy/app/$id/participants/': typeof LegacyAppIdParticipantsIndexRoute
   '/legacy/app/$id/teams/': typeof LegacyAppIdTeamsIndexRoute
@@ -211,12 +316,18 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/register': typeof RegisterRoute
+  '/app/auth': typeof AppAuthRouteRouteWithChildren
+  '/app/login': typeof AppLoginRoute
   '/legacy/components': typeof LegacyComponentsRoute
   '/legacy': typeof LegacyIndexRoute
+  '/app/admins': typeof AppAuthedAdminsRoute
+  '/app/audit-logs': typeof AppAuthedAuditLogsRoute
+  '/app/auth/login': typeof AppAuthLoginRoute
   '/legacy/p/not-available': typeof LegacyPNotAvailableRoute
   '/legacy/p/participants': typeof LegacyPParticipantsRoute
   '/legacy/p/standing': typeof LegacyPStandingRoute
   '/legacy/p/teams': typeof LegacyPTeamsRoute
+  '/app': typeof AppAuthedIndexRoute
   '/legacy/p': typeof LegacyPIndexRoute
   '/legacy/app/$id/admins': typeof LegacyAppIdAdminsRoute
   '/legacy/app/$id/audit-logs': typeof LegacyAppIdAuditLogsRoute
@@ -224,12 +335,18 @@ export interface FileRoutesByTo {
   '/legacy/app/auth/check': typeof LegacyAppAuthCheckRoute
   '/legacy/app/auth/login': typeof LegacyAppAuthLoginRoute
   '/legacy/p/tournaments/$id': typeof LegacyPTournamentsIdRoute
+  '/app/tournaments': typeof AppAuthedTournamentsIndexRoute
   '/legacy/app/$id': typeof LegacyAppIdIndexRoute
   '/legacy/p/tournaments': typeof LegacyPTournamentsIndexRoute
+  '/app/tournaments/$tournamentId/matches': typeof AppAuthedTournamentsTournamentIdMatchesRoute
+  '/app/tournaments/$tournamentId/participants': typeof AppAuthedTournamentsTournamentIdParticipantsRoute
+  '/app/tournaments/$tournamentId/team-standing': typeof AppAuthedTournamentsTournamentIdTeamStandingRoute
+  '/app/tournaments/$tournamentId/teams': typeof AppAuthedTournamentsTournamentIdTeamsRoute
   '/legacy/app/$id/matches/archived': typeof LegacyAppIdMatchesArchivedRoute
   '/legacy/app/$id/participants/archived': typeof LegacyAppIdParticipantsArchivedRoute
   '/legacy/app/$id/teams/archived': typeof LegacyAppIdTeamsArchivedRoute
   '/legacy/app/$id/tournament/archived': typeof LegacyAppIdTournamentArchivedRoute
+  '/app/tournaments/$tournamentId': typeof AppAuthedTournamentsTournamentIdIndexRoute
   '/legacy/app/$id/matches': typeof LegacyAppIdMatchesIndexRoute
   '/legacy/app/$id/participants': typeof LegacyAppIdParticipantsIndexRoute
   '/legacy/app/$id/teams': typeof LegacyAppIdTeamsIndexRoute
@@ -239,27 +356,41 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/register': typeof RegisterRoute
+  '/app/_authed': typeof AppAuthedRouteRouteWithChildren
+  '/app/auth': typeof AppAuthRouteRouteWithChildren
   '/legacy/p': typeof LegacyPRouteRouteWithChildren
+  '/app/login': typeof AppLoginRoute
   '/legacy/components': typeof LegacyComponentsRoute
   '/legacy/': typeof LegacyIndexRoute
   '/legacy/app/$id': typeof LegacyAppIdRouteRouteWithChildren
+  '/app/_authed/admins': typeof AppAuthedAdminsRoute
+  '/app/_authed/audit-logs': typeof AppAuthedAuditLogsRoute
+  '/app/auth/login': typeof AppAuthLoginRoute
   '/legacy/p/not-available': typeof LegacyPNotAvailableRoute
   '/legacy/p/participants': typeof LegacyPParticipantsRoute
   '/legacy/p/standing': typeof LegacyPStandingRoute
   '/legacy/p/teams': typeof LegacyPTeamsRoute
+  '/app/_authed/': typeof AppAuthedIndexRoute
   '/legacy/p/': typeof LegacyPIndexRoute
+  '/app/_authed/tournaments/$tournamentId': typeof AppAuthedTournamentsTournamentIdRouteRouteWithChildren
   '/legacy/app/$id/admins': typeof LegacyAppIdAdminsRoute
   '/legacy/app/$id/audit-logs': typeof LegacyAppIdAuditLogsRoute
   '/legacy/app/$id/team-standing': typeof LegacyAppIdTeamStandingRoute
   '/legacy/app/auth/check': typeof LegacyAppAuthCheckRoute
   '/legacy/app/auth/login': typeof LegacyAppAuthLoginRoute
   '/legacy/p/tournaments/$id': typeof LegacyPTournamentsIdRoute
+  '/app/_authed/tournaments/': typeof AppAuthedTournamentsIndexRoute
   '/legacy/app/$id/': typeof LegacyAppIdIndexRoute
   '/legacy/p/tournaments/': typeof LegacyPTournamentsIndexRoute
+  '/app/_authed/tournaments/$tournamentId/matches': typeof AppAuthedTournamentsTournamentIdMatchesRoute
+  '/app/_authed/tournaments/$tournamentId/participants': typeof AppAuthedTournamentsTournamentIdParticipantsRoute
+  '/app/_authed/tournaments/$tournamentId/team-standing': typeof AppAuthedTournamentsTournamentIdTeamStandingRoute
+  '/app/_authed/tournaments/$tournamentId/teams': typeof AppAuthedTournamentsTournamentIdTeamsRoute
   '/legacy/app/$id/matches/archived': typeof LegacyAppIdMatchesArchivedRoute
   '/legacy/app/$id/participants/archived': typeof LegacyAppIdParticipantsArchivedRoute
   '/legacy/app/$id/teams/archived': typeof LegacyAppIdTeamsArchivedRoute
   '/legacy/app/$id/tournament/archived': typeof LegacyAppIdTournamentArchivedRoute
+  '/app/_authed/tournaments/$tournamentId/': typeof AppAuthedTournamentsTournamentIdIndexRoute
   '/legacy/app/$id/matches/': typeof LegacyAppIdMatchesIndexRoute
   '/legacy/app/$id/participants/': typeof LegacyAppIdParticipantsIndexRoute
   '/legacy/app/$id/teams/': typeof LegacyAppIdTeamsIndexRoute
@@ -270,27 +401,41 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/register'
+    | '/app'
+    | '/app/auth'
     | '/legacy/p'
+    | '/app/login'
     | '/legacy/components'
     | '/legacy/'
     | '/legacy/app/$id'
+    | '/app/admins'
+    | '/app/audit-logs'
+    | '/app/auth/login'
     | '/legacy/p/not-available'
     | '/legacy/p/participants'
     | '/legacy/p/standing'
     | '/legacy/p/teams'
+    | '/app/'
     | '/legacy/p/'
+    | '/app/tournaments/$tournamentId'
     | '/legacy/app/$id/admins'
     | '/legacy/app/$id/audit-logs'
     | '/legacy/app/$id/team-standing'
     | '/legacy/app/auth/check'
     | '/legacy/app/auth/login'
     | '/legacy/p/tournaments/$id'
+    | '/app/tournaments/'
     | '/legacy/app/$id/'
     | '/legacy/p/tournaments/'
+    | '/app/tournaments/$tournamentId/matches'
+    | '/app/tournaments/$tournamentId/participants'
+    | '/app/tournaments/$tournamentId/team-standing'
+    | '/app/tournaments/$tournamentId/teams'
     | '/legacy/app/$id/matches/archived'
     | '/legacy/app/$id/participants/archived'
     | '/legacy/app/$id/teams/archived'
     | '/legacy/app/$id/tournament/archived'
+    | '/app/tournaments/$tournamentId/'
     | '/legacy/app/$id/matches/'
     | '/legacy/app/$id/participants/'
     | '/legacy/app/$id/teams/'
@@ -299,12 +444,18 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/register'
+    | '/app/auth'
+    | '/app/login'
     | '/legacy/components'
     | '/legacy'
+    | '/app/admins'
+    | '/app/audit-logs'
+    | '/app/auth/login'
     | '/legacy/p/not-available'
     | '/legacy/p/participants'
     | '/legacy/p/standing'
     | '/legacy/p/teams'
+    | '/app'
     | '/legacy/p'
     | '/legacy/app/$id/admins'
     | '/legacy/app/$id/audit-logs'
@@ -312,12 +463,18 @@ export interface FileRouteTypes {
     | '/legacy/app/auth/check'
     | '/legacy/app/auth/login'
     | '/legacy/p/tournaments/$id'
+    | '/app/tournaments'
     | '/legacy/app/$id'
     | '/legacy/p/tournaments'
+    | '/app/tournaments/$tournamentId/matches'
+    | '/app/tournaments/$tournamentId/participants'
+    | '/app/tournaments/$tournamentId/team-standing'
+    | '/app/tournaments/$tournamentId/teams'
     | '/legacy/app/$id/matches/archived'
     | '/legacy/app/$id/participants/archived'
     | '/legacy/app/$id/teams/archived'
     | '/legacy/app/$id/tournament/archived'
+    | '/app/tournaments/$tournamentId'
     | '/legacy/app/$id/matches'
     | '/legacy/app/$id/participants'
     | '/legacy/app/$id/teams'
@@ -326,27 +483,41 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/register'
+    | '/app/_authed'
+    | '/app/auth'
     | '/legacy/p'
+    | '/app/login'
     | '/legacy/components'
     | '/legacy/'
     | '/legacy/app/$id'
+    | '/app/_authed/admins'
+    | '/app/_authed/audit-logs'
+    | '/app/auth/login'
     | '/legacy/p/not-available'
     | '/legacy/p/participants'
     | '/legacy/p/standing'
     | '/legacy/p/teams'
+    | '/app/_authed/'
     | '/legacy/p/'
+    | '/app/_authed/tournaments/$tournamentId'
     | '/legacy/app/$id/admins'
     | '/legacy/app/$id/audit-logs'
     | '/legacy/app/$id/team-standing'
     | '/legacy/app/auth/check'
     | '/legacy/app/auth/login'
     | '/legacy/p/tournaments/$id'
+    | '/app/_authed/tournaments/'
     | '/legacy/app/$id/'
     | '/legacy/p/tournaments/'
+    | '/app/_authed/tournaments/$tournamentId/matches'
+    | '/app/_authed/tournaments/$tournamentId/participants'
+    | '/app/_authed/tournaments/$tournamentId/team-standing'
+    | '/app/_authed/tournaments/$tournamentId/teams'
     | '/legacy/app/$id/matches/archived'
     | '/legacy/app/$id/participants/archived'
     | '/legacy/app/$id/teams/archived'
     | '/legacy/app/$id/tournament/archived'
+    | '/app/_authed/tournaments/$tournamentId/'
     | '/legacy/app/$id/matches/'
     | '/legacy/app/$id/participants/'
     | '/legacy/app/$id/teams/'
@@ -356,7 +527,10 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   RegisterRoute: typeof RegisterRoute
+  AppAuthedRouteRoute: typeof AppAuthedRouteRouteWithChildren
+  AppAuthRouteRoute: typeof AppAuthRouteRouteWithChildren
   LegacyPRouteRoute: typeof LegacyPRouteRouteWithChildren
+  AppLoginRoute: typeof AppLoginRoute
   LegacyComponentsRoute: typeof LegacyComponentsRoute
   LegacyIndexRoute: typeof LegacyIndexRoute
   LegacyAppIdRouteRoute: typeof LegacyAppIdRouteRouteWithChildren
@@ -394,11 +568,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LegacyComponentsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app/login': {
+      id: '/app/login'
+      path: '/app/login'
+      fullPath: '/app/login'
+      preLoaderRoute: typeof AppLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/legacy/p': {
       id: '/legacy/p'
       path: '/legacy/p'
       fullPath: '/legacy/p'
       preLoaderRoute: typeof LegacyPRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/auth': {
+      id: '/app/auth'
+      path: '/app/auth'
+      fullPath: '/app/auth'
+      preLoaderRoute: typeof AppAuthRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/_authed': {
+      id: '/app/_authed'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AppAuthedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/legacy/p/': {
@@ -407,6 +602,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/legacy/p/'
       preLoaderRoute: typeof LegacyPIndexRouteImport
       parentRoute: typeof LegacyPRouteRoute
+    }
+    '/app/_authed/': {
+      id: '/app/_authed/'
+      path: '/'
+      fullPath: '/app/'
+      preLoaderRoute: typeof AppAuthedIndexRouteImport
+      parentRoute: typeof AppAuthedRouteRoute
     }
     '/legacy/p/teams': {
       id: '/legacy/p/teams'
@@ -436,6 +638,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LegacyPNotAvailableRouteImport
       parentRoute: typeof LegacyPRouteRoute
     }
+    '/app/auth/login': {
+      id: '/app/auth/login'
+      path: '/login'
+      fullPath: '/app/auth/login'
+      preLoaderRoute: typeof AppAuthLoginRouteImport
+      parentRoute: typeof AppAuthRouteRoute
+    }
+    '/app/_authed/audit-logs': {
+      id: '/app/_authed/audit-logs'
+      path: '/audit-logs'
+      fullPath: '/app/audit-logs'
+      preLoaderRoute: typeof AppAuthedAuditLogsRouteImport
+      parentRoute: typeof AppAuthedRouteRoute
+    }
+    '/app/_authed/admins': {
+      id: '/app/_authed/admins'
+      path: '/admins'
+      fullPath: '/app/admins'
+      preLoaderRoute: typeof AppAuthedAdminsRouteImport
+      parentRoute: typeof AppAuthedRouteRoute
+    }
     '/legacy/app/$id': {
       id: '/legacy/app/$id'
       path: '/legacy/app/$id'
@@ -456,6 +679,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/legacy/app/$id/'
       preLoaderRoute: typeof LegacyAppIdIndexRouteImport
       parentRoute: typeof LegacyAppIdRouteRoute
+    }
+    '/app/_authed/tournaments/': {
+      id: '/app/_authed/tournaments/'
+      path: '/tournaments'
+      fullPath: '/app/tournaments/'
+      preLoaderRoute: typeof AppAuthedTournamentsIndexRouteImport
+      parentRoute: typeof AppAuthedRouteRoute
     }
     '/legacy/p/tournaments/$id': {
       id: '/legacy/p/tournaments/$id'
@@ -499,6 +729,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LegacyAppIdAdminsRouteImport
       parentRoute: typeof LegacyAppIdRouteRoute
     }
+    '/app/_authed/tournaments/$tournamentId': {
+      id: '/app/_authed/tournaments/$tournamentId'
+      path: '/tournaments/$tournamentId'
+      fullPath: '/app/tournaments/$tournamentId'
+      preLoaderRoute: typeof AppAuthedTournamentsTournamentIdRouteRouteImport
+      parentRoute: typeof AppAuthedRouteRoute
+    }
     '/legacy/app/$id/tournament/': {
       id: '/legacy/app/$id/tournament/'
       path: '/tournament'
@@ -526,6 +763,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/legacy/app/$id/matches/'
       preLoaderRoute: typeof LegacyAppIdMatchesIndexRouteImport
       parentRoute: typeof LegacyAppIdRouteRoute
+    }
+    '/app/_authed/tournaments/$tournamentId/': {
+      id: '/app/_authed/tournaments/$tournamentId/'
+      path: '/'
+      fullPath: '/app/tournaments/$tournamentId/'
+      preLoaderRoute: typeof AppAuthedTournamentsTournamentIdIndexRouteImport
+      parentRoute: typeof AppAuthedTournamentsTournamentIdRouteRoute
     }
     '/legacy/app/$id/tournament/archived': {
       id: '/legacy/app/$id/tournament/archived'
@@ -555,8 +799,96 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LegacyAppIdMatchesArchivedRouteImport
       parentRoute: typeof LegacyAppIdRouteRoute
     }
+    '/app/_authed/tournaments/$tournamentId/teams': {
+      id: '/app/_authed/tournaments/$tournamentId/teams'
+      path: '/teams'
+      fullPath: '/app/tournaments/$tournamentId/teams'
+      preLoaderRoute: typeof AppAuthedTournamentsTournamentIdTeamsRouteImport
+      parentRoute: typeof AppAuthedTournamentsTournamentIdRouteRoute
+    }
+    '/app/_authed/tournaments/$tournamentId/team-standing': {
+      id: '/app/_authed/tournaments/$tournamentId/team-standing'
+      path: '/team-standing'
+      fullPath: '/app/tournaments/$tournamentId/team-standing'
+      preLoaderRoute: typeof AppAuthedTournamentsTournamentIdTeamStandingRouteImport
+      parentRoute: typeof AppAuthedTournamentsTournamentIdRouteRoute
+    }
+    '/app/_authed/tournaments/$tournamentId/participants': {
+      id: '/app/_authed/tournaments/$tournamentId/participants'
+      path: '/participants'
+      fullPath: '/app/tournaments/$tournamentId/participants'
+      preLoaderRoute: typeof AppAuthedTournamentsTournamentIdParticipantsRouteImport
+      parentRoute: typeof AppAuthedTournamentsTournamentIdRouteRoute
+    }
+    '/app/_authed/tournaments/$tournamentId/matches': {
+      id: '/app/_authed/tournaments/$tournamentId/matches'
+      path: '/matches'
+      fullPath: '/app/tournaments/$tournamentId/matches'
+      preLoaderRoute: typeof AppAuthedTournamentsTournamentIdMatchesRouteImport
+      parentRoute: typeof AppAuthedTournamentsTournamentIdRouteRoute
+    }
   }
 }
+
+interface AppAuthedTournamentsTournamentIdRouteRouteChildren {
+  AppAuthedTournamentsTournamentIdMatchesRoute: typeof AppAuthedTournamentsTournamentIdMatchesRoute
+  AppAuthedTournamentsTournamentIdParticipantsRoute: typeof AppAuthedTournamentsTournamentIdParticipantsRoute
+  AppAuthedTournamentsTournamentIdTeamStandingRoute: typeof AppAuthedTournamentsTournamentIdTeamStandingRoute
+  AppAuthedTournamentsTournamentIdTeamsRoute: typeof AppAuthedTournamentsTournamentIdTeamsRoute
+  AppAuthedTournamentsTournamentIdIndexRoute: typeof AppAuthedTournamentsTournamentIdIndexRoute
+}
+
+const AppAuthedTournamentsTournamentIdRouteRouteChildren: AppAuthedTournamentsTournamentIdRouteRouteChildren =
+  {
+    AppAuthedTournamentsTournamentIdMatchesRoute:
+      AppAuthedTournamentsTournamentIdMatchesRoute,
+    AppAuthedTournamentsTournamentIdParticipantsRoute:
+      AppAuthedTournamentsTournamentIdParticipantsRoute,
+    AppAuthedTournamentsTournamentIdTeamStandingRoute:
+      AppAuthedTournamentsTournamentIdTeamStandingRoute,
+    AppAuthedTournamentsTournamentIdTeamsRoute:
+      AppAuthedTournamentsTournamentIdTeamsRoute,
+    AppAuthedTournamentsTournamentIdIndexRoute:
+      AppAuthedTournamentsTournamentIdIndexRoute,
+  }
+
+const AppAuthedTournamentsTournamentIdRouteRouteWithChildren =
+  AppAuthedTournamentsTournamentIdRouteRoute._addFileChildren(
+    AppAuthedTournamentsTournamentIdRouteRouteChildren,
+  )
+
+interface AppAuthedRouteRouteChildren {
+  AppAuthedAdminsRoute: typeof AppAuthedAdminsRoute
+  AppAuthedAuditLogsRoute: typeof AppAuthedAuditLogsRoute
+  AppAuthedIndexRoute: typeof AppAuthedIndexRoute
+  AppAuthedTournamentsTournamentIdRouteRoute: typeof AppAuthedTournamentsTournamentIdRouteRouteWithChildren
+  AppAuthedTournamentsIndexRoute: typeof AppAuthedTournamentsIndexRoute
+}
+
+const AppAuthedRouteRouteChildren: AppAuthedRouteRouteChildren = {
+  AppAuthedAdminsRoute: AppAuthedAdminsRoute,
+  AppAuthedAuditLogsRoute: AppAuthedAuditLogsRoute,
+  AppAuthedIndexRoute: AppAuthedIndexRoute,
+  AppAuthedTournamentsTournamentIdRouteRoute:
+    AppAuthedTournamentsTournamentIdRouteRouteWithChildren,
+  AppAuthedTournamentsIndexRoute: AppAuthedTournamentsIndexRoute,
+}
+
+const AppAuthedRouteRouteWithChildren = AppAuthedRouteRoute._addFileChildren(
+  AppAuthedRouteRouteChildren,
+)
+
+interface AppAuthRouteRouteChildren {
+  AppAuthLoginRoute: typeof AppAuthLoginRoute
+}
+
+const AppAuthRouteRouteChildren: AppAuthRouteRouteChildren = {
+  AppAuthLoginRoute: AppAuthLoginRoute,
+}
+
+const AppAuthRouteRouteWithChildren = AppAuthRouteRoute._addFileChildren(
+  AppAuthRouteRouteChildren,
+)
 
 interface LegacyPRouteRouteChildren {
   LegacyPNotAvailableRoute: typeof LegacyPNotAvailableRoute
@@ -618,7 +950,10 @@ const LegacyAppIdRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   RegisterRoute: RegisterRoute,
+  AppAuthedRouteRoute: AppAuthedRouteRouteWithChildren,
+  AppAuthRouteRoute: AppAuthRouteRouteWithChildren,
   LegacyPRouteRoute: LegacyPRouteRouteWithChildren,
+  AppLoginRoute: AppLoginRoute,
   LegacyComponentsRoute: LegacyComponentsRoute,
   LegacyIndexRoute: LegacyIndexRoute,
   LegacyAppIdRouteRoute: LegacyAppIdRouteRouteWithChildren,
