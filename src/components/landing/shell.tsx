@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 
-import { LANDING_SITE_TITLE, stubVerify } from "./content";
+import { LANDING_SITE_TITLE } from "./content";
 
 type LandingShellProps = {
   children: ReactNode;
@@ -49,16 +49,16 @@ export function LandingShell({
             >
               Tournaments
             </Link>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="px-2 sm:px-3"
-              onClick={stubVerify}
+            <Link
+              to="/verify"
+              className={cn(
+                buttonVariants({ variant: "ghost", size: "sm" }),
+                "px-2 sm:px-3",
+              )}
             >
               <span className="sm:hidden">Verify</span>
               <span className="hidden sm:inline">Verify registration</span>
-            </Button>
+            </Link>
             <Button size="sm" className="px-3" render={<Link to="/register" />}>
               Register
             </Button>

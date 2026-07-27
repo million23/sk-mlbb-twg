@@ -31,3 +31,21 @@ routerAdd("GET", "/sk/registration/email-available", (e) => {
     available: guard.emailAvailable(e.app, tournamentId, email),
   });
 });
+
+/** Public receipt lookup by 6-digit status code (no document files). */
+routerAdd("GET", "/sk/registration/status", (e) => {
+  const guard = require(`${__hooks}/registration_guard_lib.js`);
+  const q = e.request.url.query();
+  const code = String(q.get("code") || "").trim();
+
+  if (!/^\d{6}$/.test(code)) {
+    throw new BadRequestError("Enter a valid 6-digit status code");
+  }
+
+  const receipt = guard.lookupByStatusCode(e.app, code);
+  if (!receipt) {
+    return e.json(200, { found: false });
+  }
+
+  return e.json(200, { found: true, receipt: receipt });
+});

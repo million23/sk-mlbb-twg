@@ -1,5 +1,3 @@
-import { toast } from "sonner";
-
 import { PUBLIC_SITE_TITLE } from "@/lib/public-site";
 
 export const LANDING_SITE_TITLE = PUBLIC_SITE_TITLE;
@@ -43,11 +41,3 @@ export const LANDING_WHO = [
       "Open matching, join a listed team, or name a team you want to create.",
   },
 ] as const;
-
-/** Temporary until the verify-registration route exists. */
-export function stubVerify() {
-  toast.message("Verify registration coming next", {
-    description:
-      "Check status with the code emailed to you after you register.",
-  });
-}

@@ -217,7 +217,86 @@ function emailAvailable(app, tournamentId, email) {
   );
 }
 
+/**
+ * Public status-code lookup — returns a receipt without document file fields.
+ * @returns {object|null} sanitized payload, or null when not found / invalid code
+ */
+function lookupByStatusCode(app, rawCode) {
+  const code = String(rawCode || "").trim();
+  if (!/^\d{6}$/.test(code)) {
+    return null;
+  }
+
+  let rows;
+  try {
+    rows = app.findRecordsByFilter(
+      "participants",
+      "registration_status_code = {:code} && archived = false",
+      "-created",
+      1,
+      0,
+      { code: code },
+    );
+  } catch (err) {
+    console.log("[sk-guard] status lookup failed", err);
+    throw new BadRequestError("Could not look up registration. Try again.");
+  }
+
+  if (!rows || rows.length === 0) {
+    return null;
+  }
+
+  const r = rows[0];
+  let tournamentTitle = "";
+  const tournamentId = String(r.get("tournament") || "");
+  if (tournamentId) {
+    try {
+      const t = app.findRecordById("tournaments", tournamentId);
+      tournamentTitle = String(t.get("title") || "");
+    } catch (err) {
+      console.log("[sk-guard] tournament expand failed", err);
+    }
+  }
+
+  let preferredTeamName = String(r.get("preferred_team_name") || "").trim();
+  const preferredTeamId = String(r.get("preferred_team") || "");
+  if (!preferredTeamName && preferredTeamId) {
+    try {
+      const team = app.findRecordById("teams", preferredTeamId);
+      preferredTeamName = String(team.get("name") || "").trim();
+    } catch (err) {
+      console.log("[sk-guard] preferred team expand failed", err);
+    }
+  }
+
+  return {
+    registration_status: String(r.get("registration_status") || "pending"),
+    registration_reject_reason: String(r.get("registration_reject_reason") || ""),
+    registration_status_code: code,
+    tournament_title: tournamentTitle,
+    name: String(r.get("name") || ""),
+    email: String(r.get("email") || ""),
+    ign: String(r.get("ign") || ""),
+    birthdate: String(r.get("birthdate") || ""),
+    contact_number: String(r.get("contact_number") || ""),
+    user_id: String(r.get("user_id") || ""),
+    server_id: String(r.get("server_id") || ""),
+    address_phase: String(r.get("address_phase") || ""),
+    address_package: String(r.get("address_package") || ""),
+    address_block: String(r.get("address_block") || ""),
+    address_lot: String(r.get("address_lot") || ""),
+    preferred_lane: String(r.get("preferred_lane") || ""),
+    team_intent: String(r.get("team_intent") || ""),
+    preferred_team_name: preferredTeamName,
+    status: String(r.get("status") || ""),
+    consent_version: String(r.get("consent_version") || ""),
+    consent_accepted_at: String(r.get("consent_accepted_at") || ""),
+    created: String(r.get("created") || ""),
+  };
+}
+
 module.exports = {
   enforceCreateGuards,
   emailAvailable,
+  lookupByStatusCode,
 };

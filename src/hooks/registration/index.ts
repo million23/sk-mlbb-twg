@@ -16,6 +16,14 @@ export {
 	useRegistrationEmailAvailable,
 } from "./use-registration-email-available";
 export {
+	fetchRegistrationStatus,
+	isValidStatusCode,
+	normalizeStatusCode,
+	registrationStatusQueryOptions,
+	useRegistrationStatus,
+	type RegistrationStatusReceipt,
+} from "./use-registration-status";
+export {
 	registrationApiErrorMessage,
 	useSubmitRegistration,
 } from "./use-submit-registration";

@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VerifyRouteImport } from './routes/verify'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LegacyIndexRouteImport } from './routes/legacy/index'
@@ -51,6 +52,11 @@ import { Route as AppAuthedTournamentsTournamentIdTeamStandingRouteImport } from
 import { Route as AppAuthedTournamentsTournamentIdParticipantsRouteImport } from './routes/app/_authed/tournaments/$tournamentId/participants'
 import { Route as AppAuthedTournamentsTournamentIdMatchesRouteImport } from './routes/app/_authed/tournaments/$tournamentId/matches'
 
+const VerifyRoute = VerifyRouteImport.update({
+  id: '/verify',
+  path: '/verify',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
@@ -273,6 +279,7 @@ const AppAuthedTournamentsTournamentIdMatchesRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/register': typeof RegisterRoute
+  '/verify': typeof VerifyRoute
   '/app': typeof AppAuthedRouteRouteWithChildren
   '/app/auth': typeof AppAuthRouteRouteWithChildren
   '/legacy/p': typeof LegacyPRouteRouteWithChildren
@@ -316,6 +323,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/register': typeof RegisterRoute
+  '/verify': typeof VerifyRoute
   '/app/auth': typeof AppAuthRouteRouteWithChildren
   '/app/login': typeof AppLoginRoute
   '/legacy/components': typeof LegacyComponentsRoute
@@ -356,6 +364,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/register': typeof RegisterRoute
+  '/verify': typeof VerifyRoute
   '/app/_authed': typeof AppAuthedRouteRouteWithChildren
   '/app/auth': typeof AppAuthRouteRouteWithChildren
   '/legacy/p': typeof LegacyPRouteRouteWithChildren
@@ -401,6 +410,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/register'
+    | '/verify'
     | '/app'
     | '/app/auth'
     | '/legacy/p'
@@ -444,6 +454,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/register'
+    | '/verify'
     | '/app/auth'
     | '/app/login'
     | '/legacy/components'
@@ -483,6 +494,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/register'
+    | '/verify'
     | '/app/_authed'
     | '/app/auth'
     | '/legacy/p'
@@ -527,6 +539,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   RegisterRoute: typeof RegisterRoute
+  VerifyRoute: typeof VerifyRoute
   AppAuthedRouteRoute: typeof AppAuthedRouteRouteWithChildren
   AppAuthRouteRoute: typeof AppAuthRouteRouteWithChildren
   LegacyPRouteRoute: typeof LegacyPRouteRouteWithChildren
@@ -540,6 +553,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/verify': {
+      id: '/verify'
+      path: '/verify'
+      fullPath: '/verify'
+      preLoaderRoute: typeof VerifyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/register': {
       id: '/register'
       path: '/register'
@@ -950,6 +970,7 @@ const LegacyAppIdRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   RegisterRoute: RegisterRoute,
+  VerifyRoute: VerifyRoute,
   AppAuthedRouteRoute: AppAuthedRouteRouteWithChildren,
   AppAuthRouteRoute: AppAuthRouteRouteWithChildren,
   LegacyPRouteRoute: LegacyPRouteRouteWithChildren,

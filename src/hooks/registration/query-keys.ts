@@ -14,4 +14,6 @@ export const registrationKeys = {
 			tournamentId,
 			email,
 		] as const,
+	status: (code: string) =>
+		[...registrationKeys.all, "status", code] as const,
 };

@@ -55,9 +55,11 @@ After a test register, logs should show `[sk-mail] registration-received → …
 - Cloudflare Turnstile token `turnstile_token` (skipped for admin auth)
 - Duplicate **email** and **user_id + server_id** per tournament when status is `pending` / `approved`
 
-Public pre-check (used by the Vite form):
+Public pre-checks (used by the Vite form):
 
 `GET /sk/registration/email-available?tournament=ID&email=you@example.com` → `{ available: boolean }`
+
+`GET /sk/registration/status?code=123456` → `{ found: false }` or `{ found: true, receipt: { … } }` (no document file fields)
 
 ### PocketHost env
 

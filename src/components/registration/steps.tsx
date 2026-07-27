@@ -652,6 +652,7 @@ function OutcomeShell({
 	body,
 	details,
 	next,
+	actions,
 }: {
 	tone: "pending" | "success" | "danger";
 	icon: ReactNode;
@@ -660,6 +661,7 @@ function OutcomeShell({
 	body: string;
 	details?: ReactNode;
 	next?: string[];
+	actions?: ReactNode;
 }) {
 	const toneClass =
 		tone === "success"
@@ -716,6 +718,7 @@ function OutcomeShell({
 					<House data-icon="inline-start" />
 					Back to home
 				</Button>
+				{actions}
 			</div>
 		</div>
 	);
@@ -762,9 +765,32 @@ export function OutcomeStep({ state }: Props) {
 				}
 				next={[
 					"Check your inbox (and spam) for the registration-received email with this code.",
-					"Use the code on Verify registration to check pending / approved / rejected.",
+					"Open Verify registration and enter this code to check pending / approved / rejected.",
 					"No walk-in encoding needed unless the committee asks.",
 				]}
+				actions={
+					code ? (
+						<Button
+							size="lg"
+							variant="outline"
+							className="w-full sm:w-auto"
+							render={
+								<Link to="/verify" search={{ code }} />
+							}
+						>
+							Verify this code
+						</Button>
+					) : (
+						<Button
+							size="lg"
+							variant="outline"
+							className="w-full sm:w-auto"
+							render={<Link to="/verify" />}
+						>
+							Verify registration
+						</Button>
+					)
+				}
 			/>
 		);
 	}
