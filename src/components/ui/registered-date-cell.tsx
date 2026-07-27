@@ -1,6 +1,6 @@
 "use client";
 
-import { formatRegisteredDate, toRegisteredInstantIso } from "@/lib/registered-date";
+import { formatRegisteredDate, toRegisteredInstantIso } from "@/lib/legacy/registered-date";
 import { cn } from "@/lib/utils";
 
 type RegisteredDateCellProps = {

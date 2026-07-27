@@ -1,4 +1,4 @@
-import { createRootRoute, Outlet } from "@tanstack/react-router";
+import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
 
 import { PublicCookieBannerGate } from "@/components/public/public-cookie-banner";
@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
+import type { RouterContext } from "@/router";
 import "../styles.css";
 
 const TanStackDevtoolsMount = import.meta.env.DEV
@@ -16,7 +17,7 @@ const TanStackDevtoolsMount = import.meta.env.DEV
     )
   : () => null;
 
-export const Route = createRootRoute({
+export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootComponent,
 });
 

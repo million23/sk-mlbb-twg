@@ -1,0 +1,36 @@
+{{define "title"}}Registration approved — {{.siteTitle}}{{end}}
+
+{{define "heading"}}You’re approved{{end}}
+
+{{define "body"}}
+<p style="margin:0 0 16px;">Hi {{.name}},</p>
+<p style="margin:0 0 16px;">
+  Good news — the SK committee approved your registration for
+  <strong style="font-weight:600;">{{.tournamentTitle}}</strong>. You’re a
+  participant for this tournament.
+</p>
+{{if .statusCode}}
+<p style="margin:0 0 8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;letter-spacing:0.16em;text-transform:uppercase;color:#0f766e;">
+  Your status code
+</p>
+<p
+  style="margin:0 0 20px;display:inline-block;padding:14px 20px;border-radius:16px;background:#ecfdf5;border:1px solid #a7f3d0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:28px;letter-spacing:0.28em;color:#1a1512;"
+>
+  {{.statusCode}}
+</p>
+{{end}}
+<p style="margin:0 0 20px;">
+  Watch for team assignment and schedule updates from the committee. Bring valid
+  ID if asked at check-in.
+</p>
+{{if .verifyURL}}
+<p style="margin:0 0 8px;">
+  <a
+    href="{{.verifyURL}}"
+    style="display:inline-block;padding:12px 20px;border-radius:999px;background:#0f766e;color:#fffaf4;text-decoration:none;font-weight:600;font-size:14px;"
+  >
+    View status
+  </a>
+</p>
+{{end}}
+{{end}}

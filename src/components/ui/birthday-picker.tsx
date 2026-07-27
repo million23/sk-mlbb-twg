@@ -50,7 +50,8 @@ function toYYYYMMDD(year: number, month: number, day: number): string {
   return `${y}-${m}-${d}`;
 }
 
-function parseNum(raw: string): number | null {
+function parseNum(raw: string | null | undefined): number | null {
+  if (raw == null) return null;
   const trimmed = raw.trim();
   if (trimmed === "") return null;
   const n = parseInt(trimmed, 10);
@@ -66,6 +67,15 @@ export function BirthdayPicker({
 }: BirthdayPickerProps) {
   const parsed = React.useMemo(() => {
     if (!value?.trim()) return { year: "", month: "", day: "" };
+    // Parse YYYY-MM-DD without Date() timezone shifts.
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+    if (m) {
+      return {
+        year: m[1]!,
+        month: String(Number(m[2])),
+        day: String(Number(m[3])),
+      };
+    }
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) return { year: "", month: "", day: "" };
     return {
@@ -121,23 +131,25 @@ export function BirthdayPicker({
     [onChange]
   );
 
-  const handleMonthChange = (v: string) => {
-    setMonth(v);
+  const handleMonthChange = (v: string | null) => {
+    const next = v ?? "";
+    setMonth(next);
     const dn = parseNum(day);
     const yn = parseNum(year);
-    const mn = parseNum(v);
+    const mn = parseNum(next);
     if (mn !== null && dn !== null && yn !== null) {
       const clampedDay = Math.min(dn, getDaysInMonth(yn, mn));
       setDay(clampedDay.toString());
-      commit(v, clampedDay.toString(), year);
+      commit(next, clampedDay.toString(), year);
     } else {
-      commit(v, day, year);
+      commit(next, day, year);
     }
   };
 
-  const handleDayChange = (v: string) => {
-    setDay(v);
-    commit(month, v, year);
+  const handleDayChange = (v: string | null) => {
+    const next = v ?? "";
+    setDay(next);
+    commit(month, next, year);
   };
 
   const handleYearChange = (e: React.ChangeEvent<HTMLInputElement>) => {

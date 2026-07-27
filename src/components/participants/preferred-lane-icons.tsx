@@ -4,8 +4,8 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { LANE_ICON_SRC, LANE_ROLE_LABELS } from "@/lib/lane-role-icons";
-import type { PlayerRole } from "@/types/pocketbase-types";
+import { LANE_ICON_SRC, LANE_ROLE_LABELS } from "@/lib/legacy/lane-role-icons";
+import type { PlayerRole } from "@/types/__pocketbase-types";
 
 /** White-filled lane SVGs: invert on light backgrounds, normal on dark */
 const laneImgClass =
