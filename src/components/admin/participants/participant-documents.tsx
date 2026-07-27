@@ -1,11 +1,11 @@
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import type { ParticipantsRecord } from "@/hooks/orval/model/participantsRecord";
 import {
   fetchParticipantFileObjectUrl,
@@ -15,7 +15,7 @@ import {
   type ParticipantDocField,
 } from "@/lib/admin/participant-files";
 import { FileText, ImageIcon, Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { toast } from "sonner";
 
 function docFilename(
@@ -35,6 +35,11 @@ export function ParticipantDocuments({
     field: ParticipantDocField;
     filename: string;
   } | null>(null);
+  // Keep last preview while the sheet closes so exit animation can run.
+  const [cached, setCached] = useState(preview);
+  useEffect(() => {
+    if (preview) setCached(preview);
+  }, [preview]);
 
   return (
     <div className="space-y-2">
@@ -79,11 +84,16 @@ export function ParticipantDocuments({
         })}
       </ul>
 
-      {preview && record.id ? (
-        <DocumentPreviewDialog
-          record={record as ParticipantsRecord & { collectionId?: string }}
-          field={preview.field}
-          filename={preview.filename}
+      {cached && record.id ? (
+        <DocumentPreviewSheet
+          record={
+            record as ParticipantsRecord & {
+              id: string;
+              collectionId?: string;
+            }
+          }
+          field={cached.field}
+          filename={cached.filename}
           open={Boolean(preview)}
           onOpenChange={(open) => {
             if (!open) setPreview(null);
@@ -94,7 +104,7 @@ export function ParticipantDocuments({
   );
 }
 
-function DocumentPreviewDialog({
+function DocumentPreviewSheet({
   record,
   field,
   filename,
@@ -110,6 +120,10 @@ function DocumentPreviewDialog({
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
   const [contentType, setContentType] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const closeOnError = useEffectEvent(() => {
+    onOpenChange(false);
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -140,7 +154,7 @@ function DocumentPreviewDialog({
           toast.error(
             err instanceof Error ? err.message : "Could not load document",
           );
-          onOpenChange(false);
+          closeOnError();
         }
       })
       .finally(() => {
@@ -151,37 +165,44 @@ function DocumentPreviewDialog({
       cancelled = true;
       revoke();
     };
-    // biome-ignore lint/correctness/useExhaustiveDependencies: onOpenChange is an inline closer from parent
   }, [open, record.id, record.collectionId, filename]);
 
   const asPdf =
     contentType.includes("pdf") || isProbablyPdf(filename);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-3xl overflow-hidden sm:max-w-3xl">
-        <DialogHeader>
-          <DialogTitle>{PARTICIPANT_DOC_LABELS[field]}</DialogTitle>
-          <DialogDescription className="truncate">{filename}</DialogDescription>
-        </DialogHeader>
-        <div className="flex min-h-64 items-center justify-center overflow-auto rounded-md border border-border bg-muted/30">
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="right"
+        forceOverlay
+        className="flex w-full flex-col gap-0 overflow-hidden sm:max-w-xl!"
+      >
+        <SheetHeader className="shrink-0 border-b border-border">
+          <SheetTitle className="pr-8">
+            {PARTICIPANT_DOC_LABELS[field]}
+          </SheetTitle>
+          <SheetDescription className="truncate font-mono text-xs">
+            {filename}
+          </SheetDescription>
+        </SheetHeader>
+        <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto bg-muted/30 p-4">
           {loading ? (
             <Loader2 className="size-6 animate-spin text-muted-foreground" />
           ) : objectUrl && asPdf ? (
             <iframe
               title={PARTICIPANT_DOC_LABELS[field]}
               src={objectUrl}
-              className="h-[70vh] w-full"
+              className="h-full min-h-[70vh] w-full rounded-md border border-border bg-background"
             />
           ) : objectUrl ? (
             <img
               src={objectUrl}
               alt={PARTICIPANT_DOC_LABELS[field]}
-              className="max-h-[70vh] max-w-full object-contain"
+              className="max-h-full max-w-full object-contain"
             />
           ) : null}
         </div>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }

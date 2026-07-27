@@ -32,7 +32,7 @@ import { LANE_ROLE_LABELS } from "@/lib/legacy/lane-role-icons";
 import { formatParticipantNameDisplay } from "@/lib/legacy/participant-normalize";
 import type { TeamIntent } from "@/lib/registration/flow";
 import { Check, Pencil, Trash2, X } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 function DetailRow({ label, value }: { label: string; value: ReactNode }) {
   return (
@@ -77,27 +77,33 @@ export function ParticipantDetailSheet({
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [archiveOpen, setArchiveOpen] = useState(false);
+  // Keep last record while closing so the sheet exit animation can finish.
+  const [cached, setCached] = useState(record);
+  useEffect(() => {
+    if (record) setCached(record);
+  }, [record]);
 
-  if (!record) return null;
+  if (!cached) return null;
+  const view = cached;
 
-  const isPending = record.registration_status === "pending";
+  const isPending = view.registration_status === "pending";
   const blockReason = isPending
     ? committeeApproveBlockReason(
-        record,
+        view,
         listedTeams,
         peers,
         tournamentDay,
       )
     : null;
-  const age = ageOnTournamentDay(record.birthdate, tournamentDay);
-  const intent = (record.team_intent ?? "open_matching") as TeamIntent;
+  const age = ageOnTournamentDay(view.birthdate, tournamentDay);
+  const intent = (view.team_intent ?? "open_matching") as TeamIntent;
   const preferredTeamLabel =
     intent === "join_team"
-      ? (teamNameById.get(record.preferred_team ?? "") ??
-        record.preferred_team ??
+      ? (teamNameById.get(view.preferred_team ?? "") ??
+        view.preferred_team ??
         "—")
       : intent === "create_team"
-        ? (record.preferred_team_name ?? "—")
+        ? (view.preferred_team_name ?? "—")
         : "—";
 
   return (
@@ -109,25 +115,25 @@ export function ParticipantDetailSheet({
         >
           <SheetHeader className="border-b border-border">
             <SheetTitle className="pr-8">
-              {formatParticipantNameDisplay(record.name) || "Participant"}
+              {formatParticipantNameDisplay(view.name) || "Participant"}
             </SheetTitle>
             <SheetDescription className="flex flex-wrap items-center gap-2">
-              <RegistrationStatusBadge status={record.registration_status} />
+              <RegistrationStatusBadge status={view.registration_status} />
               <span className="text-muted-foreground">
-                IGN {record.ign}
+                IGN {view.ign}
               </span>
             </SheetDescription>
           </SheetHeader>
 
           <div className="flex flex-col gap-5 p-6">
             <dl className="grid gap-3">
-              <DetailRow label="Email" value={record.email} />
-              <DetailRow label="Contact" value={record.contact_number} />
+              <DetailRow label="Email" value={view.email} />
+              <DetailRow label="Contact" value={view.contact_number} />
               <DetailRow
                 label="Birthdate"
                 value={
                   <>
-                    {record.birthdate?.slice(0, 10)}
+                    {view.birthdate?.slice(0, 10)}
                     {age != null ? (
                       <span className="text-muted-foreground">
                         {" "}
@@ -140,15 +146,15 @@ export function ParticipantDetailSheet({
               />
               <DetailRow
                 label="MLBB IDs"
-                value={`${record.user_id} / ${record.server_id}`}
+                value={`${view.user_id} / ${view.server_id}`}
               />
-              <DetailRow label="Home address" value={formatHomeAddress(record)} />
+              <DetailRow label="Home address" value={formatHomeAddress(view)} />
               <DetailRow
                 label="Preferred lane"
                 value={
                   LANE_ROLE_LABELS[
-                    record.preferred_lane as keyof typeof LANE_ROLE_LABELS
-                  ] ?? record.preferred_lane
+                    view.preferred_lane as keyof typeof LANE_ROLE_LABELS
+                  ] ?? view.preferred_lane
                 }
               />
               <DetailRow
@@ -163,26 +169,26 @@ export function ParticipantDetailSheet({
                   value={preferredTeamLabel}
                 />
               ) : null}
-              {record.registration_status_code ? (
+              {view.registration_status_code ? (
                 <DetailRow
                   label="Status code"
                   value={
                     <span className="font-mono tracking-wider">
-                      {record.registration_status_code}
+                      {view.registration_status_code}
                     </span>
                   }
                 />
               ) : null}
-              {record.registration_status === "rejected" &&
-              record.registration_reject_reason ? (
+              {view.registration_status === "rejected" &&
+              view.registration_reject_reason ? (
                 <DetailRow
                   label="Reject reason"
-                  value={record.registration_reject_reason}
+                  value={view.registration_reject_reason}
                 />
               ) : null}
             </dl>
 
-            <ParticipantDocuments record={record} />
+            <ParticipantDocuments record={view} />
 
             {isPending && blockReason ? (
               <output className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-pretty">
