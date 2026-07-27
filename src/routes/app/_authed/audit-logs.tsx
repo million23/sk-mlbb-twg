@@ -14,5 +14,11 @@ export const Route = createFileRoute("/app/_authed/audit-logs")({
 });
 
 function AuditLogsPage() {
-  return <AdminPlaceholderPage title="Audit log" />;
+  return (
+    <AdminPlaceholderPage
+      eyebrow="Committee"
+      title="Audit log"
+      description="Review admin actions across tournaments and committee tools."
+    />
+  );
 }

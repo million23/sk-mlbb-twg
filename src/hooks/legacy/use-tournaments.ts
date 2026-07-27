@@ -2,9 +2,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { withCreatedAuditFields, withUpdatedAuditField } from "@/lib/legacy/mutation-authors";
 import { pocketbaseListQueryOptions } from "@/lib/legacy/pocketbase-list-query-options";
 import { getCollection } from "@/lib/pocketbase";
+import type { Collections } from "@/lib/pocketbase.types";
 import { rateLimited } from "@/lib/rate-limited-api";
 import { queryKeys } from "@/lib/legacy/query-keys";
-import type { Collections } from "@/types/__pocketbase-types";
 
 type TournamentInput = Partial<
   Omit<Collections["tournaments"], "id" | "created" | "updated">
@@ -192,23 +192,9 @@ export function useTournamentMutations() {
   });
 
   return {
-    create: {
-      mutate: (data: TournamentInput) => createMutation.mutate(data),
-      mutateAsync: (data: TournamentInput) => createMutation.mutateAsync(data),
-    },
-    update: {
-      mutate: (data: TournamentInput & { id: string }) =>
-        updateMutation.mutate(data),
-      mutateAsync: (data: TournamentInput & { id: string }) =>
-        updateMutation.mutateAsync(data),
-    },
-    archive: {
-      mutate: (id: string) => archiveMutation.mutate(id),
-      mutateAsync: (id: string) => archiveMutation.mutateAsync(id),
-    },
-    restore: {
-      mutate: (id: string) => restoreMutation.mutate(id),
-      mutateAsync: (id: string) => restoreMutation.mutateAsync(id),
-    },
+    create: createMutation,
+    update: updateMutation,
+    archive: archiveMutation,
+    restore: restoreMutation,
   };
 }

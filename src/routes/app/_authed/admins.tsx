@@ -6,5 +6,11 @@ export const Route = createFileRoute("/app/_authed/admins")({
 });
 
 function AdminsPage() {
-  return <AdminPlaceholderPage title="Admins" />;
+  return (
+    <AdminPlaceholderPage
+      eyebrow="Committee"
+      title="Admins"
+      description="Manage committee accounts and access for this platform."
+    />
+  );
 }

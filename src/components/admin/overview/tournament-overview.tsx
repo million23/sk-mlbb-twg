@@ -64,27 +64,7 @@ function OverviewShell({
   className?: string;
 }) {
   return (
-    <div
-      className={cn(
-        // Break out of admin inset padding so the wash covers the full content pane.
-        "relative -mx-4 -my-4 min-h-[calc(100%+2rem)] px-4 py-4 md:-mx-5 md:-my-5 md:min-h-[calc(100%+2.5rem)] md:px-5 md:py-5 lg:-mx-6 lg:-my-6 lg:min-h-[calc(100%+3rem)] lg:px-6 lg:py-6",
-        className,
-      )}
-    >
-      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_90%_70%_at_0%_0%,color-mix(in_oklch,var(--primary)_20%,transparent),transparent_60%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_55%_at_100%_15%,color-mix(in_oklch,var(--primary)_12%,transparent),transparent_55%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_40%_100%,color-mix(in_oklch,var(--primary)_10%,transparent),transparent_55%)]" />
-        <div
-          className="absolute inset-0 opacity-[0.04] dark:opacity-[0.07]"
-          style={{
-            backgroundImage:
-              "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
-          }}
-        />
-      </div>
-      <div className="relative mx-auto w-full max-w-6xl">{children}</div>
-    </div>
+    <div className={cn("mx-auto w-full max-w-6xl", className)}>{children}</div>
   );
 }
 
@@ -368,7 +348,7 @@ export function TournamentOverview({
                 index="02"
                 icon={UsersRound}
                 title="Teams"
-                description="Team roster workspace — coming soon."
+                description="Build rosters, captains, and quick teams."
               />
               <ShortcutLink
                 to="/app/tournaments/$tournamentId/matches"

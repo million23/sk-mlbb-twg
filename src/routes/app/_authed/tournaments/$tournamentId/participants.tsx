@@ -1,3 +1,5 @@
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
+import { AdminStagger } from "@/components/admin/admin-stagger";
 import { ParticipantDetailSheet } from "@/components/admin/participants/participant-detail-sheet";
 import { ParticipantFormDialog } from "@/components/admin/participants/participant-form-dialog";
 import { RegistrationStatusBadge } from "@/components/admin/participants/registration-status-badge";
@@ -132,164 +134,168 @@ function TournamentParticipantsPage() {
   }, [participants, tab, search]);
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <h1 className="font-heading text-2xl font-semibold tracking-tight">
-            Participants
-          </h1>
-          <p className="mt-1 text-muted-foreground text-sm text-pretty">
-            Review registrants, view documents, approve or reject, and manage
-            the roster.
-          </p>
-        </div>
-        <Button
-          type="button"
-          onClick={() => {
-            setEditing(null);
-            setFormOpen(true);
-          }}
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
+      <AdminStagger index={0}>
+        <AdminPageHeader
+          eyebrow="Tournament workspace"
+          title="Participants"
+          description="Review registrants, view documents, approve or reject, and manage the roster."
+          actions={
+            <Button
+              type="button"
+              onClick={() => {
+                setEditing(null);
+                setFormOpen(true);
+              }}
+            >
+              <Plus className="size-4" />
+              Add participant
+            </Button>
+          }
+        />
+      </AdminStagger>
+
+      <AdminStagger index={1}>
+        <Tabs
+          value={tab}
+          onValueChange={(v) => setTab((v as StatusTab) ?? "pending")}
         >
-          <Plus className="size-4" />
-          Add participant
-        </Button>
-      </div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <TabsList>
+              <TabsTrigger value="pending">
+                Pending ({counts.pending})
+              </TabsTrigger>
+              <TabsTrigger value="approved">
+                Approved ({counts.approved})
+              </TabsTrigger>
+              <TabsTrigger value="rejected">
+                Rejected ({counts.rejected})
+              </TabsTrigger>
+              <TabsTrigger value="all">All ({counts.all})</TabsTrigger>
+            </TabsList>
+            <InputGroup className="w-full sm:max-w-xs">
+              <InputGroupAddon>
+                <Search className="size-4" />
+              </InputGroupAddon>
+              <InputGroupInput
+                placeholder="Search name, IGN, email…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </InputGroup>
+          </div>
 
-      <Tabs
-        value={tab}
-        onValueChange={(v) => setTab((v as StatusTab) ?? "pending")}
-      >
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <TabsList>
-            <TabsTrigger value="pending">
-              Pending ({counts.pending})
-            </TabsTrigger>
-            <TabsTrigger value="approved">
-              Approved ({counts.approved})
-            </TabsTrigger>
-            <TabsTrigger value="rejected">
-              Rejected ({counts.rejected})
-            </TabsTrigger>
-            <TabsTrigger value="all">All ({counts.all})</TabsTrigger>
-          </TabsList>
-          <InputGroup className="w-full sm:max-w-xs">
-            <InputGroupAddon>
-              <Search className="size-4" />
-            </InputGroupAddon>
-            <InputGroupInput
-              placeholder="Search name, IGN, email…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </InputGroup>
-        </div>
-
-        <TabsContent value={tab} className="mt-4">
-          {isLoading ? (
-            <div className="space-y-2">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-          ) : isError ? (
-            <Empty className="border border-border">
-              <EmptyHeader>
-                <EmptyTitle>Could not load participants</EmptyTitle>
-                <EmptyDescription>
-                  {error instanceof Error ? error.message : "Unknown error"}
-                </EmptyDescription>
-              </EmptyHeader>
-              <Button type="button" variant="outline" onClick={() => refetch()}>
-                Retry
-              </Button>
-            </Empty>
-          ) : filtered.length === 0 ? (
-            <Empty className="border border-border">
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <Users />
-                </EmptyMedia>
-                <EmptyTitle>
-                  {tab === "pending"
-                    ? "No pending registrants"
-                    : "No participants here"}
-                </EmptyTitle>
-                <EmptyDescription>
-                  {search.trim()
-                    ? "Try a different search."
-                    : tab === "pending"
-                      ? "New public registrations will show up here for committee review."
-                      : "Nothing matches this filter yet."}
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          ) : (
-            <div className="overflow-x-auto rounded-lg border border-border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>IGN</TableHead>
-                    <TableHead className="hidden md:table-cell">
-                      Phase
-                    </TableHead>
-                    <TableHead className="hidden lg:table-cell">
-                      Team intent
-                    </TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="hidden sm:table-cell">
-                      Registered
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map((p) => {
-                    const intent = (p.team_intent ??
-                      "open_matching") as TeamIntent;
-                    return (
-                      <TableRow
-                        key={p.id}
-                        className="cursor-pointer"
-                        onClick={() => setSelectedId(p.id ?? null)}
-                      >
-                        <TableCell className="font-medium">
-                          <div className="min-w-0">
-                            <p className="truncate">
-                              {formatParticipantNameDisplay(p.name)}
-                            </p>
-                            <p className="truncate text-muted-foreground text-xs md:hidden">
-                              {p.email}
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-mono text-sm">
-                          {p.ign}
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell">
-                          {p.address_phase}
-                        </TableCell>
-                        <TableCell className="hidden lg:table-cell">
-                          {TEAM_INTENT_LABELS[intent]}
-                        </TableCell>
-                        <TableCell>
-                          <RegistrationStatusBadge
-                            status={p.registration_status}
-                          />
-                        </TableCell>
-                        <TableCell className="hidden text-muted-foreground text-sm sm:table-cell">
-                          {p.created
-                            ? format(parseISO(p.created), "MMM d, yyyy")
-                            : "—"}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+          <TabsContent value={tab} className="mt-4">
+            {isLoading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            ) : isError ? (
+              <Empty className="border border-border">
+                <EmptyHeader>
+                  <EmptyTitle>Could not load participants</EmptyTitle>
+                  <EmptyDescription>
+                    {error instanceof Error ? error.message : "Unknown error"}
+                  </EmptyDescription>
+                </EmptyHeader>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => refetch()}
+                >
+                  Retry
+                </Button>
+              </Empty>
+            ) : filtered.length === 0 ? (
+              <Empty className="border border-border">
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <Users />
+                  </EmptyMedia>
+                  <EmptyTitle>
+                    {tab === "pending"
+                      ? "No pending registrants"
+                      : "No participants here"}
+                  </EmptyTitle>
+                  <EmptyDescription>
+                    {search.trim()
+                      ? "Try a different search."
+                      : tab === "pending"
+                        ? "New public registrations will show up here for committee review."
+                        : "Nothing matches this filter yet."}
+                  </EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            ) : (
+              <div className="overflow-x-auto rounded-lg border border-border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>IGN</TableHead>
+                      <TableHead className="hidden md:table-cell">
+                        Phase
+                      </TableHead>
+                      <TableHead className="hidden lg:table-cell">
+                        Team intent
+                      </TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="hidden sm:table-cell">
+                        Registered
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map((p) => {
+                      const intent = (p.team_intent ??
+                        "open_matching") as TeamIntent;
+                      return (
+                        <TableRow
+                          key={p.id}
+                          className="cursor-pointer"
+                          onClick={() => setSelectedId(p.id ?? null)}
+                        >
+                          <TableCell className="font-medium">
+                            <div className="min-w-0">
+                              <p className="truncate">
+                                {formatParticipantNameDisplay(p.name)}
+                              </p>
+                              <p className="truncate text-muted-foreground text-xs md:hidden">
+                                {p.email}
+                              </p>
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">
+                            {p.ign}
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell">
+                            {p.address_phase}
+                          </TableCell>
+                          <TableCell className="hidden lg:table-cell">
+                            {TEAM_INTENT_LABELS[intent]}
+                          </TableCell>
+                          <TableCell>
+                            <RegistrationStatusBadge
+                              status={p.registration_status}
+                            />
+                          </TableCell>
+                          <TableCell className="hidden text-muted-foreground text-sm sm:table-cell">
+                            {p.created
+                              ? format(parseISO(p.created), "MMM d, yyyy")
+                              : "—"}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </AdminStagger>
 
       <ParticipantDetailSheet
         record={selected}

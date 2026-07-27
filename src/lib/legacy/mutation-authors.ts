@@ -10,12 +10,12 @@ export function getAuthRecordId(): string | undefined {
 export function withCreatedAuditFields<T extends object>(data: T): T {
   const uid = getAuthRecordId();
   if (!uid) return data;
-  return { ...data, createdBy: uid, updatedBy: uid };
+  return { ...data, created_by: uid, updated_by: uid };
 }
 
-/** Set `updatedBy` on update (PATCH). */
+/** Set `updated_by` on update (PATCH). */
 export function withUpdatedAuditField<T extends object>(data: T): T {
   const uid = getAuthRecordId();
   if (!uid) return data;
-  return { ...data, updatedBy: uid };
+  return { ...data, updated_by: uid };
 }

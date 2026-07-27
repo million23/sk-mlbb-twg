@@ -8,12 +8,11 @@ export const Route = createFileRoute(
 });
 
 function TournamentTeamStandingPage() {
-  const { tournamentId } = Route.useParams();
-
   return (
     <AdminPlaceholderPage
-      title="Team standing"
-      description={`Standings for tournament ${tournamentId}.`}
+      eyebrow="Tournament workspace"
+      title="Team Standing"
+      description="Rankings and standings for this tournament."
     />
   );
 }
