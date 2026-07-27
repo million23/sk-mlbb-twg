@@ -20,10 +20,10 @@ async function signInAndTrackLogin(email: string, password: string) {
   if (auth.record?.id) {
     try {
       await pb.collection("admins").update(auth.record.id, {
-        lastLoginAt: new Date().toISOString(),
+        last_login_at: new Date().toISOString(),
       });
     } catch (error) {
-      console.error("Failed to update lastLoginAt", error);
+      console.error("Failed to update last_login_at", error);
     }
   }
 

@@ -51,6 +51,7 @@ export function ParticipantDetailSheet({
   peers,
   tournamentDay,
   teamNameById,
+  canManage = true,
   approvePending,
   rejectPending,
   archivePending,
@@ -66,6 +67,7 @@ export function ParticipantDetailSheet({
   peers: ParticipantsRecord[];
   tournamentDay: string;
   teamNameById: Map<string, string>;
+  canManage?: boolean;
   approvePending?: boolean;
   rejectPending?: boolean;
   archivePending?: boolean;
@@ -197,53 +199,55 @@ export function ParticipantDetailSheet({
             ) : null}
           </div>
 
-          <SheetFooter className="border-t border-border sm:flex-col">
-            {isPending ? (
-              <div className="flex w-full flex-col gap-2">
+          {canManage ? (
+            <SheetFooter className="border-t border-border sm:flex-col">
+              {isPending ? (
+                <div className="flex w-full flex-col gap-2">
+                  <Button
+                    type="button"
+                    disabled={Boolean(blockReason) || approvePending}
+                    onClick={onApprove}
+                  >
+                    <Check className="size-4" />
+                    Approve
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    disabled={rejectPending}
+                    onClick={() => {
+                      setRejectReason("");
+                      setRejectOpen(true);
+                    }}
+                  >
+                    <X className="size-4" />
+                    Reject
+                  </Button>
+                </div>
+              ) : null}
+              <div className="flex w-full gap-2">
                 <Button
                   type="button"
-                  disabled={Boolean(blockReason) || approvePending}
-                  onClick={onApprove}
+                  variant="outline"
+                  className="flex-1"
+                  onClick={onEdit}
                 >
-                  <Check className="size-4" />
-                  Approve
+                  <Pencil className="size-4" />
+                  Edit
                 </Button>
                 <Button
                   type="button"
-                  variant="destructive"
-                  disabled={rejectPending}
-                  onClick={() => {
-                    setRejectReason("");
-                    setRejectOpen(true);
-                  }}
+                  variant="outline"
+                  className="flex-1"
+                  disabled={archivePending}
+                  onClick={() => setArchiveOpen(true)}
                 >
-                  <X className="size-4" />
-                  Reject
+                  <Trash2 className="size-4" />
+                  Archive
                 </Button>
               </div>
-            ) : null}
-            <div className="flex w-full gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                className="flex-1"
-                onClick={onEdit}
-              >
-                <Pencil className="size-4" />
-                Edit
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="flex-1"
-                disabled={archivePending}
-                onClick={() => setArchiveOpen(true)}
-              >
-                <Trash2 className="size-4" />
-                Archive
-              </Button>
-            </div>
-          </SheetFooter>
+            </SheetFooter>
+          ) : null}
         </SheetContent>
       </Sheet>
 

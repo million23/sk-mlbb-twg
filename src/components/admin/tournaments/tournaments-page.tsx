@@ -55,6 +55,7 @@ type TournamentRow = Collections["tournaments"] & {
 };
 
 export type TournamentsPageProps = {
+  canManage?: boolean;
   active: TournamentRow[];
   archived: TournamentRow[];
   activeLoading: boolean;
@@ -120,6 +121,7 @@ function PageShell({ children }: { children: ReactNode }) {
 }
 
 export function TournamentsPage({
+  canManage = true,
   active,
   archived,
   activeLoading,
@@ -151,10 +153,12 @@ export function TournamentsPage({
             title="Tournaments"
             description="All events live here. Open one to manage its roster and bracket — multiple tournaments can be active at once."
             actions={
-              <Button type="button" onClick={onCreate} className="gap-1.5">
-                <Plus className="size-4" />
-                Add tournament
-              </Button>
+              canManage ? (
+                <Button type="button" onClick={onCreate} className="gap-1.5">
+                  <Plus className="size-4" />
+                  Add tournament
+                </Button>
+              ) : undefined
             }
           />
         </AdminStagger>
@@ -197,10 +201,12 @@ export function TournamentsPage({
                       matches.
                     </EmptyDescription>
                   </EmptyHeader>
-                  <Button type="button" onClick={onCreate}>
-                    <Plus className="size-4" />
-                    Add first tournament
-                  </Button>
+                  {canManage ? (
+                    <Button type="button" onClick={onCreate}>
+                      <Plus className="size-4" />
+                      Add first tournament
+                    </Button>
+                  ) : null}
                 </Empty>
               ) : (
                 active.map((tournament, i) => (
@@ -208,6 +214,7 @@ export function TournamentsPage({
                     key={tournament.id}
                     tournament={tournament}
                     staggerIndex={i}
+                    canManage={canManage}
                     onEdit={() => onEdit(tournament)}
                     onArchive={() => onArchiveRequest(tournament.id)}
                   />
@@ -242,6 +249,7 @@ export function TournamentsPage({
                     key={tournament.id}
                     tournament={tournament}
                     staggerIndex={i}
+                    canManage={canManage}
                     onRestore={() => onRestore(tournament.id)}
                   />
                 ))
@@ -251,17 +259,19 @@ export function TournamentsPage({
         </AdminStagger>
       </div>
 
-      <TournamentFormDialog
-        open={formOpen}
-        onOpenChange={onFormOpenChange}
-        mode={formMode}
-        record={editing}
-        pending={formPending}
-        onSubmit={onFormSubmit}
-      />
+      {canManage ? (
+        <TournamentFormDialog
+          open={formOpen}
+          onOpenChange={onFormOpenChange}
+          mode={formMode}
+          record={editing}
+          pending={formPending}
+          onSubmit={onFormSubmit}
+        />
+      ) : null}
 
       <AlertDialog
-        open={Boolean(archiveConfirmId)}
+        open={canManage && Boolean(archiveConfirmId)}
         onOpenChange={onArchiveConfirmOpenChange}
       >
         <AlertDialogContent>
@@ -322,11 +332,13 @@ function ErrorEmpty({
 function ActiveTournamentRow({
   tournament,
   staggerIndex,
+  canManage,
   onEdit,
   onArchive,
 }: {
   tournament: TournamentRow;
   staggerIndex: number;
+  canManage: boolean;
   onEdit: () => void;
   onArchive: () => void;
 }) {
@@ -381,20 +393,24 @@ function ActiveTournamentRow({
       </div>
 
       <div className="flex flex-wrap items-center gap-1.5 sm:justify-end">
-        <Button type="button" variant="ghost" size="sm" onClick={onEdit}>
-          <Pencil className="size-3.5" />
-          Edit
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="text-destructive hover:text-destructive"
-          onClick={onArchive}
-        >
-          <Archive className="size-3.5" />
-          Archive
-        </Button>
+        {canManage ? (
+          <>
+            <Button type="button" variant="ghost" size="sm" onClick={onEdit}>
+              <Pencil className="size-3.5" />
+              Edit
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="text-destructive hover:text-destructive"
+              onClick={onArchive}
+            >
+              <Archive className="size-3.5" />
+              Archive
+            </Button>
+          </>
+        ) : null}
         <Link
           to="/app/tournaments/$tournamentId"
           params={{ tournamentId: tournament.id }}
@@ -415,10 +431,12 @@ function ActiveTournamentRow({
 function ArchivedTournamentRow({
   tournament,
   staggerIndex,
+  canManage,
   onRestore,
 }: {
   tournament: TournamentRow;
   staggerIndex: number;
+  canManage: boolean;
   onRestore: () => void;
 }) {
   const updatedLabel = formatWhen(tournament.updated);
@@ -442,10 +460,12 @@ function ArchivedTournamentRow({
           </span>
         </p>
       </div>
-      <Button type="button" variant="outline" size="sm" onClick={onRestore}>
-        <RotateCcw className="size-3.5" />
-        Restore
-      </Button>
+      {canManage ? (
+        <Button type="button" variant="outline" size="sm" onClick={onRestore}>
+          <RotateCcw className="size-3.5" />
+          Restore
+        </Button>
+      ) : null}
     </article>
   );
 }

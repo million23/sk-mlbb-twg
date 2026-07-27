@@ -5,12 +5,15 @@ import {
 import type { TournamentsRecord } from "@/hooks/orval/model/tournamentsRecord";
 import { useTournaments } from "@/hooks/legacy/use-tournaments";
 import { useActiveTournamentId } from "@/lib/admin/active-tournament";
+import { canViewDashboard } from "@/lib/admin/permissions";
+import { requirePermission } from "@/lib/admin/require-permission";
 import { tournamentLabel } from "@/lib/legacy/tournament-label";
 import { isRegistrationWindowOpen } from "@/lib/registration/orval";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
 
 export const Route = createFileRoute("/app/_authed/")({
+  beforeLoad: requirePermission(canViewDashboard),
   component: DashboardPage,
 });
 

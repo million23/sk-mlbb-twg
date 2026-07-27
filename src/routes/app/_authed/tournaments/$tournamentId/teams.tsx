@@ -1,4 +1,5 @@
 import { TeamsPage } from "@/components/admin/teams/teams-page";
+import { useAdminRbac } from "@/hooks/admin/use-admin-rbac";
 import { useTournamentParticipants } from "@/hooks/admin/use-tournament-participants";
 import {
   teamMutationErrorMessage,
@@ -20,6 +21,7 @@ export const Route = createFileRoute(
 
 function TournamentTeamsPage() {
   const { tournamentId } = Route.useParams();
+  const { canManageTeams } = useAdminRbac();
   const teamsQuery = useTournamentTeams(tournamentId);
   const archivedQuery = useArchivedTournamentTeams(tournamentId);
   const participantsQuery = useTournamentParticipants(tournamentId);
@@ -64,6 +66,7 @@ function TournamentTeamsPage() {
   const syncStatuses = mutations.syncStatuses;
   const syncedKey = useRef("");
   useEffect(() => {
+    if (!canManageTeams) return;
     if (!teamsQuery.isSuccess || !participantsQuery.isSuccess) return;
     if (teams.length === 0) return;
     const key = `${minReady}|${teams
@@ -80,6 +83,7 @@ function TournamentTeamsPage() {
       minReady,
     });
   }, [
+    canManageTeams,
     teams,
     membersByTeamId,
     minReady,
@@ -100,6 +104,7 @@ function TournamentTeamsPage() {
   return (
     <TeamsPage
       tournamentTitle={tournamentTitle}
+      canManage={canManageTeams}
       teams={teams}
       archivedTeams={archivedQuery.data ?? []}
       participants={participants}

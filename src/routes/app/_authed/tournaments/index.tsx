@@ -3,17 +3,21 @@ import type {
   TournamentFormRecord,
   TournamentFormValues,
 } from "@/components/admin/tournaments/tournament-form-dialog";
+import { useAdminRbac } from "@/hooks/admin/use-admin-rbac";
 import {
   useArchivedTournaments,
   useTournamentMutations,
   useTournaments,
 } from "@/hooks/legacy/use-tournaments";
+import { canViewTournaments } from "@/lib/admin/permissions";
+import { requirePermission } from "@/lib/admin/require-permission";
 import type { Collections } from "@/lib/pocketbase.types";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/_authed/tournaments/")({
+  beforeLoad: requirePermission(canViewTournaments),
   component: TournamentsListPage,
 });
 
@@ -66,6 +70,7 @@ function mutationErrorMessage(err: unknown): string {
 }
 
 function TournamentsListPage() {
+  const { canManageTournaments } = useAdminRbac();
   const activeQuery = useTournaments();
   const archivedQuery = useArchivedTournaments();
   const mutations = useTournamentMutations();
@@ -77,18 +82,24 @@ function TournamentsListPage() {
   const [archiveConfirmId, setArchiveConfirmId] = useState<string | null>(null);
 
   const openCreate = () => {
+    if (!canManageTournaments) return;
     setFormMode("create");
     setEditing(null);
     setFormOpen(true);
   };
 
   const openEdit = (tournament: TournamentFormRecord) => {
+    if (!canManageTournaments) return;
     setFormMode("edit");
     setEditing(tournament);
     setFormOpen(true);
   };
 
   const handleFormSubmit = async (values: TournamentFormValues) => {
+    if (!canManageTournaments) {
+      toast.error("You do not have permission to manage tournaments.");
+      return;
+    }
     // null clears optional PocketBase fields; cast keeps mutation input flexible.
     const payload = toPayload(values, editing) as Parameters<
       typeof mutations.create.mutateAsync
@@ -113,7 +124,7 @@ function TournamentsListPage() {
   };
 
   const handleArchiveConfirm = () => {
-    if (!archiveConfirmId) return;
+    if (!canManageTournaments || !archiveConfirmId) return;
     const id = archiveConfirmId;
     setArchiveConfirmId(null);
     mutations.archive.mutate(id, {
@@ -123,6 +134,7 @@ function TournamentsListPage() {
   };
 
   const handleRestore = (id: string) => {
+    if (!canManageTournaments) return;
     mutations.restore.mutate(id, {
       onSuccess: () => toast.success("Tournament restored"),
       onError: (err: unknown) => toast.error(mutationErrorMessage(err)),
@@ -131,6 +143,7 @@ function TournamentsListPage() {
 
   return (
     <TournamentsPage
+      canManage={canManageTournaments}
       active={activeQuery.data ?? []}
       archived={archivedQuery.data ?? []}
       activeLoading={activeQuery.isLoading}

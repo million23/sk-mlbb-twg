@@ -26,6 +26,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAdminRbac } from "@/hooks/admin/use-admin-rbac";
 import {
   participantMutationErrorMessage,
   useParticipantMutations,
@@ -54,6 +55,7 @@ export const Route = createFileRoute(
 
 function TournamentParticipantsPage() {
   const { tournamentId } = Route.useParams();
+  const { canManageParticipants } = useAdminRbac();
   const { data: participants = [], isLoading, isError, error, refetch } =
     useTournamentParticipants(tournamentId);
   const { data: listedTeams = [] } = useListedTeams(tournamentId);
@@ -141,16 +143,18 @@ function TournamentParticipantsPage() {
           title="Participants"
           description="Review registrants, view documents, approve or reject, and manage the roster."
           actions={
-            <Button
-              type="button"
-              onClick={() => {
-                setEditing(null);
-                setFormOpen(true);
-              }}
-            >
-              <Plus className="size-4" />
-              Add participant
-            </Button>
+            canManageParticipants ? (
+              <Button
+                type="button"
+                onClick={() => {
+                  setEditing(null);
+                  setFormOpen(true);
+                }}
+              >
+                <Plus className="size-4" />
+                Add participant
+              </Button>
+            ) : undefined
           }
         />
       </AdminStagger>
@@ -307,11 +311,12 @@ function TournamentParticipantsPage() {
         peers={participants}
         tournamentDay={tournamentDay}
         teamNameById={teamNameById}
+        canManage={canManageParticipants}
         approvePending={mutations.approve.isPending}
         rejectPending={mutations.reject.isPending}
         archivePending={mutations.archive.isPending}
         onApprove={async () => {
-          if (!selected?.id) return;
+          if (!selected?.id || !canManageParticipants) return;
           try {
             await mutations.approve.mutateAsync(selected.id);
             toast.success("Registration approved");
@@ -320,7 +325,7 @@ function TournamentParticipantsPage() {
           }
         }}
         onReject={async (reason) => {
-          if (!selected?.id) return;
+          if (!selected?.id || !canManageParticipants) return;
           try {
             await mutations.reject.mutateAsync({ id: selected.id, reason });
             toast.success("Registration rejected");
@@ -329,12 +334,12 @@ function TournamentParticipantsPage() {
           }
         }}
         onEdit={() => {
-          if (!selected) return;
+          if (!selected || !canManageParticipants) return;
           setEditing(selected);
           setFormOpen(true);
         }}
         onArchive={async () => {
-          if (!selected?.id) return;
+          if (!selected?.id || !canManageParticipants) return;
           try {
             await mutations.archive.mutateAsync(selected.id);
             setSelectedId(null);
@@ -345,36 +350,38 @@ function TournamentParticipantsPage() {
         }}
       />
 
-      <ParticipantFormDialog
-        open={formOpen}
-        onOpenChange={(open) => {
-          setFormOpen(open);
-          if (!open) setEditing(null);
-        }}
-        mode={editing ? "edit" : "create"}
-        record={editing}
-        listedTeams={listedTeams}
-        pending={mutations.create.isPending || mutations.update.isPending}
-        onSubmit={async ({ values, uploads }) => {
-          try {
-            if (editing?.id) {
-              await mutations.update.mutateAsync({
-                id: editing.id,
-                values,
-                uploads,
-              });
-              toast.success("Participant updated");
-            } else {
-              await mutations.create.mutateAsync({ values, uploads });
-              toast.success("Participant created");
+      {canManageParticipants ? (
+        <ParticipantFormDialog
+          open={formOpen}
+          onOpenChange={(open) => {
+            setFormOpen(open);
+            if (!open) setEditing(null);
+          }}
+          mode={editing ? "edit" : "create"}
+          record={editing}
+          listedTeams={listedTeams}
+          pending={mutations.create.isPending || mutations.update.isPending}
+          onSubmit={async ({ values, uploads }) => {
+            try {
+              if (editing?.id) {
+                await mutations.update.mutateAsync({
+                  id: editing.id,
+                  values,
+                  uploads,
+                });
+                toast.success("Participant updated");
+              } else {
+                await mutations.create.mutateAsync({ values, uploads });
+                toast.success("Participant created");
+              }
+              setFormOpen(false);
+              setEditing(null);
+            } catch (err) {
+              toast.error(participantMutationErrorMessage(err));
             }
-            setFormOpen(false);
-            setEditing(null);
-          } catch (err) {
-            toast.error(participantMutationErrorMessage(err));
-          }
-        }}
-      />
+          }}
+        />
+      ) : null}
     </div>
   );
 }

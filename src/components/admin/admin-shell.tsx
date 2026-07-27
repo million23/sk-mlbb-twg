@@ -45,7 +45,7 @@ import { usePocketBaseAuth } from "@/hooks/legacy/use-pocketbase-auth";
 import { useTournaments } from "@/hooks/legacy/use-tournaments";
 import { useResolvedTheme } from "@/hooks/use-resolved-theme";
 import { useActiveTournamentId } from "@/lib/admin/active-tournament";
-import { canViewAuditLog } from "@/lib/admin/permissions";
+import { useAdminRbac } from "@/hooks/admin/use-admin-rbac";
 import { queryClient } from "@/lib/query-client";
 import { cn } from "@/lib/utils";
 import { useIsMutating } from "@tanstack/react-query";
@@ -166,10 +166,35 @@ function AdminShellContent({ children }: { children?: ReactNode }) {
     tournamentIds,
   );
   const { signOut, record } = usePocketBaseAuth();
-  const canAudit = canViewAuditLog(record as { role?: string });
-  const visibleCommitteeNavItems = committeeNavItems.filter(
-    (item) => item.to !== "/app/audit-logs" || canAudit,
-  );
+  const rbac = useAdminRbac();
+  const visiblePlatformNavItems = platformNavItems.filter((item) => {
+    if (item.to === "/app") return rbac.canViewDashboard;
+    if (item.to === "/app/tournaments") return rbac.canViewTournaments;
+    return true;
+  });
+  const visibleTournamentNavItems = tournamentNavItems.filter((item) => {
+    if (item.to === "/app/tournaments/$tournamentId") {
+      return rbac.canAccessTournamentOps;
+    }
+    if (item.to === "/app/tournaments/$tournamentId/participants") {
+      return rbac.canViewParticipants;
+    }
+    if (item.to === "/app/tournaments/$tournamentId/teams") {
+      return rbac.canViewTeams;
+    }
+    if (item.to === "/app/tournaments/$tournamentId/matches") {
+      return rbac.canViewMatches;
+    }
+    if (item.to === "/app/tournaments/$tournamentId/team-standing") {
+      return rbac.canViewTeamStanding;
+    }
+    return rbac.canAccessTournamentOps;
+  });
+  const visibleCommitteeNavItems = committeeNavItems.filter((item) => {
+    if (item.to === "/app/audit-logs") return rbac.canViewAuditLog;
+    if (item.to === "/app/admins") return rbac.canViewAdmins;
+    return true;
+  });
   const {
     setOpenMobile,
     isMobile,
@@ -204,6 +229,12 @@ function AdminShellContent({ children }: { children?: ReactNode }) {
   };
 
   const { displayName, email, initials } = userDisplay(record);
+  const roleLabel =
+    rbac.role === "superadmin"
+      ? "Superadmin"
+      : rbac.role === "staff"
+        ? "Staff"
+        : null;
   const { setTheme } = useTheme();
   const resolvedTheme = useResolvedTheme();
 
@@ -245,7 +276,7 @@ function AdminShellContent({ children }: { children?: ReactNode }) {
             <SidebarGroupLabel>Platform</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {platformNavItems.map((item) => (
+                {visiblePlatformNavItems.map((item) => (
                   <SidebarMenuItem key={item.to}>
                     <SidebarMenuButton
                       render={
@@ -283,7 +314,7 @@ function AdminShellContent({ children }: { children?: ReactNode }) {
               ) : null}
               <SidebarMenu>
                 {tournamentId
-                  ? tournamentNavItems.map((item) => (
+                  ? visibleTournamentNavItems.map((item) => (
                       <SidebarMenuItem key={item.to}>
                         <SidebarMenuButton
                           render={
@@ -391,11 +422,13 @@ function AdminShellContent({ children }: { children?: ReactNode }) {
                         <span className="truncate font-semibold">
                           {displayName}
                         </span>
-                        {email ? (
-                          <span className="truncate text-xs text-sidebar-foreground/70">
-                            {email}
-                          </span>
-                        ) : null}
+                        <span className="truncate text-xs text-sidebar-foreground/70">
+                          {roleLabel
+                            ? email
+                              ? `${roleLabel} · ${email}`
+                              : roleLabel
+                            : email || "Signed in"}
+                        </span>
                       </div>
                       <ChevronsUpDown
                         className="ml-auto size-4 opacity-70"

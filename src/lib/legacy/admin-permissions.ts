@@ -1,9 +1,10 @@
 /**
- * Client-side gate for audit log UI. Keep in sync with PocketBase `audit_log`
- * list/view rules (e.g. only `superadmin` may list).
+ * @deprecated Prefer `@/lib/admin/permissions`.
+ * Kept so legacy imports keep working.
  */
-export function canViewAuditLog(
-  authRecord: { role?: string } | null | undefined,
-): boolean {
-  return authRecord?.role === "superadmin";
-}
+export {
+  canViewAuditLog,
+  canManageAdmins,
+  canViewAdmins,
+  isSuperadmin,
+} from "@/lib/admin/permissions";

@@ -7,9 +7,15 @@ import {
 } from "@/hooks/orval/participants-collection/participants-collection";
 import type { ParticipantsRecord } from "@/hooks/orval/model/participantsRecord";
 import { adminParticipantKeys } from "@/hooks/admin/participant-query-keys";
+import {
+  assertPermission,
+  canManageParticipants,
+  type AdminAuthRecord,
+} from "@/lib/admin/permissions";
 import { PARTICIPANT_DOC_FIELDS } from "@/lib/admin/participant-files";
 import { ApiError, customInstance } from "@/lib/api/mutator/custom-instance";
 import { getAuthRecordId } from "@/lib/legacy/mutation-authors";
+import { pb } from "@/lib/pocketbase";
 import {
   registrationApiErrorMessage,
   unwrapOrvalListItems,
@@ -21,6 +27,13 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+
+function assertCanManageParticipants() {
+  assertPermission(
+    canManageParticipants(pb.authStore.record as AdminAuthRecord),
+    "You do not have permission to manage participants.",
+  );
+}
 
 export type ParticipantFormValues = {
   name: string;
@@ -131,6 +144,7 @@ export function useParticipantMutations(tournamentId: string) {
 
   const approve = useMutation({
     mutationFn: async (id: string) => {
+      assertCanManageParticipants();
       const res = await patchCollectionsParticipantsRecordsId(
         id,
         withAuditUpdate({
@@ -145,6 +159,7 @@ export function useParticipantMutations(tournamentId: string) {
 
   const reject = useMutation({
     mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
+      assertCanManageParticipants();
       const res = await patchCollectionsParticipantsRecordsId(
         id,
         withAuditUpdate({
@@ -159,6 +174,7 @@ export function useParticipantMutations(tournamentId: string) {
 
   const archive = useMutation({
     mutationFn: async (id: string) => {
+      assertCanManageParticipants();
       const res = await patchCollectionsParticipantsRecordsId(
         id,
         withAuditUpdate({
@@ -174,6 +190,7 @@ export function useParticipantMutations(tournamentId: string) {
 
   const hardDelete = useMutation({
     mutationFn: async (id: string) => {
+      assertCanManageParticipants();
       await deleteCollectionsParticipantsRecordsId(id);
       return id;
     },
@@ -188,6 +205,7 @@ export function useParticipantMutations(tournamentId: string) {
       values: ParticipantFormValues;
       uploads?: ParticipantDocUploads;
     }) => {
+      assertCanManageParticipants();
       const fields = withAuditCreate({
         tournament: tournamentId,
         name: values.name.trim(),
@@ -257,6 +275,7 @@ export function useParticipantMutations(tournamentId: string) {
       values: ParticipantFormValues;
       uploads?: ParticipantDocUploads;
     }) => {
+      assertCanManageParticipants();
       const fields = withAuditUpdate({
         name: values.name.trim(),
         email: values.email.trim(),

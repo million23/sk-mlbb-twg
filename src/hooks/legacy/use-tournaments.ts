@@ -1,10 +1,22 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  assertPermission,
+  canManageTournaments,
+  type AdminAuthRecord,
+} from "@/lib/admin/permissions";
 import { withCreatedAuditFields, withUpdatedAuditField } from "@/lib/legacy/mutation-authors";
 import { pocketbaseListQueryOptions } from "@/lib/legacy/pocketbase-list-query-options";
-import { getCollection } from "@/lib/pocketbase";
+import { getCollection, pb } from "@/lib/pocketbase";
 import type { Collections } from "@/lib/pocketbase.types";
 import { rateLimited } from "@/lib/rate-limited-api";
 import { queryKeys } from "@/lib/legacy/query-keys";
+
+function assertCanManageTournaments() {
+  assertPermission(
+    canManageTournaments(pb.authStore.record as AdminAuthRecord),
+    "You do not have permission to manage tournaments.",
+  );
+}
 
 type TournamentInput = Partial<
   Omit<Collections["tournaments"], "id" | "created" | "updated">
@@ -113,6 +125,7 @@ export function useTournamentMutations() {
 
   const createMutation = useMutation({
     mutationFn: async (data: TournamentInput) => {
+      assertCanManageTournaments();
       return rateLimited(async () => {
         const col = getCollection("tournaments");
         return col.create(withCreatedAuditFields(data));
@@ -125,6 +138,7 @@ export function useTournamentMutations() {
 
   const updateMutation = useMutation({
     mutationFn: async (data: TournamentInput & { id: string }) => {
+      assertCanManageTournaments();
       const { id, ...patch } = data;
       return rateLimited(async () => {
         const col = getCollection("tournaments");
@@ -156,6 +170,7 @@ export function useTournamentMutations() {
 
   const archiveMutation = useMutation({
     mutationFn: async (id: string) => {
+      assertCanManageTournaments();
       return rateLimited(async () => {
         const col = getCollection("tournaments");
         return col.update(id, withUpdatedAuditField({ archived: true }));
@@ -181,6 +196,7 @@ export function useTournamentMutations() {
 
   const restoreMutation = useMutation({
     mutationFn: async (id: string) => {
+      assertCanManageTournaments();
       return rateLimited(async () => {
         const col = getCollection("tournaments");
         return col.update(id, withUpdatedAuditField({ archived: false }));

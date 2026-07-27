@@ -18,7 +18,11 @@ export const Route = createFileRoute("/register")({
     const open = await context.queryClient.ensureQueryData(
       openRegistrationTournamentsQueryOptions(),
     );
-    const id = deps.tournament || open[0]?.id;
+    // Only tournaments with an open registration window are selectable.
+    const id =
+      (deps.tournament && open.some((t) => t.id === deps.tournament)
+        ? deps.tournament
+        : undefined) || open[0]?.id;
     if (!id) return { tournamentId: undefined as string | undefined };
     await Promise.all([
       context.queryClient.ensureQueryData(registrationTournamentQueryOptions(id)),

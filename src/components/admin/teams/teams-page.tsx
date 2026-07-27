@@ -82,6 +82,7 @@ type ExportRow = {
 
 export type TeamsPageProps = {
   tournamentTitle?: string;
+  canManage?: boolean;
   teams: TeamsRecord[];
   archivedTeams: TeamsRecord[];
   participants: ParticipantsRecord[];
@@ -154,6 +155,7 @@ function captainLabel(
 
 export function TeamsPage({
   tournamentTitle,
+  canManage = true,
   teams,
   archivedTeams,
   participants,
@@ -354,25 +356,29 @@ export function TeamsPage({
                 <FileSpreadsheet className="size-4" />
                 Export
               </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setQuickOpen(true)}
-                disabled={approvedUnassigned.length === 0}
-              >
-                <Zap className="size-4" />
-                Quick team
-              </Button>
-              <Button
-                type="button"
-                onClick={() => {
-                  setEditing(null);
-                  setFormOpen(true);
-                }}
-              >
-                <Plus className="size-4" />
-                Add team
-              </Button>
+              {canManage ? (
+                <>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setQuickOpen(true)}
+                    disabled={approvedUnassigned.length === 0}
+                  >
+                    <Zap className="size-4" />
+                    Quick team
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      setEditing(null);
+                      setFormOpen(true);
+                    }}
+                  >
+                    <Plus className="size-4" />
+                    Add team
+                  </Button>
+                </>
+              ) : null}
             </>
           }
         />
@@ -452,7 +458,7 @@ export function TeamsPage({
                         : "Add a team or use Quick team to assemble from unassigned players."}
                   </EmptyDescription>
                 </EmptyHeader>
-                {!search.trim() && tab !== "archived" ? (
+                {!search.trim() && tab !== "archived" && canManage ? (
                   <div className="flex flex-wrap gap-2">
                     <Button
                       type="button"
@@ -490,7 +496,7 @@ export function TeamsPage({
                       <TableHead className="hidden sm:table-cell">
                         Registered
                       </TableHead>
-                      {tab === "archived" ? (
+                      {tab === "archived" && canManage ? (
                         <TableHead className="text-right">Actions</TableHead>
                       ) : null}
                     </TableRow>
@@ -537,7 +543,7 @@ export function TeamsPage({
                           <TableCell className="hidden text-muted-foreground text-sm sm:table-cell">
                             {formatDate(t.created)}
                           </TableCell>
-                          {tab === "archived" ? (
+                          {tab === "archived" && canManage ? (
                             <TableCell className="text-right">
                               <Button
                                 type="button"
@@ -572,76 +578,84 @@ export function TeamsPage({
         onOpenChange={(open) => {
           if (!open) setSelectedId(null);
         }}
+        canManage={canManage}
         archivePending={archivePending}
         removePending={removePending}
         onEdit={() => {
-          if (!selectedTeam) return;
+          if (!selectedTeam || !canManage) return;
           setEditing(selectedTeam);
           setFormOpen(true);
         }}
         onAddMembers={() => {
+          if (!canManage) return;
           if (selectedTeam?.id) setAddMembersTeamId(selectedTeam.id);
         }}
         onRemoveMember={async (participantId) => {
-          if (!selectedTeam?.id) return;
+          if (!selectedTeam?.id || !canManage) return;
           await onRemoveMember(selectedTeam.id, participantId);
         }}
         onArchive={async () => {
-          if (!selectedTeam?.id) return;
+          if (!selectedTeam?.id || !canManage) return;
           await onArchive(selectedTeam.id);
           setSelectedId(null);
         }}
       />
 
-      <TeamFormDialog
-        open={formOpen}
-        onOpenChange={(open) => {
-          setFormOpen(open);
-          if (!open) setEditing(null);
-        }}
-        mode={editing ? "edit" : "create"}
-        record={editing}
-        members={
-          editing?.id ? memberOfTeam(participants, editing.id) : []
-        }
-        pending={formPending}
-        onSubmit={async (values) => {
-          if (editing?.id) {
-            await onUpdateTeam(editing.id, values);
-          } else {
-            await onCreateTeam(values);
+      {canManage ? (
+        <TeamFormDialog
+          open={formOpen}
+          onOpenChange={(open) => {
+            setFormOpen(open);
+            if (!open) setEditing(null);
+          }}
+          mode={editing ? "edit" : "create"}
+          record={editing}
+          members={
+            editing?.id ? memberOfTeam(participants, editing.id) : []
           }
-          setFormOpen(false);
-          setEditing(null);
-        }}
-      />
+          pending={formPending}
+          onSubmit={async (values) => {
+            if (editing?.id) {
+              await onUpdateTeam(editing.id, values);
+            } else {
+              await onCreateTeam(values);
+            }
+            setFormOpen(false);
+            setEditing(null);
+          }}
+        />
+      ) : null}
 
-      <QuickTeamDialog
-        open={quickOpen}
-        onOpenChange={setQuickOpen}
-        unassigned={approvedUnassigned}
-        pending={quickPending}
-        onCreate={async (input) => {
-          await onQuickCreate(input);
-          setQuickOpen(false);
-        }}
-      />
+      {canManage ? (
+        <QuickTeamDialog
+          open={quickOpen}
+          onOpenChange={setQuickOpen}
+          unassigned={approvedUnassigned}
+          pending={quickPending}
+          onCreate={async (input) => {
+            await onQuickCreate(input);
+            setQuickOpen(false);
+          }}
+        />
+      ) : null}
 
-      <AddMembersDialog
-        open={Boolean(addMembersTeam)}
-        onOpenChange={(open) => {
-          if (!open) setAddMembersTeamId(null);
-        }}
-        teamName={addMembersTeam?.name ?? "Team"}
-        unassigned={approvedUnassigned}
-        maxSelectable={addMembersSlotsLeft}
-        pending={assignPending}
-        onSubmit={async (ids) => {
-          if (!addMembersTeam?.id) return;
-          await onAssignMembers(addMembersTeam.id, ids);
-          setAddMembersTeamId(null);
-        }}
-      />
+      {canManage ? (
+        <AddMembersDialog
+          open={Boolean(addMembersTeam)}
+          onOpenChange={(open) => {
+            if (!open) setAddMembersTeamId(null);
+          }}
+          teamName={addMembersTeam?.name ?? "Team"}
+          unassigned={approvedUnassigned}
+          maxSelectable={addMembersSlotsLeft}
+          pending={assignPending}
+          onSubmit={async (ids) => {
+            if (!addMembersTeam?.id) return;
+            await onAssignMembers(addMembersTeam.id, ids);
+            setAddMembersTeamId(null);
+          }}
+        />
+      ) : null}
 
       <Dialog open={exportOpen} onOpenChange={setExportOpen}>
         <DialogContent className="max-w-md">

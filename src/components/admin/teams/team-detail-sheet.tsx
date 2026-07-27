@@ -52,6 +52,7 @@ export function TeamDetailSheet({
   members,
   open,
   onOpenChange,
+  canManage = true,
   archivePending,
   removePending,
   onEdit,
@@ -63,6 +64,7 @@ export function TeamDetailSheet({
   members: ParticipantsRecord[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  canManage?: boolean;
   archivePending?: boolean;
   removePending?: boolean;
   onEdit: () => void;
@@ -128,15 +130,17 @@ export function TeamDetailSheet({
                 <h3 className="font-mono text-[0.65rem] text-muted-foreground uppercase tracking-[0.18em]">
                   Roster
                 </h3>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={onAddMembers}
-                >
-                  <UserPlus className="size-3.5" />
-                  Add
-                </Button>
+                {canManage ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={onAddMembers}
+                  >
+                    <UserPlus className="size-3.5" />
+                    Add
+                  </Button>
+                ) : null}
               </div>
 
               {members.length === 0 ? (
@@ -168,22 +172,24 @@ export function TeamDetailSheet({
                               </p>
                             </div>
                             <PreferredLaneIcons roles={laneRoles(p)} />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon-sm"
-                              className="text-destructive hover:text-destructive"
-                              disabled={removePending && removingId === p.id}
-                              aria-label="Remove from team"
-                              onClick={() => {
-                                setRemovingId(p.id!);
-                                void Promise.resolve(onRemoveMember(p.id!)).finally(
-                                  () => setRemovingId(null),
-                                );
-                              }}
-                            >
-                              <UserMinus className="size-3.5" />
-                            </Button>
+                            {canManage ? (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon-sm"
+                                className="text-destructive hover:text-destructive"
+                                disabled={removePending && removingId === p.id}
+                                aria-label="Remove from team"
+                                onClick={() => {
+                                  setRemovingId(p.id!);
+                                  void Promise.resolve(
+                                    onRemoveMember(p.id!),
+                                  ).finally(() => setRemovingId(null));
+                                }}
+                              >
+                                <UserMinus className="size-3.5" />
+                              </Button>
+                            ) : null}
                           </li>
                         ) : null,
                       )}
@@ -194,21 +200,23 @@ export function TeamDetailSheet({
             </section>
           </div>
 
-          <SheetFooter className="border-border/70 border-t sm:flex-row">
-            <Button type="button" variant="outline" onClick={onEdit}>
-              <Pencil className="size-3.5" />
-              Edit
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={() => setArchiveOpen(true)}
-              disabled={archivePending}
-            >
-              <Archive className="size-3.5" />
-              Archive
-            </Button>
-          </SheetFooter>
+          {canManage ? (
+            <SheetFooter className="border-border/70 border-t sm:flex-row">
+              <Button type="button" variant="outline" onClick={onEdit}>
+                <Pencil className="size-3.5" />
+                Edit
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => setArchiveOpen(true)}
+                disabled={archivePending}
+              >
+                <Archive className="size-3.5" />
+                Archive
+              </Button>
+            </SheetFooter>
+          ) : null}
         </SheetContent>
       </Sheet>
 

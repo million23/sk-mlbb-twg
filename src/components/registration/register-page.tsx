@@ -1,10 +1,18 @@
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   fetchRegistrationEmailAvailable,
   registrationApiErrorMessage,
   useListedTeams,
   useOpenRegistrationTournaments,
   useRegistrationTournament,
   useSubmitRegistration,
+  type RegistrationTournament,
 } from "@/hooks/registration";
 import {
   canAdvance,
@@ -14,9 +22,10 @@ import {
   validateUploads,
   wizardStepsFor,
 } from "@/lib/registration/flow";
-import { Link } from "@tanstack/react-router";
-import { House } from "lucide-react";
-import { useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { Check, House } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
 import { ErrorBanner, NavRow, STEP_LABELS, StepBody } from "./steps";
 import {
@@ -29,14 +38,24 @@ type RegisterPageProps = {
   tournamentId?: string;
 };
 
+function tournamentOptionLabel(t: RegistrationTournament): string {
+  return t.title?.trim() || t.slug?.trim() || t.id || "Tournament";
+}
+
 /** Public registration — stepper wizard wired to Orval-backed hooks. */
 export function RegisterPage({ tournamentId }: RegisterPageProps) {
+  const navigate = useNavigate();
   const { state, dispatch } = useRegistrationFlow();
   const openTournaments = useOpenRegistrationTournaments();
+  const openList = useMemo(
+    () => (openTournaments.data ?? []).filter((t) => t.registration_open && t.id),
+    [openTournaments.data],
+  );
   const selectedId =
-    tournamentId ||
-    openTournaments.data?.[0]?.id ||
-    state.tournament_id ||
+    (tournamentId && openList.some((t) => t.id === tournamentId)
+      ? tournamentId
+      : undefined) ||
+    openList[0]?.id ||
     undefined;
   const tournament = useRegistrationTournament(selectedId);
   const teams = useListedTeams(selectedId);
@@ -44,9 +63,27 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [honeypot, setHoneypot] = useState("");
   const [checkingEmail, setCheckingEmail] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const tournamentRecord = tournament.data;
   const listedTeams = teams.data;
+  const submitted =
+    state.step === "pending" ||
+    state.step === "approved" ||
+    state.step === "rejected";
+  const showTournamentPicker = openList.length > 1 && !submitted;
+
+  useEffect(() => {
+    if (!openTournaments.isSuccess || openList.length === 0) return;
+    if (tournamentId && openList.some((t) => t.id === tournamentId)) return;
+    const fallback = openList[0]?.id;
+    if (!fallback) return;
+    void navigate({
+      to: "/register",
+      search: { tournament: fallback },
+      replace: true,
+    });
+  }, [navigate, openList, openTournaments.isSuccess, tournamentId]);
 
   useEffect(() => {
     if (!tournamentRecord?.id) return;
@@ -60,6 +97,22 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
       },
     });
   }, [dispatch, tournamentRecord, listedTeams]);
+
+  const selectTournament = (id: string) => {
+    if (!id || id === selectedId) {
+      setPickerOpen(false);
+      return;
+    }
+    if (!openList.some((t) => t.id === id)) return;
+    dispatch({ type: "RESET_DRAFT" });
+    setTurnstileToken(null);
+    setPickerOpen(false);
+    void navigate({
+      to: "/register",
+      search: { tournament: id },
+      replace: true,
+    });
+  };
 
   const wizard = wizardStepsFor(state);
   const focusStep =
@@ -177,6 +230,15 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
                   {tournament.data.title}
                 </p>
               ) : null}
+              {showTournamentPicker ? (
+                <button
+                  type="button"
+                  className="mt-1.5 text-left text-primary text-sm underline-offset-4 hover:underline"
+                  onClick={() => setPickerOpen(true)}
+                >
+                  Change tournament
+                </button>
+              ) : null}
             </div>
             <Link
               to="/"
@@ -279,6 +341,57 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
           )}
         </div>
       </div>
+
+      <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
+        <DialogContent className="flex max-h-[min(85svh,40rem)] max-w-lg flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
+          <DialogHeader
+            data-modal-enter="from-top"
+            className="shrink-0 border-b border-border/70 px-5 py-4 sm:px-6"
+          >
+            <DialogTitle className="font-serif text-xl tracking-tight">
+              Choose a tournament
+            </DialogTitle>
+            <DialogDescription>
+              Only events with open registration are listed. Switching clears
+              your current form progress.
+            </DialogDescription>
+          </DialogHeader>
+          <ul
+            data-modal-enter="fade"
+            className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-5 py-4 sm:px-6"
+          >
+            {openList.map((t) => {
+              const id = t.id;
+              if (!id) return null;
+              const active = id === selectedId;
+              return (
+                <li key={id}>
+                  <button
+                    type="button"
+                    onClick={() => selectTournament(id)}
+                    className={cn(
+                      "flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-colors",
+                      active
+                        ? "border-primary/40 bg-primary/10"
+                        : "border-border/80 bg-background/60 hover:border-primary/30 hover:bg-muted/40",
+                    )}
+                  >
+                    <span className="min-w-0 flex-1 truncate font-medium">
+                      {tournamentOptionLabel(t)}
+                    </span>
+                    {active ? (
+                      <Check
+                        className="size-4 shrink-0 text-primary"
+                        aria-hidden
+                      />
+                    ) : null}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

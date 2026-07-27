@@ -12,8 +12,14 @@ import {
   patchCollectionsTeamsRecordsId,
   postCollectionsTeamsRecords,
 } from "@/hooks/orval/teams-collection/teams-collection";
+import {
+  assertPermission,
+  canManageTeams,
+  type AdminAuthRecord,
+} from "@/lib/admin/permissions";
 import { ApiError } from "@/lib/api/mutator/custom-instance";
 import { getAuthRecordId } from "@/lib/legacy/mutation-authors";
+import { pb } from "@/lib/pocketbase";
 import { registrationKeys } from "@/hooks/registration/query-keys";
 import {
   registrationApiErrorMessage,
@@ -26,6 +32,13 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+
+function assertCanManageTeams() {
+  assertPermission(
+    canManageTeams(pb.authStore.record as AdminAuthRecord),
+    "You do not have permission to manage teams.",
+  );
+}
 
 export type TeamFormValues = {
   name: string;
@@ -184,6 +197,7 @@ export function useTeamMutations(tournamentId: string) {
       captain?: string;
       status?: TeamsRecordStatus;
     }) => {
+      assertCanManageTeams();
       const res = await postCollectionsTeamsRecords(
         withAuditCreate({
           tournament: tournamentId,
@@ -209,6 +223,7 @@ export function useTeamMutations(tournamentId: string) {
         captain?: string | null;
       };
     }) => {
+      assertCanManageTeams();
       const fields: Record<string, unknown> = {};
       if (values.name != null) fields.name = values.name.trim();
       if (values.status != null) fields.status = values.status;
@@ -222,6 +237,7 @@ export function useTeamMutations(tournamentId: string) {
 
   const archive = useMutation({
     mutationFn: async (id: string) => {
+      assertCanManageTeams();
       const membersRes = await getCollectionsParticipantsRecords({
         page: 1,
         perPage: 500,
@@ -241,7 +257,10 @@ export function useTeamMutations(tournamentId: string) {
   });
 
   const restore = useMutation({
-    mutationFn: async (id: string) => patchTeam(id, { archived: false }),
+    mutationFn: async (id: string) => {
+      assertCanManageTeams();
+      return patchTeam(id, { archived: false });
+    },
     onSuccess: invalidate,
   });
 
@@ -261,6 +280,7 @@ export function useTeamMutations(tournamentId: string) {
       existingMemberIds: string[];
       minReady?: number;
     }) => {
+      assertCanManageTeams();
       for (const pid of participantIds) {
         await patchParticipant(pid, {
           team: teamId,
@@ -299,6 +319,7 @@ export function useTeamMutations(tournamentId: string) {
       remainingMemberIds: string[];
       minReady?: number;
     }) => {
+      assertCanManageTeams();
       await patchParticipant(participantId, {
         team: "",
         status: "unassigned",
@@ -325,6 +346,7 @@ export function useTeamMutations(tournamentId: string) {
       membersByTeamId: Map<string, string[]>;
       minReady?: number;
     }) => {
+      assertCanManageTeams();
       let changed = 0;
       for (const team of teams) {
         if (!team.id || team.status === "inactive") continue;
