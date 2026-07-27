@@ -41,7 +41,7 @@ export function LandingShell({
             aria-label="Primary"
           >
             <Link
-              to="/legacy/p/tournaments"
+              to="/tournaments"
               className={cn(
                 buttonVariants({ variant: "ghost", size: "sm" }),
                 "px-2 sm:px-3",
