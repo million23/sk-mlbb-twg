@@ -1,0 +1,39 @@
+{{define "title"}}Registration received — {{.siteTitle}}{{end}}
+
+{{define "heading"}}Registration received{{end}}
+
+{{define "body"}}
+<p style="margin:0 0 16px;">Hi {{.name}},</p>
+<p style="margin:0 0 16px;">
+  We got your registration for
+  <strong style="font-weight:600;">{{.tournamentTitle}}</strong>. The SK committee
+  will review your credentials and documents.
+</p>
+<p style="margin:0 0 8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;letter-spacing:0.16em;text-transform:uppercase;color:#a16207;">
+  Your status code
+</p>
+<p
+  style="margin:0 0 20px;display:inline-block;padding:14px 20px;border-radius:16px;background:#fff4e8;border:1px solid #f0d2b0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:28px;letter-spacing:0.28em;color:#1a1512;"
+>
+  {{.statusCode}}
+</p>
+<p style="margin:0 0 20px;">
+  Keep this code. Use it on
+  <strong style="font-weight:600;">Verify registration</strong> to check whether
+  you are pending, approved, or rejected.
+</p>
+{{if .verifyURL}}
+<p style="margin:0 0 24px;">
+  <a
+    href="{{.verifyURL}}"
+    style="display:inline-block;padding:12px 20px;border-radius:999px;background:#c45c3e;color:#fffaf4;text-decoration:none;font-weight:600;font-size:14px;"
+  >
+    Open verify page
+  </a>
+</p>
+{{end}}
+<p style="margin:0;color:#5c534c;font-size:14px;">
+  Status: <strong style="font-weight:600;">pending</strong>
+  {{if .ign}} · IGN {{.ign}}{{end}}
+</p>
+{{end}}

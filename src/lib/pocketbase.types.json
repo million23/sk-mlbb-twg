@@ -1,0 +1,3957 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "PocketBase API",
+    "version": "1.0.0",
+    "description": "API documentation generated from PocketBase schema with collection grouping"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8090/api",
+      "description": "Local PocketBase instance"
+    }
+  ],
+  "paths": {
+    "/collections/admins/records": {
+      "post": {
+        "summary": "Register new Admins Collection",
+        "tags": [
+          "Admins Collection"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 15,
+                    "maxLength": 15,
+                    "pattern": "^[a-z0-9]+$"
+                  },
+                  "password": {
+                    "type": "string"
+                  },
+                  "tokenKey": {
+                    "type": "string",
+                    "minLength": 30,
+                    "maxLength": 60
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "emailVisibility": {
+                    "type": "boolean"
+                  },
+                  "verified": {
+                    "type": "boolean"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "superadmin",
+                      "staff"
+                    ]
+                  },
+                  "is_active": {
+                    "type": "boolean"
+                  },
+                  "last_login_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "created": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "updated": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "passwordConfirm": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "password",
+                  "passwordConfirm",
+                  "id",
+                  "tokenKey",
+                  "email",
+                  "name",
+                  "role",
+                  "is_active"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Registration successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": {
+                      "type": "string"
+                    },
+                    "record": {
+                      "$ref": "#/components/schemas/adminsRecord"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/collections/admins/records/{id}": {
+      "get": {
+        "summary": "Get Admins Collection by ID",
+        "tags": [
+          "Admins Collection"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Single record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/adminsRecord"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Update Admins Collection Record",
+        "tags": [
+          "Admins Collection"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/adminsRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/adminsRecord"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete Admins Collection Record",
+        "tags": [
+          "Admins Collection"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Record deleted"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/collections/admins/auth-with-password": {
+      "post": {
+        "summary": "Authenticate Admins Collection with password",
+        "tags": [
+          "Admins Collection"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "identity": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "identity",
+                  "password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": {
+                      "type": "string"
+                    },
+                    "record": {
+                      "$ref": "#/components/schemas/adminsRecord"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/collections/admins/request-verification": {
+      "post": {
+        "summary": "Request Admins Collection verification",
+        "tags": [
+          "Admins Collection"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  }
+                },
+                "required": [
+                  "email"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Verification email sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/collections/admins/confirm-verification": {
+      "post": {
+        "summary": "Confirm Admins Collection verification",
+        "tags": [
+          "Admins Collection"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "token"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Verification confirmed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/collections/admins/request-password-reset": {
+      "post": {
+        "summary": "Request Admins Collection password reset",
+        "tags": [
+          "Admins Collection"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  }
+                },
+                "required": [
+                  "email"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password reset email sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/collections/admins/confirm-password-reset": {
+      "post": {
+        "summary": "Confirm Admins Collection password reset",
+        "tags": [
+          "Admins Collection"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  },
+                  "passwordConfirm": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "token",
+                  "password",
+                  "passwordConfirm"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password reset confirmed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/collections/admins/request-email-change": {
+      "post": {
+        "summary": "Request Admins Collection email change",
+        "tags": [
+          "Admins Collection"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "newEmail": {
+                    "type": "string",
+                    "format": "email"
+                  }
+                },
+                "required": [
+                  "newEmail"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Email change request sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/collections/admins/confirm-email-change": {
+      "post": {
+        "summary": "Confirm Admins Collection email change",
+        "tags": [
+          "Admins Collection"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "token",
+                  "password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Email change confirmed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/collections/admins/auth-refresh": {
+      "post": {
+        "summary": "Refresh Admins Collection authentication token",
+        "tags": [
+          "Admins Collection"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "New authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": {
+                      "type": "string"
+                    },
+                    "record": {
+                      "$ref": "#/components/schemas/adminsRecord"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/collections/admins/auth-with-oauth2": {
+      "post": {
+        "summary": "Authenticate Admins Collection with OAuth2",
+        "tags": [
+          "Admins Collection"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "provider": {
+                    "type": "string"
+                  },
+                  "code": {
+                    "type": "string"
+                  },
+                  "codeVerifier": {
+                    "type": "string"
+                  },
+                  "redirectUrl": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "provider",
+                  "code"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": {
+                      "type": "string"
+                    },
+                    "record": {
+                      "$ref": "#/components/schemas/adminsRecord"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/collections/audit_log/records": {
+      "get": {
+        "summary": "List Audit_log Collection",
+        "description": "Retrieves a paginated list of Audit_log Collection records. Supports filtering, sorting, and expanding relations.",
+        "tags": [
+          "Audit_log Collection"
+        ],
+        "parameters": [
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering expression (e.g., 'created > \"2022-01-01\"')",
+            "schema": {
+              "type": "string"
+            },
+            "example": "title ~ \"example\""
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Comma-separated list of fields to sort by. Prefix with '-' for descending order.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "-created,title"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number (starting from 1)",
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "minimum": 1
+            },
+            "example": 1
+          },
+          {
+            "name": "perPage",
+            "in": "query",
+            "description": "Number of records per page (max 500)",
+            "schema": {
+              "type": "integer",
+              "default": 30,
+              "minimum": 1,
+              "maximum": 500
+            },
+            "example": 30
+          },
+          {
+            "name": "skipTotal",
+            "in": "query",
+            "description": "Set to true to skip the total count (improves performance for large collections)",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "expand",
+            "in": "query",
+            "description": "Comma-separated list of relations to expand. Use dot notation for nested relations.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "created_by, updated_by"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of Audit_log Collection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "page": {
+                      "type": "number"
+                    },
+                    "perPage": {
+                      "type": "number"
+                    },
+                    "totalItems": {
+                      "type": "number"
+                    },
+                    "totalPages": {
+                      "type": "number"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/audit_logRecord"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-notes": {
+          "description": "### Expansion Options\n\nThis endpoint supports expanding relations. Use the `expand` parameter with any of the following paths:\n\n- `created_by`\n- `updated_by`\n\nYou can also combine multiple expansions with commas (e.g., `expand=field1,field2.nested`)."
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create Audit_log Collection Record",
+        "tags": [
+          "Audit_log Collection"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/audit_logRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/audit_logRecord"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/collections/audit_log/records/{id}": {
+      "get": {
+        "summary": "Get Audit_log Collection by ID",
+        "tags": [
+          "Audit_log Collection"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "expand",
+            "in": "query",
+            "description": "Comma-separated list of relations to expand. Use dot notation for nested relations.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "created_by, updated_by"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Single record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/audit_logRecord"
+                }
+              }
+            }
+          }
+        },
+        "x-notes": {
+          "description": "### Expansion Options\n\nThis endpoint supports expanding relations. Use the `expand` parameter with any of the following paths:\n\n- `created_by`\n- `updated_by`\n\nYou can also combine multiple expansions with commas (e.g., `expand=field1,field2.nested`)."
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Update Audit_log Collection Record",
+        "tags": [
+          "Audit_log Collection"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/audit_logRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/audit_logRecord"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete Audit_log Collection Record",
+        "tags": [
+          "Audit_log Collection"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Record deleted"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/collections/match_drafts/records": {
+      "get": {
+        "summary": "List Match_drafts Collection",
+        "description": "Retrieves a paginated list of Match_drafts Collection records. Supports filtering, sorting, and expanding relations.",
+        "tags": [
+          "Match_drafts Collection"
+        ],
+        "parameters": [
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering expression (e.g., 'created > \"2022-01-01\"')",
+            "schema": {
+              "type": "string"
+            },
+            "example": "title ~ \"example\""
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Comma-separated list of fields to sort by. Prefix with '-' for descending order.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "-created,title"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number (starting from 1)",
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "minimum": 1
+            },
+            "example": 1
+          },
+          {
+            "name": "perPage",
+            "in": "query",
+            "description": "Number of records per page (max 500)",
+            "schema": {
+              "type": "integer",
+              "default": 30,
+              "minimum": 1,
+              "maximum": 500
+            },
+            "example": 30
+          },
+          {
+            "name": "skipTotal",
+            "in": "query",
+            "description": "Set to true to skip the total count (improves performance for large collections)",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "expand",
+            "in": "query",
+            "description": "Comma-separated list of relations to expand. Use dot notation for nested relations.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "tournament, tournament.created_by, tournament.updated_by, team_a, team_a.tournament, team_a.tournament.created_by, team_a.tournament.updated_by, team_a.captain, team_a.captain.tournament, team_a.captain.preferred_team, team_a.captain.team, team_a.captain.created_by, team_a.captain.updated_by, team_a.created_by, team_a.updated_by, team_b, team_b.tournament, team_b.tournament.created_by, team_b.tournament.updated_by, team_b.captain, team_b.captain.tournament, team_b.captain.preferred_team, team_b.captain.team, team_b.captain.created_by, team_b.captain.updated_by, team_b.created_by, team_b.updated_by, first_pick_team, first_pick_team.tournament, first_pick_team.tournament.created_by, first_pick_team.tournament.updated_by, first_pick_team.captain, first_pick_team.captain.tournament, first_pick_team.captain.preferred_team, first_pick_team.captain.team, first_pick_team.captain.created_by, first_pick_team.captain.updated_by, first_pick_team.created_by, first_pick_team.updated_by, created_by, updated_by"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of Match_drafts Collection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "page": {
+                      "type": "number"
+                    },
+                    "perPage": {
+                      "type": "number"
+                    },
+                    "totalItems": {
+                      "type": "number"
+                    },
+                    "totalPages": {
+                      "type": "number"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/match_draftsRecord"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-notes": {
+          "description": "### Expansion Options\n\nThis endpoint supports expanding relations. Use the `expand` parameter with any of the following paths:\n\n- `tournament`\n- `tournament.created_by`\n- `tournament.updated_by`\n- `team_a`\n- `team_a.tournament`\n- `team_a.tournament.created_by`\n- `team_a.tournament.updated_by`\n- `team_a.captain`\n- `team_a.captain.tournament`\n- `team_a.captain.preferred_team`\n- `team_a.captain.team`\n- `team_a.captain.created_by`\n- `team_a.captain.updated_by`\n- `team_a.created_by`\n- `team_a.updated_by`\n- `team_b`\n- `team_b.tournament`\n- `team_b.tournament.created_by`\n- `team_b.tournament.updated_by`\n- `team_b.captain`\n- `team_b.captain.tournament`\n- `team_b.captain.preferred_team`\n- `team_b.captain.team`\n- `team_b.captain.created_by`\n- `team_b.captain.updated_by`\n- `team_b.created_by`\n- `team_b.updated_by`\n- `first_pick_team`\n- `first_pick_team.tournament`\n- `first_pick_team.tournament.created_by`\n- `first_pick_team.tournament.updated_by`\n- `first_pick_team.captain`\n- `first_pick_team.captain.tournament`\n- `first_pick_team.captain.preferred_team`\n- `first_pick_team.captain.team`\n- `first_pick_team.captain.created_by`\n- `first_pick_team.captain.updated_by`\n- `first_pick_team.created_by`\n- `first_pick_team.updated_by`\n- `created_by`\n- `updated_by`\n\nYou can also combine multiple expansions with commas (e.g., `expand=field1,field2.nested`)."
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create Match_drafts Collection Record",
+        "tags": [
+          "Match_drafts Collection"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/match_draftsRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/match_draftsRecord"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/collections/match_drafts/records/{id}": {
+      "get": {
+        "summary": "Get Match_drafts Collection by ID",
+        "tags": [
+          "Match_drafts Collection"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "expand",
+            "in": "query",
+            "description": "Comma-separated list of relations to expand. Use dot notation for nested relations.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "tournament, tournament.created_by, tournament.updated_by, team_a, team_a.tournament, team_a.tournament.created_by, team_a.tournament.updated_by, team_a.captain, team_a.captain.tournament, team_a.captain.preferred_team, team_a.captain.team, team_a.captain.created_by, team_a.captain.updated_by, team_a.created_by, team_a.updated_by, team_b, team_b.tournament, team_b.tournament.created_by, team_b.tournament.updated_by, team_b.captain, team_b.captain.tournament, team_b.captain.preferred_team, team_b.captain.team, team_b.captain.created_by, team_b.captain.updated_by, team_b.created_by, team_b.updated_by, first_pick_team, first_pick_team.tournament, first_pick_team.tournament.created_by, first_pick_team.tournament.updated_by, first_pick_team.captain, first_pick_team.captain.tournament, first_pick_team.captain.preferred_team, first_pick_team.captain.team, first_pick_team.captain.created_by, first_pick_team.captain.updated_by, first_pick_team.created_by, first_pick_team.updated_by, created_by, updated_by"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Single record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/match_draftsRecord"
+                }
+              }
+            }
+          }
+        },
+        "x-notes": {
+          "description": "### Expansion Options\n\nThis endpoint supports expanding relations. Use the `expand` parameter with any of the following paths:\n\n- `tournament`\n- `tournament.created_by`\n- `tournament.updated_by`\n- `team_a`\n- `team_a.tournament`\n- `team_a.tournament.created_by`\n- `team_a.tournament.updated_by`\n- `team_a.captain`\n- `team_a.captain.tournament`\n- `team_a.captain.preferred_team`\n- `team_a.captain.team`\n- `team_a.captain.created_by`\n- `team_a.captain.updated_by`\n- `team_a.created_by`\n- `team_a.updated_by`\n- `team_b`\n- `team_b.tournament`\n- `team_b.tournament.created_by`\n- `team_b.tournament.updated_by`\n- `team_b.captain`\n- `team_b.captain.tournament`\n- `team_b.captain.preferred_team`\n- `team_b.captain.team`\n- `team_b.captain.created_by`\n- `team_b.captain.updated_by`\n- `team_b.created_by`\n- `team_b.updated_by`\n- `first_pick_team`\n- `first_pick_team.tournament`\n- `first_pick_team.tournament.created_by`\n- `first_pick_team.tournament.updated_by`\n- `first_pick_team.captain`\n- `first_pick_team.captain.tournament`\n- `first_pick_team.captain.preferred_team`\n- `first_pick_team.captain.team`\n- `first_pick_team.captain.created_by`\n- `first_pick_team.captain.updated_by`\n- `first_pick_team.created_by`\n- `first_pick_team.updated_by`\n- `created_by`\n- `updated_by`\n\nYou can also combine multiple expansions with commas (e.g., `expand=field1,field2.nested`)."
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Update Match_drafts Collection Record",
+        "tags": [
+          "Match_drafts Collection"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/match_draftsRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/match_draftsRecord"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete Match_drafts Collection Record",
+        "tags": [
+          "Match_drafts Collection"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Record deleted"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/collections/match_result/records": {
+      "get": {
+        "summary": "List Match_result Collection",
+        "description": "Retrieves a paginated list of Match_result Collection records. Supports filtering, sorting, and expanding relations.",
+        "tags": [
+          "Match_result Collection"
+        ],
+        "parameters": [
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering expression (e.g., 'created > \"2022-01-01\"')",
+            "schema": {
+              "type": "string"
+            },
+            "example": "title ~ \"example\""
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Comma-separated list of fields to sort by. Prefix with '-' for descending order.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "-created,title"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number (starting from 1)",
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "minimum": 1
+            },
+            "example": 1
+          },
+          {
+            "name": "perPage",
+            "in": "query",
+            "description": "Number of records per page (max 500)",
+            "schema": {
+              "type": "integer",
+              "default": 30,
+              "minimum": 1,
+              "maximum": 500
+            },
+            "example": 30
+          },
+          {
+            "name": "skipTotal",
+            "in": "query",
+            "description": "Set to true to skip the total count (improves performance for large collections)",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "expand",
+            "in": "query",
+            "description": "Comma-separated list of relations to expand. Use dot notation for nested relations.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "match, match.tournament, match.tournament.created_by, match.tournament.updated_by, match.team_a, match.team_a.tournament, match.team_a.captain, match.team_a.created_by, match.team_a.updated_by, match.team_b, match.team_b.tournament, match.team_b.captain, match.team_b.created_by, match.team_b.updated_by, match.winner, match.winner.tournament, match.winner.captain, match.winner.created_by, match.winner.updated_by, match.created_by, match.updated_by, player, player.tournament, player.tournament.created_by, player.tournament.updated_by, player.preferred_team, player.preferred_team.tournament, player.preferred_team.captain, player.preferred_team.created_by, player.preferred_team.updated_by, player.team, player.team.tournament, player.team.captain, player.team.created_by, player.team.updated_by, player.created_by, player.updated_by, created_by, updated_by"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of Match_result Collection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "page": {
+                      "type": "number"
+                    },
+                    "perPage": {
+                      "type": "number"
+                    },
+                    "totalItems": {
+                      "type": "number"
+                    },
+                    "totalPages": {
+                      "type": "number"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/match_resultRecord"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-notes": {
+          "description": "### Expansion Options\n\nThis endpoint supports expanding relations. Use the `expand` parameter with any of the following paths:\n\n- `match`\n- `match.tournament`\n- `match.tournament.created_by`\n- `match.tournament.updated_by`\n- `match.team_a`\n- `match.team_a.tournament`\n- `match.team_a.captain`\n- `match.team_a.created_by`\n- `match.team_a.updated_by`\n- `match.team_b`\n- `match.team_b.tournament`\n- `match.team_b.captain`\n- `match.team_b.created_by`\n- `match.team_b.updated_by`\n- `match.winner`\n- `match.winner.tournament`\n- `match.winner.captain`\n- `match.winner.created_by`\n- `match.winner.updated_by`\n- `match.created_by`\n- `match.updated_by`\n- `player`\n- `player.tournament`\n- `player.tournament.created_by`\n- `player.tournament.updated_by`\n- `player.preferred_team`\n- `player.preferred_team.tournament`\n- `player.preferred_team.captain`\n- `player.preferred_team.created_by`\n- `player.preferred_team.updated_by`\n- `player.team`\n- `player.team.tournament`\n- `player.team.captain`\n- `player.team.created_by`\n- `player.team.updated_by`\n- `player.created_by`\n- `player.updated_by`\n- `created_by`\n- `updated_by`\n\nYou can also combine multiple expansions with commas (e.g., `expand=field1,field2.nested`)."
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create Match_result Collection Record",
+        "tags": [
+          "Match_result Collection"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/match_resultRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/match_resultRecord"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/collections/match_result/records/{id}": {
+      "get": {
+        "summary": "Get Match_result Collection by ID",
+        "tags": [
+          "Match_result Collection"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "expand",
+            "in": "query",
+            "description": "Comma-separated list of relations to expand. Use dot notation for nested relations.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "match, match.tournament, match.tournament.created_by, match.tournament.updated_by, match.team_a, match.team_a.tournament, match.team_a.captain, match.team_a.created_by, match.team_a.updated_by, match.team_b, match.team_b.tournament, match.team_b.captain, match.team_b.created_by, match.team_b.updated_by, match.winner, match.winner.tournament, match.winner.captain, match.winner.created_by, match.winner.updated_by, match.created_by, match.updated_by, player, player.tournament, player.tournament.created_by, player.tournament.updated_by, player.preferred_team, player.preferred_team.tournament, player.preferred_team.captain, player.preferred_team.created_by, player.preferred_team.updated_by, player.team, player.team.tournament, player.team.captain, player.team.created_by, player.team.updated_by, player.created_by, player.updated_by, created_by, updated_by"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Single record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/match_resultRecord"
+                }
+              }
+            }
+          }
+        },
+        "x-notes": {
+          "description": "### Expansion Options\n\nThis endpoint supports expanding relations. Use the `expand` parameter with any of the following paths:\n\n- `match`\n- `match.tournament`\n- `match.tournament.created_by`\n- `match.tournament.updated_by`\n- `match.team_a`\n- `match.team_a.tournament`\n- `match.team_a.captain`\n- `match.team_a.created_by`\n- `match.team_a.updated_by`\n- `match.team_b`\n- `match.team_b.tournament`\n- `match.team_b.captain`\n- `match.team_b.created_by`\n- `match.team_b.updated_by`\n- `match.winner`\n- `match.winner.tournament`\n- `match.winner.captain`\n- `match.winner.created_by`\n- `match.winner.updated_by`\n- `match.created_by`\n- `match.updated_by`\n- `player`\n- `player.tournament`\n- `player.tournament.created_by`\n- `player.tournament.updated_by`\n- `player.preferred_team`\n- `player.preferred_team.tournament`\n- `player.preferred_team.captain`\n- `player.preferred_team.created_by`\n- `player.preferred_team.updated_by`\n- `player.team`\n- `player.team.tournament`\n- `player.team.captain`\n- `player.team.created_by`\n- `player.team.updated_by`\n- `player.created_by`\n- `player.updated_by`\n- `created_by`\n- `updated_by`\n\nYou can also combine multiple expansions with commas (e.g., `expand=field1,field2.nested`)."
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Update Match_result Collection Record",
+        "tags": [
+          "Match_result Collection"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/match_resultRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/match_resultRecord"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete Match_result Collection Record",
+        "tags": [
+          "Match_result Collection"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Record deleted"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/collections/matches/records": {
+      "get": {
+        "summary": "List Matches Collection",
+        "description": "Retrieves a paginated list of Matches Collection records. Supports filtering, sorting, and expanding relations.",
+        "tags": [
+          "Matches Collection"
+        ],
+        "parameters": [
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering expression (e.g., 'created > \"2022-01-01\"')",
+            "schema": {
+              "type": "string"
+            },
+            "example": "title ~ \"example\""
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Comma-separated list of fields to sort by. Prefix with '-' for descending order.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "-created,title"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number (starting from 1)",
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "minimum": 1
+            },
+            "example": 1
+          },
+          {
+            "name": "perPage",
+            "in": "query",
+            "description": "Number of records per page (max 500)",
+            "schema": {
+              "type": "integer",
+              "default": 30,
+              "minimum": 1,
+              "maximum": 500
+            },
+            "example": 30
+          },
+          {
+            "name": "skipTotal",
+            "in": "query",
+            "description": "Set to true to skip the total count (improves performance for large collections)",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "expand",
+            "in": "query",
+            "description": "Comma-separated list of relations to expand. Use dot notation for nested relations.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "tournament, tournament.created_by, tournament.updated_by, team_a, team_a.tournament, team_a.tournament.created_by, team_a.tournament.updated_by, team_a.captain, team_a.captain.tournament, team_a.captain.preferred_team, team_a.captain.team, team_a.captain.created_by, team_a.captain.updated_by, team_a.created_by, team_a.updated_by, team_b, team_b.tournament, team_b.tournament.created_by, team_b.tournament.updated_by, team_b.captain, team_b.captain.tournament, team_b.captain.preferred_team, team_b.captain.team, team_b.captain.created_by, team_b.captain.updated_by, team_b.created_by, team_b.updated_by, winner, winner.tournament, winner.tournament.created_by, winner.tournament.updated_by, winner.captain, winner.captain.tournament, winner.captain.preferred_team, winner.captain.team, winner.captain.created_by, winner.captain.updated_by, winner.created_by, winner.updated_by, created_by, updated_by"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of Matches Collection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "page": {
+                      "type": "number"
+                    },
+                    "perPage": {
+                      "type": "number"
+                    },
+                    "totalItems": {
+                      "type": "number"
+                    },
+                    "totalPages": {
+                      "type": "number"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/matchesRecord"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-notes": {
+          "description": "### Expansion Options\n\nThis endpoint supports expanding relations. Use the `expand` parameter with any of the following paths:\n\n- `tournament`\n- `tournament.created_by`\n- `tournament.updated_by`\n- `team_a`\n- `team_a.tournament`\n- `team_a.tournament.created_by`\n- `team_a.tournament.updated_by`\n- `team_a.captain`\n- `team_a.captain.tournament`\n- `team_a.captain.preferred_team`\n- `team_a.captain.team`\n- `team_a.captain.created_by`\n- `team_a.captain.updated_by`\n- `team_a.created_by`\n- `team_a.updated_by`\n- `team_b`\n- `team_b.tournament`\n- `team_b.tournament.created_by`\n- `team_b.tournament.updated_by`\n- `team_b.captain`\n- `team_b.captain.tournament`\n- `team_b.captain.preferred_team`\n- `team_b.captain.team`\n- `team_b.captain.created_by`\n- `team_b.captain.updated_by`\n- `team_b.created_by`\n- `team_b.updated_by`\n- `winner`\n- `winner.tournament`\n- `winner.tournament.created_by`\n- `winner.tournament.updated_by`\n- `winner.captain`\n- `winner.captain.tournament`\n- `winner.captain.preferred_team`\n- `winner.captain.team`\n- `winner.captain.created_by`\n- `winner.captain.updated_by`\n- `winner.created_by`\n- `winner.updated_by`\n- `created_by`\n- `updated_by`\n\nYou can also combine multiple expansions with commas (e.g., `expand=field1,field2.nested`)."
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create Matches Collection Record",
+        "tags": [
+          "Matches Collection"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/matchesRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/matchesRecord"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/collections/matches/records/{id}": {
+      "get": {
+        "summary": "Get Matches Collection by ID",
+        "tags": [
+          "Matches Collection"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "expand",
+            "in": "query",
+            "description": "Comma-separated list of relations to expand. Use dot notation for nested relations.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "tournament, tournament.created_by, tournament.updated_by, team_a, team_a.tournament, team_a.tournament.created_by, team_a.tournament.updated_by, team_a.captain, team_a.captain.tournament, team_a.captain.preferred_team, team_a.captain.team, team_a.captain.created_by, team_a.captain.updated_by, team_a.created_by, team_a.updated_by, team_b, team_b.tournament, team_b.tournament.created_by, team_b.tournament.updated_by, team_b.captain, team_b.captain.tournament, team_b.captain.preferred_team, team_b.captain.team, team_b.captain.created_by, team_b.captain.updated_by, team_b.created_by, team_b.updated_by, winner, winner.tournament, winner.tournament.created_by, winner.tournament.updated_by, winner.captain, winner.captain.tournament, winner.captain.preferred_team, winner.captain.team, winner.captain.created_by, winner.captain.updated_by, winner.created_by, winner.updated_by, created_by, updated_by"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Single record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/matchesRecord"
+                }
+              }
+            }
+          }
+        },
+        "x-notes": {
+          "description": "### Expansion Options\n\nThis endpoint supports expanding relations. Use the `expand` parameter with any of the following paths:\n\n- `tournament`\n- `tournament.created_by`\n- `tournament.updated_by`\n- `team_a`\n- `team_a.tournament`\n- `team_a.tournament.created_by`\n- `team_a.tournament.updated_by`\n- `team_a.captain`\n- `team_a.captain.tournament`\n- `team_a.captain.preferred_team`\n- `team_a.captain.team`\n- `team_a.captain.created_by`\n- `team_a.captain.updated_by`\n- `team_a.created_by`\n- `team_a.updated_by`\n- `team_b`\n- `team_b.tournament`\n- `team_b.tournament.created_by`\n- `team_b.tournament.updated_by`\n- `team_b.captain`\n- `team_b.captain.tournament`\n- `team_b.captain.preferred_team`\n- `team_b.captain.team`\n- `team_b.captain.created_by`\n- `team_b.captain.updated_by`\n- `team_b.created_by`\n- `team_b.updated_by`\n- `winner`\n- `winner.tournament`\n- `winner.tournament.created_by`\n- `winner.tournament.updated_by`\n- `winner.captain`\n- `winner.captain.tournament`\n- `winner.captain.preferred_team`\n- `winner.captain.team`\n- `winner.captain.created_by`\n- `winner.captain.updated_by`\n- `winner.created_by`\n- `winner.updated_by`\n- `created_by`\n- `updated_by`\n\nYou can also combine multiple expansions with commas (e.g., `expand=field1,field2.nested`)."
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Update Matches Collection Record",
+        "tags": [
+          "Matches Collection"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/matchesRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/matchesRecord"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete Matches Collection Record",
+        "tags": [
+          "Matches Collection"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Record deleted"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/collections/participants/records": {
+      "get": {
+        "summary": "List Participants Collection",
+        "description": "Retrieves a paginated list of Participants Collection records. Supports filtering, sorting, and expanding relations.",
+        "tags": [
+          "Participants Collection"
+        ],
+        "parameters": [
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering expression (e.g., 'created > \"2022-01-01\"')",
+            "schema": {
+              "type": "string"
+            },
+            "example": "title ~ \"example\""
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Comma-separated list of fields to sort by. Prefix with '-' for descending order.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "-created,title"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number (starting from 1)",
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "minimum": 1
+            },
+            "example": 1
+          },
+          {
+            "name": "perPage",
+            "in": "query",
+            "description": "Number of records per page (max 500)",
+            "schema": {
+              "type": "integer",
+              "default": 30,
+              "minimum": 1,
+              "maximum": 500
+            },
+            "example": 30
+          },
+          {
+            "name": "skipTotal",
+            "in": "query",
+            "description": "Set to true to skip the total count (improves performance for large collections)",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "expand",
+            "in": "query",
+            "description": "Comma-separated list of relations to expand. Use dot notation for nested relations.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "tournament, tournament.created_by, tournament.updated_by, preferred_team, preferred_team.tournament, preferred_team.tournament.created_by, preferred_team.tournament.updated_by, preferred_team.captain, preferred_team.captain.tournament, preferred_team.captain.preferred_team, preferred_team.captain.team, preferred_team.captain.created_by, preferred_team.captain.updated_by, preferred_team.created_by, preferred_team.updated_by, team, team.tournament, team.tournament.created_by, team.tournament.updated_by, team.captain, team.captain.tournament, team.captain.preferred_team, team.captain.team, team.captain.created_by, team.captain.updated_by, team.created_by, team.updated_by, created_by, updated_by"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of Participants Collection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "page": {
+                      "type": "number"
+                    },
+                    "perPage": {
+                      "type": "number"
+                    },
+                    "totalItems": {
+                      "type": "number"
+                    },
+                    "totalPages": {
+                      "type": "number"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/participantsRecord"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-notes": {
+          "description": "### Expansion Options\n\nThis endpoint supports expanding relations. Use the `expand` parameter with any of the following paths:\n\n- `tournament`\n- `tournament.created_by`\n- `tournament.updated_by`\n- `preferred_team`\n- `preferred_team.tournament`\n- `preferred_team.tournament.created_by`\n- `preferred_team.tournament.updated_by`\n- `preferred_team.captain`\n- `preferred_team.captain.tournament`\n- `preferred_team.captain.preferred_team`\n- `preferred_team.captain.team`\n- `preferred_team.captain.created_by`\n- `preferred_team.captain.updated_by`\n- `preferred_team.created_by`\n- `preferred_team.updated_by`\n- `team`\n- `team.tournament`\n- `team.tournament.created_by`\n- `team.tournament.updated_by`\n- `team.captain`\n- `team.captain.tournament`\n- `team.captain.preferred_team`\n- `team.captain.team`\n- `team.captain.created_by`\n- `team.captain.updated_by`\n- `team.created_by`\n- `team.updated_by`\n- `created_by`\n- `updated_by`\n\nYou can also combine multiple expansions with commas (e.g., `expand=field1,field2.nested`)."
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create Participants Collection Record",
+        "tags": [
+          "Participants Collection"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/participantsRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/participantsRecord"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/collections/participants/records/{id}": {
+      "get": {
+        "summary": "Get Participants Collection by ID",
+        "tags": [
+          "Participants Collection"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "expand",
+            "in": "query",
+            "description": "Comma-separated list of relations to expand. Use dot notation for nested relations.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "tournament, tournament.created_by, tournament.updated_by, preferred_team, preferred_team.tournament, preferred_team.tournament.created_by, preferred_team.tournament.updated_by, preferred_team.captain, preferred_team.captain.tournament, preferred_team.captain.preferred_team, preferred_team.captain.team, preferred_team.captain.created_by, preferred_team.captain.updated_by, preferred_team.created_by, preferred_team.updated_by, team, team.tournament, team.tournament.created_by, team.tournament.updated_by, team.captain, team.captain.tournament, team.captain.preferred_team, team.captain.team, team.captain.created_by, team.captain.updated_by, team.created_by, team.updated_by, created_by, updated_by"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Single record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/participantsRecord"
+                }
+              }
+            }
+          }
+        },
+        "x-notes": {
+          "description": "### Expansion Options\n\nThis endpoint supports expanding relations. Use the `expand` parameter with any of the following paths:\n\n- `tournament`\n- `tournament.created_by`\n- `tournament.updated_by`\n- `preferred_team`\n- `preferred_team.tournament`\n- `preferred_team.tournament.created_by`\n- `preferred_team.tournament.updated_by`\n- `preferred_team.captain`\n- `preferred_team.captain.tournament`\n- `preferred_team.captain.preferred_team`\n- `preferred_team.captain.team`\n- `preferred_team.captain.created_by`\n- `preferred_team.captain.updated_by`\n- `preferred_team.created_by`\n- `preferred_team.updated_by`\n- `team`\n- `team.tournament`\n- `team.tournament.created_by`\n- `team.tournament.updated_by`\n- `team.captain`\n- `team.captain.tournament`\n- `team.captain.preferred_team`\n- `team.captain.team`\n- `team.captain.created_by`\n- `team.captain.updated_by`\n- `team.created_by`\n- `team.updated_by`\n- `created_by`\n- `updated_by`\n\nYou can also combine multiple expansions with commas (e.g., `expand=field1,field2.nested`)."
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Update Participants Collection Record",
+        "tags": [
+          "Participants Collection"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/participantsRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/participantsRecord"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete Participants Collection Record",
+        "tags": [
+          "Participants Collection"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Record deleted"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/collections/teams/records": {
+      "get": {
+        "summary": "List Teams Collection",
+        "description": "Retrieves a paginated list of Teams Collection records. Supports filtering, sorting, and expanding relations.",
+        "tags": [
+          "Teams Collection"
+        ],
+        "parameters": [
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering expression (e.g., 'created > \"2022-01-01\"')",
+            "schema": {
+              "type": "string"
+            },
+            "example": "title ~ \"example\""
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Comma-separated list of fields to sort by. Prefix with '-' for descending order.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "-created,title"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number (starting from 1)",
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "minimum": 1
+            },
+            "example": 1
+          },
+          {
+            "name": "perPage",
+            "in": "query",
+            "description": "Number of records per page (max 500)",
+            "schema": {
+              "type": "integer",
+              "default": 30,
+              "minimum": 1,
+              "maximum": 500
+            },
+            "example": 30
+          },
+          {
+            "name": "skipTotal",
+            "in": "query",
+            "description": "Set to true to skip the total count (improves performance for large collections)",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "expand",
+            "in": "query",
+            "description": "Comma-separated list of relations to expand. Use dot notation for nested relations.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "tournament, tournament.created_by, tournament.updated_by, captain, captain.tournament, captain.tournament.created_by, captain.tournament.updated_by, captain.preferred_team, captain.preferred_team.tournament, captain.preferred_team.captain, captain.preferred_team.created_by, captain.preferred_team.updated_by, captain.team, captain.team.tournament, captain.team.captain, captain.team.created_by, captain.team.updated_by, captain.created_by, captain.updated_by, created_by, updated_by"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of Teams Collection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "page": {
+                      "type": "number"
+                    },
+                    "perPage": {
+                      "type": "number"
+                    },
+                    "totalItems": {
+                      "type": "number"
+                    },
+                    "totalPages": {
+                      "type": "number"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/teamsRecord"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-notes": {
+          "description": "### Expansion Options\n\nThis endpoint supports expanding relations. Use the `expand` parameter with any of the following paths:\n\n- `tournament`\n- `tournament.created_by`\n- `tournament.updated_by`\n- `captain`\n- `captain.tournament`\n- `captain.tournament.created_by`\n- `captain.tournament.updated_by`\n- `captain.preferred_team`\n- `captain.preferred_team.tournament`\n- `captain.preferred_team.captain`\n- `captain.preferred_team.created_by`\n- `captain.preferred_team.updated_by`\n- `captain.team`\n- `captain.team.tournament`\n- `captain.team.captain`\n- `captain.team.created_by`\n- `captain.team.updated_by`\n- `captain.created_by`\n- `captain.updated_by`\n- `created_by`\n- `updated_by`\n\nYou can also combine multiple expansions with commas (e.g., `expand=field1,field2.nested`)."
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create Teams Collection Record",
+        "tags": [
+          "Teams Collection"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/teamsRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/teamsRecord"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/collections/teams/records/{id}": {
+      "get": {
+        "summary": "Get Teams Collection by ID",
+        "tags": [
+          "Teams Collection"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "expand",
+            "in": "query",
+            "description": "Comma-separated list of relations to expand. Use dot notation for nested relations.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "tournament, tournament.created_by, tournament.updated_by, captain, captain.tournament, captain.tournament.created_by, captain.tournament.updated_by, captain.preferred_team, captain.preferred_team.tournament, captain.preferred_team.captain, captain.preferred_team.created_by, captain.preferred_team.updated_by, captain.team, captain.team.tournament, captain.team.captain, captain.team.created_by, captain.team.updated_by, captain.created_by, captain.updated_by, created_by, updated_by"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Single record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/teamsRecord"
+                }
+              }
+            }
+          }
+        },
+        "x-notes": {
+          "description": "### Expansion Options\n\nThis endpoint supports expanding relations. Use the `expand` parameter with any of the following paths:\n\n- `tournament`\n- `tournament.created_by`\n- `tournament.updated_by`\n- `captain`\n- `captain.tournament`\n- `captain.tournament.created_by`\n- `captain.tournament.updated_by`\n- `captain.preferred_team`\n- `captain.preferred_team.tournament`\n- `captain.preferred_team.captain`\n- `captain.preferred_team.created_by`\n- `captain.preferred_team.updated_by`\n- `captain.team`\n- `captain.team.tournament`\n- `captain.team.captain`\n- `captain.team.created_by`\n- `captain.team.updated_by`\n- `captain.created_by`\n- `captain.updated_by`\n- `created_by`\n- `updated_by`\n\nYou can also combine multiple expansions with commas (e.g., `expand=field1,field2.nested`)."
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Update Teams Collection Record",
+        "tags": [
+          "Teams Collection"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/teamsRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/teamsRecord"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete Teams Collection Record",
+        "tags": [
+          "Teams Collection"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Record deleted"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/collections/tournament_drafts/records": {
+      "get": {
+        "summary": "List Tournament_drafts Collection",
+        "description": "Retrieves a paginated list of Tournament_drafts Collection records. Supports filtering, sorting, and expanding relations.",
+        "tags": [
+          "Tournament_drafts Collection"
+        ],
+        "parameters": [
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering expression (e.g., 'created > \"2022-01-01\"')",
+            "schema": {
+              "type": "string"
+            },
+            "example": "title ~ \"example\""
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Comma-separated list of fields to sort by. Prefix with '-' for descending order.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "-created,title"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number (starting from 1)",
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "minimum": 1
+            },
+            "example": 1
+          },
+          {
+            "name": "perPage",
+            "in": "query",
+            "description": "Number of records per page (max 500)",
+            "schema": {
+              "type": "integer",
+              "default": 30,
+              "minimum": 1,
+              "maximum": 500
+            },
+            "example": 30
+          },
+          {
+            "name": "skipTotal",
+            "in": "query",
+            "description": "Set to true to skip the total count (improves performance for large collections)",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "expand",
+            "in": "query",
+            "description": "Comma-separated list of relations to expand. Use dot notation for nested relations.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "publish_to_tournament, publish_to_tournament.created_by, publish_to_tournament.updated_by, created_by, updated_by"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of Tournament_drafts Collection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "page": {
+                      "type": "number"
+                    },
+                    "perPage": {
+                      "type": "number"
+                    },
+                    "totalItems": {
+                      "type": "number"
+                    },
+                    "totalPages": {
+                      "type": "number"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/tournament_draftsRecord"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-notes": {
+          "description": "### Expansion Options\n\nThis endpoint supports expanding relations. Use the `expand` parameter with any of the following paths:\n\n- `publish_to_tournament`\n- `publish_to_tournament.created_by`\n- `publish_to_tournament.updated_by`\n- `created_by`\n- `updated_by`\n\nYou can also combine multiple expansions with commas (e.g., `expand=field1,field2.nested`)."
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create Tournament_drafts Collection Record",
+        "tags": [
+          "Tournament_drafts Collection"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/tournament_draftsRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/tournament_draftsRecord"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/collections/tournament_drafts/records/{id}": {
+      "get": {
+        "summary": "Get Tournament_drafts Collection by ID",
+        "tags": [
+          "Tournament_drafts Collection"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "expand",
+            "in": "query",
+            "description": "Comma-separated list of relations to expand. Use dot notation for nested relations.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "publish_to_tournament, publish_to_tournament.created_by, publish_to_tournament.updated_by, created_by, updated_by"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Single record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/tournament_draftsRecord"
+                }
+              }
+            }
+          }
+        },
+        "x-notes": {
+          "description": "### Expansion Options\n\nThis endpoint supports expanding relations. Use the `expand` parameter with any of the following paths:\n\n- `publish_to_tournament`\n- `publish_to_tournament.created_by`\n- `publish_to_tournament.updated_by`\n- `created_by`\n- `updated_by`\n\nYou can also combine multiple expansions with commas (e.g., `expand=field1,field2.nested`)."
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Update Tournament_drafts Collection Record",
+        "tags": [
+          "Tournament_drafts Collection"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/tournament_draftsRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/tournament_draftsRecord"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete Tournament_drafts Collection Record",
+        "tags": [
+          "Tournament_drafts Collection"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Record deleted"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/collections/tournaments/records": {
+      "get": {
+        "summary": "List Tournaments Collection",
+        "description": "Retrieves a paginated list of Tournaments Collection records. Supports filtering, sorting, and expanding relations.",
+        "tags": [
+          "Tournaments Collection"
+        ],
+        "parameters": [
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering expression (e.g., 'created > \"2022-01-01\"')",
+            "schema": {
+              "type": "string"
+            },
+            "example": "title ~ \"example\""
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Comma-separated list of fields to sort by. Prefix with '-' for descending order.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "-created,title"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number (starting from 1)",
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "minimum": 1
+            },
+            "example": 1
+          },
+          {
+            "name": "perPage",
+            "in": "query",
+            "description": "Number of records per page (max 500)",
+            "schema": {
+              "type": "integer",
+              "default": 30,
+              "minimum": 1,
+              "maximum": 500
+            },
+            "example": 30
+          },
+          {
+            "name": "skipTotal",
+            "in": "query",
+            "description": "Set to true to skip the total count (improves performance for large collections)",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "expand",
+            "in": "query",
+            "description": "Comma-separated list of relations to expand. Use dot notation for nested relations.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "created_by, updated_by"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of Tournaments Collection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "page": {
+                      "type": "number"
+                    },
+                    "perPage": {
+                      "type": "number"
+                    },
+                    "totalItems": {
+                      "type": "number"
+                    },
+                    "totalPages": {
+                      "type": "number"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/tournamentsRecord"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-notes": {
+          "description": "### Expansion Options\n\nThis endpoint supports expanding relations. Use the `expand` parameter with any of the following paths:\n\n- `created_by`\n- `updated_by`\n\nYou can also combine multiple expansions with commas (e.g., `expand=field1,field2.nested`)."
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create Tournaments Collection Record",
+        "tags": [
+          "Tournaments Collection"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/tournamentsRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/tournamentsRecord"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/collections/tournaments/records/{id}": {
+      "get": {
+        "summary": "Get Tournaments Collection by ID",
+        "tags": [
+          "Tournaments Collection"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "expand",
+            "in": "query",
+            "description": "Comma-separated list of relations to expand. Use dot notation for nested relations.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "created_by, updated_by"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Single record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/tournamentsRecord"
+                }
+              }
+            }
+          }
+        },
+        "x-notes": {
+          "description": "### Expansion Options\n\nThis endpoint supports expanding relations. Use the `expand` parameter with any of the following paths:\n\n- `created_by`\n- `updated_by`\n\nYou can also combine multiple expansions with commas (e.g., `expand=field1,field2.nested`)."
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Update Tournaments Collection Record",
+        "tags": [
+          "Tournaments Collection"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/tournamentsRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/tournamentsRecord"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete Tournaments Collection Record",
+        "tags": [
+          "Tournaments Collection"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Record deleted"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/collections/draft_suggestions/records": {
+      "get": {
+        "summary": "List Draft_suggestions Collection",
+        "description": "Retrieves a paginated list of Draft_suggestions Collection records. Supports filtering, sorting, and expanding relations.",
+        "tags": [
+          "Draft_suggestions Collection"
+        ],
+        "parameters": [
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering expression (e.g., 'created > \"2022-01-01\"')",
+            "schema": {
+              "type": "string"
+            },
+            "example": "title ~ \"example\""
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Comma-separated list of fields to sort by. Prefix with '-' for descending order.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "-created,title"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number (starting from 1)",
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "minimum": 1
+            },
+            "example": 1
+          },
+          {
+            "name": "perPage",
+            "in": "query",
+            "description": "Number of records per page (max 500)",
+            "schema": {
+              "type": "integer",
+              "default": 30,
+              "minimum": 1,
+              "maximum": 500
+            },
+            "example": 30
+          },
+          {
+            "name": "skipTotal",
+            "in": "query",
+            "description": "Set to true to skip the total count (improves performance for large collections)",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "expand",
+            "in": "query",
+            "description": "Comma-separated list of relations to expand. Use dot notation for nested relations.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "tournament_id, tournament_id.created_by, tournament_id.updated_by"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of Draft_suggestions Collection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "page": {
+                      "type": "number"
+                    },
+                    "perPage": {
+                      "type": "number"
+                    },
+                    "totalItems": {
+                      "type": "number"
+                    },
+                    "totalPages": {
+                      "type": "number"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/draft_suggestionsRecord"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-notes": {
+          "description": "### Expansion Options\n\nThis endpoint supports expanding relations. Use the `expand` parameter with any of the following paths:\n\n- `tournament_id`\n- `tournament_id.created_by`\n- `tournament_id.updated_by`\n\nYou can also combine multiple expansions with commas (e.g., `expand=field1,field2.nested`)."
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/collections/draft_suggestions/records/{id}": {
+      "get": {
+        "summary": "Get Draft_suggestions Collection by ID",
+        "tags": [
+          "Draft_suggestions Collection"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "expand",
+            "in": "query",
+            "description": "Comma-separated list of relations to expand. Use dot notation for nested relations.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "tournament_id, tournament_id.created_by, tournament_id.updated_by"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Single record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/draft_suggestionsRecord"
+                }
+              }
+            }
+          }
+        },
+        "x-notes": {
+          "description": "### Expansion Options\n\nThis endpoint supports expanding relations. Use the `expand` parameter with any of the following paths:\n\n- `tournament_id`\n- `tournament_id.created_by`\n- `tournament_id.updated_by`\n\nYou can also combine multiple expansions with commas (e.g., `expand=field1,field2.nested`)."
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/collections/team_suggestions/records": {
+      "get": {
+        "summary": "List Team_suggestions Collection",
+        "description": "Retrieves a paginated list of Team_suggestions Collection records. Supports filtering, sorting, and expanding relations.",
+        "tags": [
+          "Team_suggestions Collection"
+        ],
+        "parameters": [
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering expression (e.g., 'created > \"2022-01-01\"')",
+            "schema": {
+              "type": "string"
+            },
+            "example": "title ~ \"example\""
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Comma-separated list of fields to sort by. Prefix with '-' for descending order.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "-created,title"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number (starting from 1)",
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "minimum": 1
+            },
+            "example": 1
+          },
+          {
+            "name": "perPage",
+            "in": "query",
+            "description": "Number of records per page (max 500)",
+            "schema": {
+              "type": "integer",
+              "default": 30,
+              "minimum": 1,
+              "maximum": 500
+            },
+            "example": 30
+          },
+          {
+            "name": "skipTotal",
+            "in": "query",
+            "description": "Set to true to skip the total count (improves performance for large collections)",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "expand",
+            "in": "query",
+            "description": "Comma-separated list of relations to expand. Use dot notation for nested relations.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "participant_id, participant_id.tournament, participant_id.tournament.created_by, participant_id.tournament.updated_by, participant_id.preferred_team, participant_id.preferred_team.tournament, participant_id.preferred_team.captain, participant_id.preferred_team.created_by, participant_id.preferred_team.updated_by, participant_id.team, participant_id.team.tournament, participant_id.team.captain, participant_id.team.created_by, participant_id.team.updated_by, participant_id.created_by, participant_id.updated_by, suggested_team_id, suggested_team_id.tournament, suggested_team_id.tournament.created_by, suggested_team_id.tournament.updated_by, suggested_team_id.captain, suggested_team_id.captain.tournament, suggested_team_id.captain.preferred_team, suggested_team_id.captain.team, suggested_team_id.captain.created_by, suggested_team_id.captain.updated_by, suggested_team_id.created_by, suggested_team_id.updated_by"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of Team_suggestions Collection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "page": {
+                      "type": "number"
+                    },
+                    "perPage": {
+                      "type": "number"
+                    },
+                    "totalItems": {
+                      "type": "number"
+                    },
+                    "totalPages": {
+                      "type": "number"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/team_suggestionsRecord"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-notes": {
+          "description": "### Expansion Options\n\nThis endpoint supports expanding relations. Use the `expand` parameter with any of the following paths:\n\n- `participant_id`\n- `participant_id.tournament`\n- `participant_id.tournament.created_by`\n- `participant_id.tournament.updated_by`\n- `participant_id.preferred_team`\n- `participant_id.preferred_team.tournament`\n- `participant_id.preferred_team.captain`\n- `participant_id.preferred_team.created_by`\n- `participant_id.preferred_team.updated_by`\n- `participant_id.team`\n- `participant_id.team.tournament`\n- `participant_id.team.captain`\n- `participant_id.team.created_by`\n- `participant_id.team.updated_by`\n- `participant_id.created_by`\n- `participant_id.updated_by`\n- `suggested_team_id`\n- `suggested_team_id.tournament`\n- `suggested_team_id.tournament.created_by`\n- `suggested_team_id.tournament.updated_by`\n- `suggested_team_id.captain`\n- `suggested_team_id.captain.tournament`\n- `suggested_team_id.captain.preferred_team`\n- `suggested_team_id.captain.team`\n- `suggested_team_id.captain.created_by`\n- `suggested_team_id.captain.updated_by`\n- `suggested_team_id.created_by`\n- `suggested_team_id.updated_by`\n\nYou can also combine multiple expansions with commas (e.g., `expand=field1,field2.nested`)."
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/collections/team_suggestions/records/{id}": {
+      "get": {
+        "summary": "Get Team_suggestions Collection by ID",
+        "tags": [
+          "Team_suggestions Collection"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "expand",
+            "in": "query",
+            "description": "Comma-separated list of relations to expand. Use dot notation for nested relations.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "participant_id, participant_id.tournament, participant_id.tournament.created_by, participant_id.tournament.updated_by, participant_id.preferred_team, participant_id.preferred_team.tournament, participant_id.preferred_team.captain, participant_id.preferred_team.created_by, participant_id.preferred_team.updated_by, participant_id.team, participant_id.team.tournament, participant_id.team.captain, participant_id.team.created_by, participant_id.team.updated_by, participant_id.created_by, participant_id.updated_by, suggested_team_id, suggested_team_id.tournament, suggested_team_id.tournament.created_by, suggested_team_id.tournament.updated_by, suggested_team_id.captain, suggested_team_id.captain.tournament, suggested_team_id.captain.preferred_team, suggested_team_id.captain.team, suggested_team_id.captain.created_by, suggested_team_id.captain.updated_by, suggested_team_id.created_by, suggested_team_id.updated_by"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Single record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/team_suggestionsRecord"
+                }
+              }
+            }
+          }
+        },
+        "x-notes": {
+          "description": "### Expansion Options\n\nThis endpoint supports expanding relations. Use the `expand` parameter with any of the following paths:\n\n- `participant_id`\n- `participant_id.tournament`\n- `participant_id.tournament.created_by`\n- `participant_id.tournament.updated_by`\n- `participant_id.preferred_team`\n- `participant_id.preferred_team.tournament`\n- `participant_id.preferred_team.captain`\n- `participant_id.preferred_team.created_by`\n- `participant_id.preferred_team.updated_by`\n- `participant_id.team`\n- `participant_id.team.tournament`\n- `participant_id.team.captain`\n- `participant_id.team.created_by`\n- `participant_id.team.updated_by`\n- `participant_id.created_by`\n- `participant_id.updated_by`\n- `suggested_team_id`\n- `suggested_team_id.tournament`\n- `suggested_team_id.tournament.created_by`\n- `suggested_team_id.tournament.updated_by`\n- `suggested_team_id.captain`\n- `suggested_team_id.captain.tournament`\n- `suggested_team_id.captain.preferred_team`\n- `suggested_team_id.captain.team`\n- `suggested_team_id.captain.created_by`\n- `suggested_team_id.captain.updated_by`\n- `suggested_team_id.created_by`\n- `suggested_team_id.updated_by`\n\nYou can also combine multiple expansions with commas (e.g., `expand=field1,field2.nested`)."
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "adminsRecord": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique record identifier"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8
+          },
+          "tokenKey": {
+            "type": "string",
+            "minLength": 30,
+            "maxLength": 60
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "emailVisibility": {
+            "type": "boolean"
+          },
+          "verified": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "superadmin",
+              "staff"
+            ]
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "last_login_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "created": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "password",
+          "tokenKey",
+          "email",
+          "name",
+          "role",
+          "is_active"
+        ]
+      },
+      "audit_logRecord": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique record identifier"
+          },
+          "table_name": {
+            "type": "string"
+          },
+          "record_id": {
+            "type": "string"
+          },
+          "key_field": {
+            "type": "string"
+          },
+          "created_by": {
+            "type": "string",
+            "description": "Relation field. When expanded, this becomes the related record object. Use the 'expand' query parameter to expand relations."
+          },
+          "updated_by": {
+            "type": "string",
+            "description": "Relation field. When expanded, this becomes the related record object. Use the 'expand' query parameter to expand relations."
+          },
+          "created": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "match_draftsRecord": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique record identifier"
+          },
+          "tournament": {
+            "type": "string",
+            "description": "Relation field. When expanded, this becomes the related record object. Use the 'expand' query parameter to expand relations."
+          },
+          "team_a": {
+            "type": "string",
+            "description": "Relation field. When expanded, this becomes the related record object. Use the 'expand' query parameter to expand relations."
+          },
+          "team_b": {
+            "type": "string",
+            "description": "Relation field. When expanded, this becomes the related record object. Use the 'expand' query parameter to expand relations."
+          },
+          "match_label": {
+            "type": "string"
+          },
+          "game_number": {
+            "type": "number"
+          },
+          "first_pick_team": {
+            "type": "string",
+            "description": "Relation field. When expanded, this becomes the related record object. Use the 'expand' query parameter to expand relations."
+          },
+          "bans": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "picks": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "active",
+              "completed"
+            ]
+          },
+          "created_by": {
+            "type": "string",
+            "description": "Relation field. When expanded, this becomes the related record object. Use the 'expand' query parameter to expand relations."
+          },
+          "updated_by": {
+            "type": "string",
+            "description": "Relation field. When expanded, this becomes the related record object. Use the 'expand' query parameter to expand relations."
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "created": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "tournament",
+          "status",
+          "archived"
+        ]
+      },
+      "match_resultRecord": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique record identifier"
+          },
+          "match": {
+            "type": "string",
+            "description": "Relation field. When expanded, this becomes the related record object. Use the 'expand' query parameter to expand relations."
+          },
+          "player": {
+            "type": "string",
+            "description": "Relation field. When expanded, this becomes the related record object. Use the 'expand' query parameter to expand relations."
+          },
+          "lane": {
+            "type": "string",
+            "enum": [
+              "mid",
+              "gold",
+              "exp",
+              "support",
+              "jungle"
+            ]
+          },
+          "kills": {
+            "type": "number"
+          },
+          "deaths": {
+            "type": "number"
+          },
+          "assists": {
+            "type": "number"
+          },
+          "game_performance_rating": {
+            "type": "number"
+          },
+          "accumulated_gold": {
+            "type": "number"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "created_by": {
+            "type": "string",
+            "description": "Relation field. When expanded, this becomes the related record object. Use the 'expand' query parameter to expand relations."
+          },
+          "updated_by": {
+            "type": "string",
+            "description": "Relation field. When expanded, this becomes the related record object. Use the 'expand' query parameter to expand relations."
+          },
+          "created": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "match",
+          "player",
+          "archived"
+        ]
+      },
+      "matchesRecord": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique record identifier"
+          },
+          "tournament": {
+            "type": "string",
+            "description": "Relation field. When expanded, this becomes the related record object. Use the 'expand' query parameter to expand relations."
+          },
+          "team_a": {
+            "type": "string",
+            "description": "Relation field. When expanded, this becomes the related record object. Use the 'expand' query parameter to expand relations."
+          },
+          "team_b": {
+            "type": "string",
+            "description": "Relation field. When expanded, this becomes the related record object. Use the 'expand' query parameter to expand relations."
+          },
+          "winner": {
+            "type": "string",
+            "description": "Relation field. When expanded, this becomes the related record object. Use the 'expand' query parameter to expand relations."
+          },
+          "bracket": {
+            "type": "string"
+          },
+          "round": {
+            "type": "string"
+          },
+          "order": {
+            "type": "number"
+          },
+          "best_of": {
+            "type": "number"
+          },
+          "match_label": {
+            "type": "string"
+          },
+          "scheduled_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "scheduled",
+              "live",
+              "completed",
+              "walkover",
+              "cancelled"
+            ]
+          },
+          "score_a": {
+            "type": "number"
+          },
+          "score_b": {
+            "type": "number"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "created_by": {
+            "type": "string",
+            "description": "Relation field. When expanded, this becomes the related record object. Use the 'expand' query parameter to expand relations."
+          },
+          "updated_by": {
+            "type": "string",
+            "description": "Relation field. When expanded, this becomes the related record object. Use the 'expand' query parameter to expand relations."
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "created": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "tournament",
+          "best_of",
+          "status",
+          "archived"
+        ]
+      },
+      "participantsRecord": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique record identifier"
+          },
+          "tournament": {
+            "type": "string",
+            "description": "Relation field. When expanded, this becomes the related record object. Use the 'expand' query parameter to expand relations."
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "ign": {
+            "type": "string"
+          },
+          "birthdate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "contact_number": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "server_id": {
+            "type": "string"
+          },
+          "address_phase": {
+            "type": "string",
+            "enum": [
+              "4",
+              "9",
+              "10"
+            ]
+          },
+          "address_package": {
+            "type": "string"
+          },
+          "address_block": {
+            "type": "string"
+          },
+          "address_lot": {
+            "type": "string"
+          },
+          "preferred_lane": {
+            "type": "string",
+            "enum": [
+              "mid",
+              "gold",
+              "exp",
+              "support",
+              "jungle"
+            ]
+          },
+          "preferred_roles": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "mid",
+                "gold",
+                "exp",
+                "support",
+                "jungle"
+              ]
+            },
+            "maxItems": 5
+          },
+          "role_rankings": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "performance_basis": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "team_intent": {
+            "type": "string",
+            "enum": [
+              "open_matching",
+              "join_team",
+              "create_team"
+            ]
+          },
+          "preferred_team": {
+            "type": "string",
+            "description": "Relation field. When expanded, this becomes the related record object. Use the 'expand' query parameter to expand relations."
+          },
+          "preferred_team_name": {
+            "type": "string"
+          },
+          "registration_status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "approved",
+              "rejected"
+            ]
+          },
+          "registration_reject_reason": {
+            "type": "string"
+          },
+          "registration_status_code": {
+            "type": "string"
+          },
+          "consent_version": {
+            "type": "string"
+          },
+          "school_id_front": {
+            "type": "string"
+          },
+          "school_id_back": {
+            "type": "string"
+          },
+          "purok_endorsement": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "unassigned",
+              "suggested",
+              "assigned",
+              "inactive"
+            ]
+          },
+          "team": {
+            "type": "string",
+            "description": "Relation field. When expanded, this becomes the related record object. Use the 'expand' query parameter to expand relations."
+          },
+          "created_by": {
+            "type": "string",
+            "description": "Relation field. When expanded, this becomes the related record object. Use the 'expand' query parameter to expand relations."
+          },
+          "updated_by": {
+            "type": "string",
+            "description": "Relation field. When expanded, this becomes the related record object. Use the 'expand' query parameter to expand relations."
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "consent_accepted_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "created": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "tournament",
+          "name",
+          "email",
+          "ign",
+          "birthdate",
+          "user_id",
+          "server_id",
+          "address_phase",
+          "address_package",
+          "address_block",
+          "address_lot",
+          "preferred_lane",
+          "registration_status",
+          "status",
+          "archived"
+        ]
+      },
+      "teamsRecord": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique record identifier"
+          },
+          "tournament": {
+            "type": "string",
+            "description": "Relation field. When expanded, this becomes the related record object. Use the 'expand' query parameter to expand relations."
+          },
+          "name": {
+            "type": "string"
+          },
+          "captain": {
+            "type": "string",
+            "description": "Relation field. When expanded, this becomes the related record object. Use the 'expand' query parameter to expand relations."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "forming",
+              "ready",
+              "incomplete",
+              "inactive"
+            ]
+          },
+          "created_by": {
+            "type": "string",
+            "description": "Relation field. When expanded, this becomes the related record object. Use the 'expand' query parameter to expand relations."
+          },
+          "updated_by": {
+            "type": "string",
+            "description": "Relation field. When expanded, this becomes the related record object. Use the 'expand' query parameter to expand relations."
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "created": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "tournament",
+          "name",
+          "status",
+          "archived"
+        ]
+      },
+      "tournament_draftsRecord": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique record identifier"
+          },
+          "title": {
+            "type": "string"
+          },
+          "format": {
+            "type": "string"
+          },
+          "rules": {
+            "type": "string"
+          },
+          "max_teams": {
+            "type": "number"
+          },
+          "scheduled_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "publish_to_tournament": {
+            "type": "string",
+            "description": "Relation field. When expanded, this becomes the related record object. Use the 'expand' query parameter to expand relations."
+          },
+          "created_by": {
+            "type": "string",
+            "description": "Relation field. When expanded, this becomes the related record object. Use the 'expand' query parameter to expand relations."
+          },
+          "updated_by": {
+            "type": "string",
+            "description": "Relation field. When expanded, this becomes the related record object. Use the 'expand' query parameter to expand relations."
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "created": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "tournamentsRecord": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique record identifier"
+          },
+          "title": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "venue": {
+            "type": "string"
+          },
+          "start_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "end_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "upcoming",
+              "live",
+              "completed",
+              "archived"
+            ]
+          },
+          "registration_enabled": {
+            "type": "boolean"
+          },
+          "registration_open_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "registration_close_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "max_teams": {
+            "type": "number"
+          },
+          "min_team_size": {
+            "type": "number"
+          },
+          "max_team_size": {
+            "type": "number"
+          },
+          "bracket_count": {
+            "type": "number"
+          },
+          "bracket_format": {
+            "type": "string",
+            "enum": [
+              "single_elimination"
+            ]
+          },
+          "match_best_of": {
+            "type": "number"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "created_by": {
+            "type": "string",
+            "description": "Relation field. When expanded, this becomes the related record object. Use the 'expand' query parameter to expand relations."
+          },
+          "updated_by": {
+            "type": "string",
+            "description": "Relation field. When expanded, this becomes the related record object. Use the 'expand' query parameter to expand relations."
+          },
+          "created": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "title",
+          "status",
+          "registration_enabled",
+          "min_team_size",
+          "max_team_size",
+          "bracket_count",
+          "bracket_format",
+          "match_best_of",
+          "archived"
+        ]
+      },
+      "draft_suggestionsRecord": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique record identifier"
+          },
+          "tournament_id": {
+            "type": "string",
+            "description": "Relation field. When expanded, this becomes the related record object. Use the 'expand' query parameter to expand relations."
+          },
+          "tournament_title": {
+            "type": "string"
+          },
+          "match_label": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "suggested_bans": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "suggested_picks": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "notes": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "status": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "created": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "tournament_title"
+        ]
+      },
+      "team_suggestionsRecord": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique record identifier"
+          },
+          "participant_id": {
+            "type": "string",
+            "description": "Relation field. When expanded, this becomes the related record object. Use the 'expand' query parameter to expand relations."
+          },
+          "participant_game_id": {
+            "type": "string"
+          },
+          "participant_status": {
+            "type": "string",
+            "enum": [
+              "unassigned",
+              "suggested",
+              "assigned",
+              "inactive"
+            ]
+          },
+          "participant_has_team": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "suggested_team_id": {
+            "type": "string",
+            "description": "Relation field. When expanded, this becomes the related record object. Use the 'expand' query parameter to expand relations."
+          },
+          "suggested_team_name": {
+            "type": "string"
+          },
+          "suggested_team_status": {
+            "type": "string",
+            "enum": [
+              "forming",
+              "ready",
+              "incomplete",
+              "inactive"
+            ]
+          },
+          "role_fit": {
+            "type": "string",
+            "enum": [
+              "mid",
+              "gold",
+              "exp",
+              "support",
+              "jungle"
+            ]
+          },
+          "preferred_role_1": {
+            "type": "string",
+            "enum": [
+              "mid",
+              "gold",
+              "exp",
+              "support",
+              "jungle"
+            ]
+          },
+          "preferred_role_2": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "preferred_role_3": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "role_data_quality": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "role_match_score": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "role_match_level": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "ranking_basis": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "game_performance_rating": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "kda": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "accumulated_gold": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "team_member_count": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "team_slots_left": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "suggestion_priority": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "sort_score": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "reason": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "status": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "created": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "participant_game_id",
+          "participant_status",
+          "suggested_team_name",
+          "suggested_team_status",
+          "role_fit",
+          "preferred_role_1"
+        ]
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Admins Collection",
+      "description": "Operations for Admins Collection"
+    },
+    {
+      "name": "Audit_log Collection",
+      "description": "Operations for Audit_log Collection"
+    },
+    {
+      "name": "Match_drafts Collection",
+      "description": "Operations for Match_drafts Collection"
+    },
+    {
+      "name": "Match_result Collection",
+      "description": "Operations for Match_result Collection"
+    },
+    {
+      "name": "Matches Collection",
+      "description": "Operations for Matches Collection"
+    },
+    {
+      "name": "Participants Collection",
+      "description": "Operations for Participants Collection"
+    },
+    {
+      "name": "Teams Collection",
+      "description": "Operations for Teams Collection"
+    },
+    {
+      "name": "Tournament_drafts Collection",
+      "description": "Operations for Tournament_drafts Collection"
+    },
+    {
+      "name": "Tournaments Collection",
+      "description": "Operations for Tournaments Collection"
+    },
+    {
+      "name": "Draft_suggestions Collection",
+      "description": "Operations for Draft_suggestions Collection"
+    },
+    {
+      "name": "Team_suggestions Collection",
+      "description": "Operations for Team_suggestions Collection"
+    }
+  ]
+}

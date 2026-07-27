@@ -3,80 +3,84 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { getTournamentStatusLabel } from "@/lib/tournament-status";
-import type { Collections } from "@/types/pocketbase-types";
+import { getTournamentStatusLabel } from "@/lib/legacy/tournament-status";
+import type { Collections } from "@/types/__pocketbase-types";
 import { format } from "date-fns";
 import { Archive, Pencil } from "lucide-react";
 
 type Tournament = Collections["tournaments"] & { id: string };
 
 export type TournamentTableMeta = {
-  onEdit: (t: Tournament) => void;
-  onDelete: (id: string) => void;
+	onEdit: (t: Tournament) => void;
+	onDelete: (id: string) => void;
 };
 
 function formatDate(d: string | undefined) {
-  if (!d) return "-";
-  try {
-    return format(new Date(d), "MMM d, yyyy HH:mm");
-  } catch {
-    return d;
-  }
+	if (!d) return "-";
+	try {
+		return format(new Date(d), "MMM d, yyyy HH:mm");
+	} catch {
+		return d;
+	}
 }
 
 export function getTournamentColumns(
-  meta: TournamentTableMeta
+	meta: TournamentTableMeta,
 ): ColumnDef<Tournament>[] {
-  return [
-    {
-      accessorKey: "title",
-      header: "Title",
-      cell: ({ row }) => (
-        <span className="font-medium">{row.original.title ?? "-"}</span>
-      ),
-    },
-    {
-      accessorKey: "venue",
-      header: "Venue",
-      cell: ({ row }) => row.original.venue ?? "-",
-    },
-    {
-      accessorKey: "startAt",
-      header: "Start",
-      cell: ({ row }) => formatDate(row.original.startAt),
-    },
-    {
-      accessorKey: "status",
-      header: "Status",
-      cell: ({ row }) => (
-        <Badge variant="outline">
-          {getTournamentStatusLabel(row.original.status)}
-        </Badge>
-      ),
-    },
-    {
-      id: "actions",
-      header: () => null,
-      cell: ({ row }) => {
-        const t = row.original;
-        return (
-          <div className="flex gap-1">
-            <Button variant="ghost" size="icon-sm" onClick={() => meta.onEdit(t)}>
-              <Pencil className="size-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="text-destructive hover:text-destructive"
-              onClick={() => meta.onDelete(t.id)}
-              aria-label="Archive tournament"
-            >
-              <Archive className="size-4" />
-            </Button>
-          </div>
-        );
-      },
-      meta: { className: "w-[100px]" },
-    },
-  ];
+	return [
+		{
+			accessorKey: "title",
+			header: "Title",
+			cell: ({ row }) => (
+				<span className="font-medium">{row.original.title ?? "-"}</span>
+			),
+		},
+		{
+			accessorKey: "venue",
+			header: "Venue",
+			cell: ({ row }) => row.original.venue ?? "-",
+		},
+		{
+			accessorKey: "startAt",
+			header: "Start",
+			cell: ({ row }) => formatDate(row.original.startAt),
+		},
+		{
+			accessorKey: "status",
+			header: "Status",
+			cell: ({ row }) => (
+				<Badge variant="outline">
+					{getTournamentStatusLabel(row.original.status)}
+				</Badge>
+			),
+		},
+		{
+			id: "actions",
+			header: () => null,
+			cell: ({ row }) => {
+				const t = row.original;
+				return (
+					<div className="flex gap-1">
+						<Button
+							variant="ghost"
+							size="icon-sm"
+							onClick={() => meta.onEdit(t)}
+						>
+							<Pencil className="size-4" />
+						</Button>
+						<Button
+							variant="ghost"
+							size="icon-sm"
+							className="text-destructive hover:text-destructive"
+							onClick={() => meta.onDelete(t.id)}
+							aria-label="Archive tournament"
+						>
+							<Archive className="size-4" />
+						</Button>
+					</div>
+				);
+			},
+			meta: { className: "w-[100px]" },
+		},
+	];
 }

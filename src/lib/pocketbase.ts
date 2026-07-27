@@ -1,4 +1,4 @@
-import type { Collections } from "@/types/pocketbase-types";
+import {type Collections} from "./pocketbase.types"
 import PocketBase from "pocketbase";
 
 export const pb = new PocketBase(

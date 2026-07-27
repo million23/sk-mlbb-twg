@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { getVisiblePageItems } from "@/lib/table-pagination-pages";
+import { getVisiblePageItems } from "@/lib/legacy/table-pagination-pages";
 import { cn } from "@/lib/utils";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 

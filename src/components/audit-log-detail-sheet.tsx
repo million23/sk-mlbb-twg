@@ -8,14 +8,14 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { FxAuditDetailRelated } from "@/lib/loading-placeholders";
-import type { AuditLogRow } from "@/hooks/use-audit-log";
-import { queryKeys } from "@/lib/query-keys";
+import { FxAuditDetailRelated } from "@/lib/legacy/loading-placeholders";
+import type { AuditLogRow } from "@/hooks/legacy/use-audit-log";
+import { queryKeys } from "@/lib/legacy/query-keys";
 import { pb } from "@/lib/pocketbase";
 import { rateLimited } from "@/lib/rate-limited-api";
 import { cn } from "@/lib/utils";
-import { formatAuditActor } from "@/lib/audit-actor-display";
-import { formatAuditDate } from "@/lib/audit-log-display";
+import { formatAuditActor } from "@/lib/legacy/audit-actor-display";
+import { formatAuditDate } from "@/lib/legacy/audit-log-display";
 import { useQuery } from "@tanstack/react-query";
 import { ClientResponseError } from "pocketbase";
 import { PanelRight } from "lucide-react";

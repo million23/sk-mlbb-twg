@@ -1,0 +1,42 @@
+{{define "title"}}Registration update — {{.siteTitle}}{{end}}
+
+{{define "heading"}}Registration not approved{{end}}
+
+{{define "body"}}
+<p style="margin:0 0 16px;">Hi {{.name}},</p>
+<p style="margin:0 0 16px;">
+  The SK committee could not approve your registration for
+  <strong style="font-weight:600;">{{.tournamentTitle}}</strong>.
+</p>
+{{if .reason}}
+<p
+  style="margin:0 0 20px;padding:14px 16px;border-radius:16px;background:#fef2f2;border:1px solid #fecaca;color:#7f1d1d;font-size:14px;"
+>
+  <strong style="font-weight:600;">Reason:</strong> {{.reason}}
+</p>
+{{else}}
+<p style="margin:0 0 20px;color:#5c534c;font-size:14px;">
+  No detailed reason was provided. Contact the SK desk if you need clarification.
+</p>
+{{end}}
+{{if .statusCode}}
+<p style="margin:0 0 8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;letter-spacing:0.16em;text-transform:uppercase;color:#9a3412;">
+  Your status code
+</p>
+<p
+  style="margin:0 0 20px;display:inline-block;padding:14px 20px;border-radius:16px;background:#fff7ed;border:1px solid #fdba74;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:28px;letter-spacing:0.28em;color:#1a1512;"
+>
+  {{.statusCode}}
+</p>
+{{end}}
+{{if .verifyURL}}
+<p style="margin:0;">
+  <a
+    href="{{.verifyURL}}"
+    style="display:inline-block;padding:12px 20px;border-radius:999px;background:#c45c3e;color:#fffaf4;text-decoration:none;font-weight:600;font-size:14px;"
+  >
+    View status
+  </a>
+</p>
+{{end}}
+{{end}}

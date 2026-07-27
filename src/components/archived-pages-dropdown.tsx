@@ -48,34 +48,34 @@ const SECTIONS: {
   id: ArchivedPageId;
   label: string;
   to:
-    | "/app/$id/participants/archived"
-    | "/app/$id/teams/archived"
-    | "/app/$id/tournament/archived"
-    | "/app/$id/matches/archived";
+    | "/legacy/app/$id/participants/archived"
+    | "/legacy/app/$id/teams/archived"
+    | "/legacy/app/$id/tournament/archived"
+    | "/legacy/app/$id/matches/archived";
   icon: LucideIcon;
 }[] = [
   {
     id: "participants",
     label: "Participants",
-    to: "/app/$id/participants/archived",
+    to: "/legacy/app/$id/participants/archived",
     icon: Users,
   },
   {
     id: "teams",
     label: "Teams",
-    to: "/app/$id/teams/archived",
+    to: "/legacy/app/$id/teams/archived",
     icon: UsersRound,
   },
   {
     id: "tournament",
     label: "Tournaments",
-    to: "/app/$id/tournament/archived",
+    to: "/legacy/app/$id/tournament/archived",
     icon: Trophy,
   },
   {
     id: "matches",
     label: "Matches",
-    to: "/app/$id/matches/archived",
+    to: "/legacy/app/$id/matches/archived",
     icon: Swords,
   },
 ];

@@ -4,239 +4,233 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { GeneratedAvatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
 } from "@/components/ui/popover";
-import { formatParticipantNameDisplay } from "@/lib/utils";
-import { formatBirthdateDisplay, getAge } from "@/lib/age";
+import { formatParticipantNameDisplay } from "@/lib/legacy/participant-normalize";
+import { formatBirthdateDisplay, getAge } from "@/lib/legacy/age";
 import { ParticipantContactWithBadge } from "@/components/participants/participant-contact-with-badge";
 import { StatusBadge } from "@/components/participants/status-badge";
-import { getAvatarUrl } from "@/lib/avatar";
-import { effectiveParticipantStatus } from "@/lib/participant-display-status";
+import { getAvatarUrl } from "@/lib/legacy/avatar";
+import { effectiveParticipantStatus } from "@/lib/legacy/participant-display-status";
 import { RegisteredDateCell } from "@/components/ui/registered-date-cell";
-import { registeredAtMs } from "@/lib/registered-date";
-import type { Collections } from "@/types/pocketbase-types";
+import { registeredAtMs } from "@/lib/legacy/registered-date";
+import type { Collections } from "@/types/__pocketbase-types";
 import { PreferredLaneIcons } from "@/components/participants/preferred-lane-icons";
 import { Archive, CircleHelp, Pencil, Plus, UserMinus } from "lucide-react";
 
 type Participant = Collections["participants"] & { id: string };
 
 type TeamSuggestion = {
-  suggestedTeamId?: string;
-  suggestedTeamName?: string;
-  suggestionPriority?: string;
+	suggestedTeamId?: string;
+	suggestedTeamName?: string;
+	suggestionPriority?: string;
 };
 
 export type ParticipantsTableMeta = {
-  teams: (Collections["teams"] & { id: string })[] | undefined;
-  getTeamName: (teamId: string | undefined) => string;
-  suggestionsByParticipant: Map<string, TeamSuggestion[]>;
-  onEdit: (p: Participant) => void;
-  onDelete: (id: string) => void;
-  onRemoveFromTeam?: (p: Participant) => void;
-  onJoinTeam?: (participantId: string, teamId: string) => void;
+	teams: (Collections["teams"] & { id: string })[] | undefined;
+	getTeamName: (teamId: string | undefined) => string;
+	suggestionsByParticipant: Map<string, TeamSuggestion[]>;
+	onEdit: (p: Participant) => void;
+	onDelete: (id: string) => void;
+	onRemoveFromTeam?: (p: Participant) => void;
+	onJoinTeam?: (participantId: string, teamId: string) => void;
 };
 
 export function getParticipantsColumns(
-  meta: ParticipantsTableMeta
+	meta: ParticipantsTableMeta,
 ): ColumnDef<Participant>[] {
-  return [
-    {
-      accessorKey: "id",
-      header: () => null,
-      cell: ({ row }) => {
-        const p = row.original;
-        return (
-          <GeneratedAvatar
-            size="sm"
-            src={getAvatarUrl(p.id)}
-            alt={formatParticipantNameDisplay(p.name) || p.gameID || ""}
-          />
-        );
-      },
-      meta: { className: "w-12" },
-    },
-    {
-      accessorKey: "gameID",
-      header: "Game ID",
-      cell: ({ row }) => (
-        <span className="font-mono tabular-nums">
-          {row.original.gameID ?? "-"}
-        </span>
-      ),
-    },
-    {
-      accessorKey: "name",
-      header: "Name",
-      cell: ({ row }) => {
-        const p = row.original;
-        return (
-          formatParticipantNameDisplay(p.name) || p.gameID || "-"
-        );
-      },
-    },
-    {
-      accessorKey: "created",
-      header: "Date registered",
-      sortingFn: (rowA, rowB, columnId) =>
-        registeredAtMs(rowA.getValue(columnId) as string | undefined) -
-        registeredAtMs(rowB.getValue(columnId) as string | undefined),
-      cell: ({ row }) => (
-        <RegisteredDateCell created={row.original.created} />
-      ),
-      meta: {
-        thClassName: "whitespace-normal min-w-[7.5rem]",
-        tdClassName: "whitespace-normal align-middle min-w-[8.5rem]",
-      },
-    },
-    {
-      accessorKey: "contactNumber",
-      header: "Contact",
-      cell: ({ row }) => (
-        <ParticipantContactWithBadge
-          contactNumber={row.original.contactNumber}
-        />
-      ),
-    },
-    {
-      accessorKey: "birthdate",
-      header: "Birthday",
-      cell: ({ row }) => {
-        const p = row.original;
-        const age = getAge(p.birthdate);
-        return (
-          <span className="text-sm tabular-nums">
-            {formatBirthdateDisplay(p.birthdate) ?? "-"}
-            {age !== null && (
-              <span className="ml-1.5 text-muted-foreground">({age} yrs)</span>
-            )}
-          </span>
-        );
-      },
-    },
-    {
-      accessorKey: "status",
-      header: "Status",
-      cell: ({ row }) => {
-        const p = row.original;
-        return (
-          <StatusBadge
-            status={effectiveParticipantStatus(p, meta.teams)}
-          />
-        );
-      },
-    },
-    {
-      accessorKey: "preferredRoles",
-      header: "Preferred lanes",
-      cell: ({ row }) => (
-        <PreferredLaneIcons roles={row.original.preferredRoles} />
-      ),
-    },
-    {
-      accessorKey: "team",
-      header: "Team",
-      cell: ({ row }) => {
-        const p = row.original;
-        const teamName = meta.getTeamName(p.team);
-        const suggestions = meta.suggestionsByParticipant.get(p.id) ?? [];
-        return (
-          <div className="flex items-center gap-1">
-            {p.team && meta.onRemoveFromTeam && (
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="shrink-0 text-muted-foreground hover:text-destructive"
-                onClick={() => meta.onRemoveFromTeam?.(p)}
-                aria-label="Remove from team"
-              >
-                <UserMinus className="size-4" />
-              </Button>
-            )}
-            <span>{teamName}</span>
-            {!p.team && suggestions.length > 0 && meta.onJoinTeam && (
-              <Popover>
-                <PopoverTrigger
-                  aria-label="Team suggestions"
-                  render={
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      <CircleHelp className="size-4" />
-                    </Button>
-                  }
-                />
-                <PopoverContent
-                  className="min-w-80 w-(--anchor-width) max-w-[calc(100vw-2rem)] p-2"
-                  align="start"
-                >
-                  <p className="mb-2 text-xs font-medium text-muted-foreground">
-                    Suggested teams
-                  </p>
-                  <div className="flex flex-col gap-1">
-                    {suggestions
-                      .filter((s) => s.suggestedTeamId)
-                      .map((s) => (
-                        <Button
-                          key={s.suggestedTeamId}
-                          variant="secondary"
-                          size="sm"
-                          className="h-auto justify-between gap-2 py-2 pl-3 pr-2 text-left font-normal"
-                          onClick={() =>
-                            meta.onJoinTeam?.(p.id, s.suggestedTeamId ?? "")
-                          }
-                        >
-                          <span className="min-w-0 flex flex-col items-start gap-0.5">
-                            <span className="truncate">
-                              {s.suggestedTeamName ?? "-"}
-                            </span>
-                            {s.suggestionPriority ? (
-                              <span className="w-full truncate text-xs font-normal text-muted-foreground">
-                                {s.suggestionPriority}
-                              </span>
-                            ) : null}
-                          </span>
-                          <Plus className="size-3 shrink-0" />
-                        </Button>
-                      ))}
-                  </div>
-                </PopoverContent>
-              </Popover>
-            )}
-          </div>
-        );
-      },
-    },
-    {
-      id: "actions",
-      header: () => null,
-      cell: ({ row }) => {
-        const p = row.original;
-        return (
-          <div className="flex gap-1">
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={() => meta.onEdit(p)}
-            >
-              <Pencil className="size-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="text-destructive hover:text-destructive"
-              onClick={() => meta.onDelete(p.id)}
-              aria-label="Archive participant"
-            >
-              <Archive className="size-4" />
-            </Button>
-          </div>
-        );
-      },
-      meta: { className: "w-[120px]" },
-    },
-  ];
+	return [
+		{
+			accessorKey: "id",
+			header: () => null,
+			cell: ({ row }) => {
+				const p = row.original;
+				return (
+					<GeneratedAvatar
+						size="sm"
+						src={getAvatarUrl(p.id)}
+						alt={formatParticipantNameDisplay(p.name) || p.gameID || ""}
+					/>
+				);
+			},
+			meta: { className: "w-12" },
+		},
+		{
+			accessorKey: "gameID",
+			header: "Game ID",
+			cell: ({ row }) => (
+				<span className="font-mono tabular-nums">
+					{row.original.gameID ?? "-"}
+				</span>
+			),
+		},
+		{
+			accessorKey: "name",
+			header: "Name",
+			cell: ({ row }) => {
+				const p = row.original;
+				return formatParticipantNameDisplay(p.name) || p.gameID || "-";
+			},
+		},
+		{
+			accessorKey: "created",
+			header: "Date registered",
+			sortingFn: (rowA, rowB, columnId) =>
+				registeredAtMs(rowA.getValue(columnId) as string | undefined) -
+				registeredAtMs(rowB.getValue(columnId) as string | undefined),
+			cell: ({ row }) => <RegisteredDateCell created={row.original.created} />,
+			meta: {
+				thClassName: "whitespace-normal min-w-[7.5rem]",
+				tdClassName: "whitespace-normal align-middle min-w-[8.5rem]",
+			},
+		},
+		{
+			accessorKey: "contactNumber",
+			header: "Contact",
+			cell: ({ row }) => (
+				<ParticipantContactWithBadge
+					contactNumber={row.original.contactNumber}
+				/>
+			),
+		},
+		{
+			accessorKey: "birthdate",
+			header: "Birthday",
+			cell: ({ row }) => {
+				const p = row.original;
+				const age = getAge(p.birthdate);
+				return (
+					<span className="text-sm tabular-nums">
+						{formatBirthdateDisplay(p.birthdate) ?? "-"}
+						{age !== null && (
+							<span className="ml-1.5 text-muted-foreground">({age} yrs)</span>
+						)}
+					</span>
+				);
+			},
+		},
+		{
+			accessorKey: "status",
+			header: "Status",
+			cell: ({ row }) => {
+				const p = row.original;
+				return (
+					<StatusBadge status={effectiveParticipantStatus(p, meta.teams)} />
+				);
+			},
+		},
+		{
+			accessorKey: "preferredRoles",
+			header: "Preferred lanes",
+			cell: ({ row }) => (
+				<PreferredLaneIcons roles={row.original.preferredRoles} />
+			),
+		},
+		{
+			accessorKey: "team",
+			header: "Team",
+			cell: ({ row }) => {
+				const p = row.original;
+				const teamName = meta.getTeamName(p.team);
+				const suggestions = meta.suggestionsByParticipant.get(p.id) ?? [];
+				return (
+					<div className="flex items-center gap-1">
+						{p.team && meta.onRemoveFromTeam && (
+							<Button
+								variant="ghost"
+								size="icon-sm"
+								className="shrink-0 text-muted-foreground hover:text-destructive"
+								onClick={() => meta.onRemoveFromTeam?.(p)}
+								aria-label="Remove from team"
+							>
+								<UserMinus className="size-4" />
+							</Button>
+						)}
+						<span>{teamName}</span>
+						{!p.team && suggestions.length > 0 && meta.onJoinTeam && (
+							<Popover>
+								<PopoverTrigger
+									aria-label="Team suggestions"
+									render={
+										<Button
+											variant="ghost"
+											size="icon-sm"
+											className="text-muted-foreground hover:text-foreground"
+										>
+											<CircleHelp className="size-4" />
+										</Button>
+									}
+								/>
+								<PopoverContent
+									className="min-w-80 w-(--anchor-width) max-w-[calc(100vw-2rem)] p-2"
+									align="start"
+								>
+									<p className="mb-2 text-xs font-medium text-muted-foreground">
+										Suggested teams
+									</p>
+									<div className="flex flex-col gap-1">
+										{suggestions
+											.filter((s) => s.suggestedTeamId)
+											.map((s) => (
+												<Button
+													key={s.suggestedTeamId}
+													variant="secondary"
+													size="sm"
+													className="h-auto justify-between gap-2 py-2 pl-3 pr-2 text-left font-normal"
+													onClick={() =>
+														meta.onJoinTeam?.(p.id, s.suggestedTeamId ?? "")
+													}
+												>
+													<span className="min-w-0 flex flex-col items-start gap-0.5">
+														<span className="truncate">
+															{s.suggestedTeamName ?? "-"}
+														</span>
+														{s.suggestionPriority ? (
+															<span className="w-full truncate text-xs font-normal text-muted-foreground">
+																{s.suggestionPriority}
+															</span>
+														) : null}
+													</span>
+													<Plus className="size-3 shrink-0" />
+												</Button>
+											))}
+									</div>
+								</PopoverContent>
+							</Popover>
+						)}
+					</div>
+				);
+			},
+		},
+		{
+			id: "actions",
+			header: () => null,
+			cell: ({ row }) => {
+				const p = row.original;
+				return (
+					<div className="flex gap-1">
+						<Button
+							variant="ghost"
+							size="icon-sm"
+							onClick={() => meta.onEdit(p)}
+						>
+							<Pencil className="size-4" />
+						</Button>
+						<Button
+							variant="ghost"
+							size="icon-sm"
+							className="text-destructive hover:text-destructive"
+							onClick={() => meta.onDelete(p.id)}
+							aria-label="Archive participant"
+						>
+							<Archive className="size-4" />
+						</Button>
+					</div>
+				);
+			},
+			meta: { className: "w-[120px]" },
+		},
+	];
 }

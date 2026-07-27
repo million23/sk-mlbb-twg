@@ -1,0 +1,216 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  assertPermission,
+  canManageTournaments,
+  type AdminAuthRecord,
+} from "@/lib/admin/permissions";
+import { withCreatedAuditFields, withUpdatedAuditField } from "@/lib/legacy/mutation-authors";
+import { pocketbaseListQueryOptions } from "@/lib/legacy/pocketbase-list-query-options";
+import { getCollection, pb } from "@/lib/pocketbase";
+import type { Collections } from "@/lib/pocketbase.types";
+import { rateLimited } from "@/lib/rate-limited-api";
+import { queryKeys } from "@/lib/legacy/query-keys";
+
+function assertCanManageTournaments() {
+  assertPermission(
+    canManageTournaments(pb.authStore.record as AdminAuthRecord),
+    "You do not have permission to manage tournaments.",
+  );
+}
+
+type TournamentInput = Partial<
+  Omit<Collections["tournaments"], "id" | "created" | "updated">
+>;
+type Tournament = Collections["tournaments"];
+
+/** PocketBase filter: not soft-deleted. */
+export const TOURNAMENTS_ACTIVE_FILTER = "archived != true";
+
+/** PocketBase filter: spectator-visible events only. */
+export const TOURNAMENTS_PUBLIC_FILTER = `${TOURNAMENTS_ACTIVE_FILTER} && (status = "upcoming" || status = "live")`;
+
+const TOURNAMENTS_ARCHIVED_FILTER = "archived = true";
+
+function invalidateTournamentQueries(
+  queryClient: ReturnType<typeof useQueryClient>,
+) {
+  queryClient.invalidateQueries({ queryKey: queryKeys.tournaments });
+  queryClient.invalidateQueries({ queryKey: queryKeys.tournamentsArchived });
+  queryClient.invalidateQueries({ queryKey: queryKeys.publicUpcoming });
+  queryClient.invalidateQueries({ queryKey: queryKeys.publicCurrent });
+  queryClient.invalidateQueries({ queryKey: queryKeys.publicTournaments });
+  queryClient.invalidateQueries({ queryKey: queryKeys.draftSuggestions });
+}
+
+export function useTournaments() {
+  return useQuery({
+    ...pocketbaseListQueryOptions,
+    queryKey: queryKeys.tournaments,
+    queryFn: () =>
+      rateLimited(async () => {
+        const col = getCollection("tournaments");
+        const list = await col.getFullList({
+          sort: "-created",
+          filter: TOURNAMENTS_ACTIVE_FILTER,
+        });
+        return list as Tournament[];
+      }),
+  });
+}
+
+/** Non-archived tournaments with status upcoming or live (public /p routes and landing snapshot). */
+export function usePublicTournaments() {
+  return useQuery({
+    ...pocketbaseListQueryOptions,
+    queryKey: queryKeys.publicTournaments,
+    queryFn: () =>
+      rateLimited(async () => {
+        const col = getCollection("tournaments");
+        const list = await col.getFullList({
+          sort: "-created",
+          filter: TOURNAMENTS_PUBLIC_FILTER,
+        });
+        return list as Tournament[];
+      }),
+  });
+}
+
+export function useUpcomingTournaments() {
+  return useQuery({
+    queryKey: [...queryKeys.tournaments, "upcoming"],
+    queryFn: () =>
+      rateLimited(async () => {
+        const col = getCollection("tournaments");
+        const list = await col.getFullList({
+          filter: `${TOURNAMENTS_ACTIVE_FILTER} && status = "upcoming"`,
+          sort: "startAt",
+        });
+        return list as Tournament[];
+      }),
+  });
+}
+
+export function useCurrentTournaments() {
+  return useQuery({
+    queryKey: [...queryKeys.tournaments, "current"],
+    queryFn: () =>
+      rateLimited(async () => {
+        const col = getCollection("tournaments");
+        const list = await col.getFullList({
+          filter: `${TOURNAMENTS_ACTIVE_FILTER} && status = "live"`,
+          sort: "startAt",
+        });
+        return list as Tournament[];
+      }),
+  });
+}
+
+export function useArchivedTournaments() {
+  return useQuery({
+    queryKey: queryKeys.tournamentsArchived,
+    queryFn: () =>
+      rateLimited(async () => {
+        const col = getCollection("tournaments");
+        const list = await col.getFullList({
+          sort: "-updated",
+          filter: TOURNAMENTS_ARCHIVED_FILTER,
+        });
+        return list as Tournament[];
+      }),
+  });
+}
+
+export function useTournamentMutations() {
+  const queryClient = useQueryClient();
+
+  const createMutation = useMutation({
+    mutationFn: async (data: TournamentInput) => {
+      assertCanManageTournaments();
+      return rateLimited(async () => {
+        const col = getCollection("tournaments");
+        return col.create(withCreatedAuditFields(data));
+      });
+    },
+    onSettled: () => {
+      invalidateTournamentQueries(queryClient);
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async (data: TournamentInput & { id: string }) => {
+      assertCanManageTournaments();
+      const { id, ...patch } = data;
+      return rateLimited(async () => {
+        const col = getCollection("tournaments");
+        return col.update(id, withUpdatedAuditField(patch));
+      });
+    },
+    onMutate: async (data) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.tournaments });
+      const prev = queryClient.getQueryData<Tournament[]>(queryKeys.tournaments);
+      const { id, ...patch } = data;
+      queryClient.setQueryData<Tournament[]>(queryKeys.tournaments, (old) =>
+        old?.map((t) =>
+          t.id === id
+            ? { ...t, ...patch, updated: new Date().toISOString() }
+            : t
+        ) ?? old
+      );
+      return { prev };
+    },
+    onError: (_err, _data, ctx) => {
+      if (ctx?.prev != null) {
+        queryClient.setQueryData(queryKeys.tournaments, ctx.prev);
+      }
+    },
+    onSettled: () => {
+      invalidateTournamentQueries(queryClient);
+    },
+  });
+
+  const archiveMutation = useMutation({
+    mutationFn: async (id: string) => {
+      assertCanManageTournaments();
+      return rateLimited(async () => {
+        const col = getCollection("tournaments");
+        return col.update(id, withUpdatedAuditField({ archived: true }));
+      });
+    },
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.tournaments });
+      const prev = queryClient.getQueryData<Tournament[]>(queryKeys.tournaments);
+      queryClient.setQueryData<Tournament[]>(queryKeys.tournaments, (old) =>
+        old?.filter((t) => t.id !== id) ?? old
+      );
+      return { prev };
+    },
+    onError: (_err, _data, ctx) => {
+      if (ctx?.prev != null) {
+        queryClient.setQueryData(queryKeys.tournaments, ctx.prev);
+      }
+    },
+    onSettled: () => {
+      invalidateTournamentQueries(queryClient);
+    },
+  });
+
+  const restoreMutation = useMutation({
+    mutationFn: async (id: string) => {
+      assertCanManageTournaments();
+      return rateLimited(async () => {
+        const col = getCollection("tournaments");
+        return col.update(id, withUpdatedAuditField({ archived: false }));
+      });
+    },
+    onSettled: () => {
+      invalidateTournamentQueries(queryClient);
+    },
+  });
+
+  return {
+    create: createMutation,
+    update: updateMutation,
+    archive: archiveMutation,
+    restore: restoreMutation,
+  };
+}
