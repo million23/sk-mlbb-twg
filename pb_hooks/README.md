@@ -69,6 +69,7 @@ Set on the instance (dashboard env / secrets), then **restart**:
 | --- | --- |
 | `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile secret (**required** — no silent skip) |
 | `TURNSTILE_SKIP=1` | Only local escape hatch; otherwise create fails if secret is missing |
+| `SK_APP_ORIGINS` | Optional extra allowlisted site origins for verify-link emails (comma-separated) |
 
 Vite app needs matching `VITE_TURNSTILE_SITE_KEY` in `.env` only (public).  
 **Do not** put the secret in any `VITE_*` variable — set it only on PocketHost.
@@ -81,7 +82,9 @@ Dashboard → **Settings → Mail**:
 
 - SMTP already configured (e.g. Resend SMTP)
 - **Sender address** + **Sender name**
-- **Application URL** → public site (Verify links)
+- **Application URL** → production public site (used for approve/reject mail, and as fallback)
+
+Registration-received verify links prefer `app_origin` from the submitting browser (`window.location.origin`), allowlisted in `sk_mail.js` (localhost, beta/main hosts, `SK_APP_ORIGINS`, Application URL). Redeploy `pb_hooks/` after changing that logic.
 
 ## Emails
 

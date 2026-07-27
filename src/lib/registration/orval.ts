@@ -3,6 +3,7 @@ import type { TeamsRecord } from "@/hooks/orval/model/teamsRecord";
 import type { TournamentsRecord } from "@/hooks/orval/model/tournamentsRecord";
 import { getPostCollectionsParticipantsRecordsUrl } from "@/hooks/orval/participants-collection/participants-collection";
 import { ApiError, customInstance } from "@/lib/api/mutator/custom-instance";
+import { resolveRegistrationAppOrigin } from "@/lib/registration/app-origin";
 import {
 	CONSENT_VERSION,
 	type EligiblePhase,
@@ -191,6 +192,10 @@ export async function createParticipantRecord(
 		qs.set("turnstile_token", turnstileToken.trim());
 	}
 	qs.set("website", website ?? "");
+	const appOrigin = resolveRegistrationAppOrigin();
+	if (appOrigin) {
+		qs.set("app_origin", appOrigin);
+	}
 	const url = `${path}?${qs.toString()}`;
 
 	const res = await customInstance<unknown>(url, {
