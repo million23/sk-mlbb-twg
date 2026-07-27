@@ -5,15 +5,33 @@
  * https://pocketbase.io/docs/js-sending-emails/
  *
  * Deploy this whole pb_hooks/ folder onto the PocketHost instance, then restart.
+ *
+ * Verify links prefer `app_origin` from the registration request (browser host),
+ * allowlisted in sk_mail.js — so local / beta / prod do not share one hard-coded URL.
  */
 
+function requestAppOrigin(e) {
+  try {
+    const info = e.requestInfo();
+    const query = (info && info.query) || {};
+    const headers = (info && info.headers) || {};
+    const fromQuery = query.app_origin;
+    if (fromQuery != null && String(fromQuery).trim()) {
+      return String(Array.isArray(fromQuery) ? fromQuery[0] : fromQuery).trim();
+    }
+    const fromHeader = headers.origin || headers.Origin || "";
+    return String(fromHeader).trim();
+  } catch (err) {
+    return "";
+  }
+}
+
 onRecordCreateRequest((e) => {
+  const mail = require(`${__hooks}/sk_mail.js`);
+
   // Ensure a status code exists before the record is saved.
   if (!e.record.get("registration_status_code")) {
-    e.record.set(
-      "registration_status_code",
-      String(Math.floor(100000 + Math.random() * 900000)),
-    );
+    e.record.set("registration_status_code", mail.generateStatusCode());
   }
 
   e.next();
@@ -24,56 +42,36 @@ onRecordCreateRequest((e) => {
   const to = String(e.record.get("email") || "");
   if (!to) return;
 
-  const siteTitle = "Baranggay 176E MLBB Tournament";
-  const appURL = String(e.app.settings().meta.appURL || "").replace(/\/$/, "");
-  const verifyURL =
-    appURL && code ? `${appURL}/verify?code=${encodeURIComponent(code)}` : "";
+  const requestOrigin = requestAppOrigin(e);
+  const appURL = mail.resolveMailAppURL(requestOrigin);
+  const verifyURL = mail.verifyURL(code, requestOrigin);
+  const tournamentTitle = mail.tournamentTitle(
+    String(e.record.get("tournament") || ""),
+  );
 
-  let tournamentTitle = "the tournament";
   try {
-    const t = e.app.findRecordById(
-      "tournaments",
-      String(e.record.get("tournament") || ""),
-    );
-    tournamentTitle = String(t.get("title") || tournamentTitle);
-  } catch (err) {}
-
-  const html = $template
-    .loadFiles(
-      `${__hooks}/views/emails/layout.html`,
-      `${__hooks}/views/emails/registration-received.html`,
-    )
-    .render({
-      siteTitle,
-      year: new Date().getFullYear(),
-      appURL,
-      name,
-      ign,
-      tournamentTitle,
-      statusCode: code,
-      verifyURL,
+    mail.sendHtmlEmail({
+      to,
+      toName: name,
+      subject: `${mail.SITE_TITLE}: registration received (${code})`,
+      viewName: "registration-received",
+      data: {
+        name,
+        ign,
+        tournamentTitle,
+        statusCode: code,
+        appURL,
+        verifyURL,
+        requestOrigin,
+      },
     });
-
-  try {
-    e.app.newMailClient().send(
-      new MailerMessage({
-        from: {
-          address: e.app.settings().meta.senderAddress,
-          name: e.app.settings().meta.senderName,
-        },
-        to: [{ address: to, name }],
-        subject: `${siteTitle}: registration received (${code})`,
-        html,
-        text: `Hi ${name},\n\nYour registration status code: ${code}\n`,
-      }),
-    );
-    console.log("[sk-mail] registration-received →", to);
   } catch (err) {
     console.log("[sk-mail] registration-received failed", err);
   }
 }, "participants");
 
 onRecordAfterUpdateSuccess((e) => {
+  const mail = require(`${__hooks}/sk_mail.js`);
   const record = e.record;
   const prev = record.original();
   const nextStatus = String(record.get("registration_status") || "");
@@ -91,58 +89,36 @@ onRecordAfterUpdateSuccess((e) => {
   const to = String(record.get("email") || "");
   const name = String(record.get("name") || "registrant");
   const code = String(record.get("registration_status_code") || "");
-  const siteTitle = "Baranggay 176E MLBB Tournament";
-  const appURL = String(e.app.settings().meta.appURL || "").replace(/\/$/, "");
-  const verifyURL =
-    appURL && code ? `${appURL}/verify?code=${encodeURIComponent(code)}` : "";
-
-  let tournamentTitle = "the tournament";
-  try {
-    const t = e.app.findRecordById(
-      "tournaments",
-      String(record.get("tournament") || ""),
-    );
-    tournamentTitle = String(t.get("title") || tournamentTitle);
-  } catch (err) {}
+  // Approve/reject are admin actions — use PocketBase Application URL.
+  const appURL = mail.metaAppURL();
+  const verifyURL = mail.verifyURL(code, appURL);
+  const tournamentTitle = mail.tournamentTitle(
+    String(record.get("tournament") || ""),
+  );
 
   const viewName =
     nextStatus === "approved"
       ? "registration-approved"
       : "registration-rejected";
 
-  const html = $template
-    .loadFiles(
-      `${__hooks}/views/emails/layout.html`,
-      `${__hooks}/views/emails/${viewName}.html`,
-    )
-    .render({
-      siteTitle,
-      year: new Date().getFullYear(),
-      appURL,
-      name,
-      tournamentTitle,
-      statusCode: code,
-      verifyURL,
-      reason: String(record.get("registration_reject_reason") || ""),
-    });
-
   try {
-    e.app.newMailClient().send(
-      new MailerMessage({
-        from: {
-          address: e.app.settings().meta.senderAddress,
-          name: e.app.settings().meta.senderName,
-        },
-        to: [{ address: to, name }],
-        subject:
-          nextStatus === "approved"
-            ? `${siteTitle}: registration approved`
-            : `${siteTitle}: registration not approved`,
-        html,
-        text: `Hi ${name},\n\nStatus: ${nextStatus}\nCode: ${code}\n`,
-      }),
-    );
-    console.log("[sk-mail]", viewName, "→", to);
+    mail.sendHtmlEmail({
+      to,
+      toName: name,
+      subject:
+        nextStatus === "approved"
+          ? `${mail.SITE_TITLE}: registration approved`
+          : `${mail.SITE_TITLE}: registration not approved`,
+      viewName,
+      data: {
+        name,
+        tournamentTitle,
+        statusCode: code,
+        appURL,
+        verifyURL,
+        reason: String(record.get("registration_reject_reason") || ""),
+      },
+    });
   } catch (err) {
     console.log("[sk-mail] status mail failed", err);
   }

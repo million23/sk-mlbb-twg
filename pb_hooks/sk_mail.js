@@ -5,12 +5,80 @@
 
 const SITE_TITLE = "Baranggay 176E MLBB Tournament";
 
-function appURL() {
-  return ($app.settings().meta.appURL || "").replace(/\/$/, "");
+/** Hosts always accepted for verify-link origins (local + this project's deploys). */
+const KNOWN_APP_HOSTS = [
+  "localhost",
+  "127.0.0.1",
+  "skmlbb.geraldchavez.xyz",
+  "skmlbb-beta.geraldchavez.xyz",
+];
+
+function normalizeOrigin(raw) {
+  const s = String(raw || "").trim();
+  if (!s) return "";
+  try {
+    const withProto = /^https?:\/\//i.test(s) ? s : "https://" + s;
+    const u = new URL(withProto);
+    if (u.protocol !== "http:" && u.protocol !== "https:") return "";
+    return (u.protocol + "//" + u.host).replace(/\/$/, "");
+  } catch (err) {
+    return "";
+  }
 }
 
-function verifyURL(statusCode) {
-  const base = appURL();
+function metaAppURL() {
+  return normalizeOrigin($app.settings().meta.appURL || "");
+}
+
+function isAllowedAppOrigin(origin) {
+  const n = normalizeOrigin(origin);
+  if (!n) return false;
+  let host = "";
+  try {
+    host = new URL(n).hostname.toLowerCase();
+  } catch (err) {
+    return false;
+  }
+
+  if (KNOWN_APP_HOSTS.indexOf(host) !== -1) return true;
+
+  const meta = metaAppURL();
+  if (meta && meta === n) return true;
+
+  try {
+    const env = String($os.getenv("SK_APP_ORIGINS") || "");
+    const parts = env.split(/[,\s]+/);
+    for (let i = 0; i < parts.length; i++) {
+      const a = normalizeOrigin(parts[i]);
+      if (!a) continue;
+      if (a === n) return true;
+      try {
+        if (new URL(a).hostname.toLowerCase() === host) return true;
+      } catch (err2) {}
+    }
+  } catch (err) {}
+
+  return false;
+}
+
+/**
+ * Prefer the origin from the registration request (`app_origin` query),
+ * then fall back to PocketBase Settings → Application URL.
+ */
+function resolveMailAppURL(requestOrigin) {
+  const fromRequest = normalizeOrigin(requestOrigin);
+  if (fromRequest && isAllowedAppOrigin(fromRequest)) {
+    return fromRequest;
+  }
+  return metaAppURL();
+}
+
+function appURL() {
+  return metaAppURL();
+}
+
+function verifyURL(statusCode, requestOrigin) {
+  const base = resolveMailAppURL(requestOrigin);
   if (!base || !statusCode) return "";
   return `${base}/verify?code=${encodeURIComponent(String(statusCode))}`;
 }
@@ -28,6 +96,8 @@ function plainTextFromData(subject, data) {
 }
 
 function renderEmail(viewName, data) {
+  const mailAppURL =
+    (data && data.appURL) || resolveMailAppURL(data && data.requestOrigin);
   return $template
     .loadFiles(
       `${__hooks}/views/emails/layout.html`,
@@ -36,8 +106,8 @@ function renderEmail(viewName, data) {
     .render({
       siteTitle: SITE_TITLE,
       year: new Date().getFullYear(),
-      appURL: appURL(),
       ...data,
+      appURL: mailAppURL,
     });
 }
 
@@ -104,6 +174,10 @@ function generateStatusCode() {
 module.exports = {
   SITE_TITLE,
   appURL,
+  metaAppURL,
+  normalizeOrigin,
+  isAllowedAppOrigin,
+  resolveMailAppURL,
   verifyURL,
   plainTextFromData,
   renderEmail,
