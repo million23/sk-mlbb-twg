@@ -30,8 +30,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -43,11 +41,9 @@ import {
 } from "@/components/ui/table";
 import type { ParticipantsRecord } from "@/hooks/orval/model/participantsRecord";
 import type { MatchRecord } from "@/hooks/legacy/use-matches";
-import {
-  type AutoMatchBracket,
-  type AutoMatchPreview,
-  type AutoMatchTeam,
-  buildTeamMajorityBracketMap,
+import type {
+  AutoMatchPreview,
+  AutoMatchTeam,
 } from "@/lib/admin/auto-matches";
 import { getMatchStatusStyle } from "@/lib/legacy/match-status";
 import { cn } from "@/lib/utils";
@@ -61,8 +57,6 @@ import {
   Swords,
 } from "lucide-react";
 import { useMemo, useState } from "react";
-
-export type MatchesAgeCategory = "all" | AutoMatchBracket;
 
 export type MatchesPageProps = {
   tournamentTitle?: string;
@@ -225,30 +219,15 @@ export function MatchesPage({
   const [statsMatch, setStatsMatch] = useState<MatchRecord | null>(null);
   const [archiveId, setArchiveId] = useState<string | null>(null);
   const [autoMatchOpen, setAutoMatchOpen] = useState(false);
-  const [ageCategory, setAgeCategory] = useState<MatchesAgeCategory>("all");
-
-  const majorityByTeam = useMemo(
-    () => buildTeamMajorityBracketMap(autoMatchTeams, participants),
-    [autoMatchTeams, participants],
-  );
 
   const highestOrder = useMemo(
     () => matches.reduce((max, row) => Math.max(max, row.order ?? 0), 0),
     [matches],
   );
 
-  const filteredMatches = useMemo(() => {
-    if (ageCategory === "all") return matches;
-    return matches.filter((m) => {
-      const teamABracket = m.teamA ? majorityByTeam.get(m.teamA) : null;
-      const teamBBracket = m.teamB ? majorityByTeam.get(m.teamB) : null;
-      return teamABracket === ageCategory && teamBBracket === ageCategory;
-    });
-  }, [ageCategory, majorityByTeam, matches]);
-
   const groupedMatches = useMemo(
-    () => groupMatchesByRound(filteredMatches),
-    [filteredMatches],
+    () => groupMatchesByRound(matches),
+    [matches],
   );
 
   return (
@@ -291,45 +270,6 @@ export function MatchesPage({
       </AdminStagger>
 
       <AdminStagger index={1}>
-        <div className="flex flex-col gap-2">
-          <Label className="text-muted-foreground text-xs">
-            Filter by team age majority
-          </Label>
-          <RadioGroup
-            value={ageCategory}
-            onValueChange={(v) => setAgeCategory(v as MatchesAgeCategory)}
-            className="flex flex-wrap gap-2"
-          >
-            {(
-              [
-                { value: "all", label: "All" },
-                { value: "under18", label: "Under 18" },
-                { value: "18+", label: "18+" },
-              ] as const
-            ).map((opt) => (
-              <Label
-                key={opt.value}
-                htmlFor={`matches-age-${opt.value}`}
-                className={cn(
-                  "flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors",
-                  ageCategory === opt.value
-                    ? "border-primary bg-primary/10"
-                    : "border-input hover:bg-muted/40",
-                )}
-              >
-                <RadioGroupItem
-                  id={`matches-age-${opt.value}`}
-                  value={opt.value}
-                  className="sr-only"
-                />
-                {opt.label}
-              </Label>
-            ))}
-          </RadioGroup>
-        </div>
-      </AdminStagger>
-
-      <AdminStagger index={2}>
         {isLoading ? (
           <div className="space-y-4">
             <Skeleton className="h-6 w-32" />
@@ -355,17 +295,11 @@ export function MatchesPage({
               <EmptyMedia variant="icon">
                 <Swords />
               </EmptyMedia>
-              <EmptyTitle>
-                {matches.length > 0
-                  ? "No matches in this age filter"
-                  : "No matches yet"}
-              </EmptyTitle>
+              <EmptyTitle>No matches yet</EmptyTitle>
               <EmptyDescription>
-                {matches.length > 0
-                  ? "Switch age category or clear the filter."
-                  : canManage
-                    ? "Add a match manually or generate Round 1 pairings by age bracket."
-                    : "Matches will appear here once staff add them."}
+                {canManage
+                  ? "Add a match manually or generate Round 1 pairings."
+                  : "Matches will appear here once staff add them."}
               </EmptyDescription>
             </EmptyHeader>
             {canManage && matches.length === 0 ? (
@@ -578,7 +512,6 @@ export function MatchesPage({
           open={autoMatchOpen}
           onOpenChange={setAutoMatchOpen}
           teams={autoMatchTeams}
-          majorityByTeam={majorityByTeam}
           highestOrder={highestOrder}
           defaultBestOf={defaultBestOf}
           pending={autoMatchPending}

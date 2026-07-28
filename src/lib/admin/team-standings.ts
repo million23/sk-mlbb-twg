@@ -1,12 +1,6 @@
-import { tournamentAgeGroupFromBirthdate } from "@/lib/legacy/age";
-
-export type StandingAgeGroup = "under18" | "18+" | "mixed";
-export type StandingAgeFilter = "all" | StandingAgeGroup;
-
 export type StandingRow = {
   teamId: string;
   teamName: string;
-  ageGroup: StandingAgeGroup;
   played: number;
   matchWins: number;
   matchLosses: number;
@@ -19,12 +13,6 @@ export type StandingRow = {
 export type TeamStandingInput = {
   id?: string;
   name?: string;
-};
-
-export type ParticipantStandingInput = {
-  id?: string;
-  team?: string;
-  birthdate?: string;
 };
 
 export type MatchStandingInput = {
@@ -72,56 +60,10 @@ function teamNameFromExpand(
   return expand.teamB?.name ?? expand.team_b?.name;
 }
 
-function resolveTeamAgeGroup(
-  membersByTeam: Map<string, { under18: number; adults: number; total: number }>,
-  teamId: string,
-): StandingAgeGroup {
-  const counts = membersByTeam.get(teamId);
-  if (!counts || counts.total < 1) return "mixed";
-  if (counts.under18 > counts.total / 2) return "under18";
-  if (counts.adults > counts.total / 2) return "18+";
-  return "mixed";
-}
-
-export function standingAgeGroupLabel(ageGroup: StandingAgeGroup): string {
-  if (ageGroup === "under18") return "Under 18";
-  if (ageGroup === "18+") return "18 and above";
-  return "Mixed / no majority";
-}
-
-export function filterStandingsByAge(
-  rows: StandingRow[],
-  ageFilter: StandingAgeFilter,
-): StandingRow[] {
-  if (ageFilter === "all") return rows;
-  return rows.filter((row) => row.ageGroup === ageFilter);
-}
-
 export function computeTeamStandings(input: {
   teams: TeamStandingInput[];
-  participants: ParticipantStandingInput[];
   matches: MatchStandingInput[];
 }): StandingRow[] {
-  const membersByTeam = new Map<
-    string,
-    { under18: number; adults: number; total: number }
-  >();
-
-  for (const p of input.participants) {
-    const teamId = p.team?.trim();
-    if (!teamId) continue;
-    const current = membersByTeam.get(teamId) ?? {
-      under18: 0,
-      adults: 0,
-      total: 0,
-    };
-    current.total += 1;
-    const ageGroup = tournamentAgeGroupFromBirthdate(p.birthdate);
-    if (ageGroup === "under18") current.under18 += 1;
-    else if (ageGroup === "18+") current.adults += 1;
-    membersByTeam.set(teamId, current);
-  }
-
   const map = new Map<string, StandingRow>();
 
   for (const t of input.teams) {
@@ -130,7 +72,6 @@ export function computeTeamStandings(input: {
     map.set(teamId, {
       teamId,
       teamName: t.name?.trim() || teamId,
-      ageGroup: resolveTeamAgeGroup(membersByTeam, teamId),
       played: 0,
       matchWins: 0,
       matchLosses: 0,
@@ -147,7 +88,6 @@ export function computeTeamStandings(input: {
     const created: StandingRow = {
       teamId,
       teamName: fallback?.trim() || teamId,
-      ageGroup: resolveTeamAgeGroup(membersByTeam, teamId),
       played: 0,
       matchWins: 0,
       matchLosses: 0,

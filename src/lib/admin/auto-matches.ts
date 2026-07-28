@@ -1,7 +1,3 @@
-import { tournamentAgeGroupFromBirthdate } from "@/lib/legacy/age";
-
-export type AutoMatchBracket = "under18" | "18+";
-
 export type AutoMatchTeam = {
   id: string;
   name: string;
@@ -39,79 +35,16 @@ export function shuffledCopy<T>(list: T[]): T[] {
   return copy;
 }
 
-/**
- * Team age bracket by strict majority of total members (unknown birthdates count
- * toward total, so ties / mixed / unknown-heavy teams map to null).
- */
-export function buildTeamMajorityBracketMap(
-  teams: AutoMatchTeam[],
-  participants: { team?: string; birthdate?: string }[],
-): Map<string, AutoMatchBracket | null> {
-  const membersByTeam = new Map<
-    string,
-    { under18: number; adults: number; total: number }
-  >();
-
-  for (const p of participants) {
-    const teamId = p.team?.trim();
-    if (!teamId) continue;
-    const current = membersByTeam.get(teamId) ?? {
-      under18: 0,
-      adults: 0,
-      total: 0,
-    };
-    current.total += 1;
-    const ageGroup = tournamentAgeGroupFromBirthdate(p.birthdate);
-    if (ageGroup === "under18") current.under18 += 1;
-    else if (ageGroup === "18+") current.adults += 1;
-    membersByTeam.set(teamId, current);
-  }
-
-  const map = new Map<string, AutoMatchBracket | null>();
-  for (const team of teams) {
-    const counts = membersByTeam.get(team.id);
-    if (!counts || counts.total < 1) {
-      map.set(team.id, null);
-      continue;
-    }
-    if (counts.under18 > counts.total / 2) {
-      map.set(team.id, "under18");
-      continue;
-    }
-    if (counts.adults > counts.total / 2) {
-      map.set(team.id, "18+");
-      continue;
-    }
-    map.set(team.id, null);
-  }
-  return map;
-}
-
-export function filterTeamsByAgeBracket(
-  teams: AutoMatchTeam[],
-  majorityByTeam: Map<string, AutoMatchBracket | null>,
-  bracket: AutoMatchBracket,
-): AutoMatchTeam[] {
-  return teams.filter((team) => majorityByTeam.get(team.id) === bracket);
-}
-
-/** Round-1 random pairing within an age bracket. Odd team out is left unpaired. */
+/** Round-1 random pairing. Odd team out is left unpaired. */
 export function buildAutoMatchPreview(args: {
   teams: AutoMatchTeam[];
-  majorityByTeam: Map<string, AutoMatchBracket | null>;
-  bracket: AutoMatchBracket;
   highestOrder: number;
   defaultBestOf?: number;
   defaultRound?: string;
 }): AutoMatchPreview | null {
-  const bracketTeams = filterTeamsByAgeBracket(
-    args.teams,
-    args.majorityByTeam,
-    args.bracket,
-  );
-  if (bracketTeams.length < 2) return null;
+  if (args.teams.length < 2) return null;
 
-  const shuffledTeams = shuffledCopy(bracketTeams);
+  const shuffledTeams = shuffledCopy(args.teams);
   const pairCount = Math.floor(shuffledTeams.length / 2);
   if (pairCount < 1) return null;
 
