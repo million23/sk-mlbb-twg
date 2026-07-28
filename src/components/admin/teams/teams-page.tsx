@@ -30,6 +30,14 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -69,6 +77,18 @@ type StatusTab =
   | "inactive"
   | "all"
   | "archived";
+
+const STATUS_TAB_OPTIONS: {
+  value: StatusTab;
+  label: (counts: Record<StatusTab, number>) => string;
+}[] = [
+  { value: "all", label: (c) => `All (${c.all})` },
+  { value: "forming", label: (c) => `Forming (${c.forming})` },
+  { value: "ready", label: (c) => `Ready (${c.ready})` },
+  { value: "incomplete", label: (c) => `Incomplete (${c.incomplete})` },
+  { value: "inactive", label: (c) => `Inactive (${c.inactive})` },
+  { value: "archived", label: (c) => `Archived (${c.archived})` },
+];
 
 type ExportRow = {
   name: string;
@@ -390,22 +410,37 @@ export function TeamsPage({
           onValueChange={(v) => setTab((v as StatusTab) ?? "all")}
         >
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <TabsList className="flex h-auto w-full flex-wrap justify-start lg:w-fit">
-              <TabsTrigger value="all">All ({counts.all})</TabsTrigger>
-              <TabsTrigger value="forming">
-                Forming ({counts.forming})
-              </TabsTrigger>
-              <TabsTrigger value="ready">Ready ({counts.ready})</TabsTrigger>
-              <TabsTrigger value="incomplete">
-                Incomplete ({counts.incomplete})
-              </TabsTrigger>
-              <TabsTrigger value="inactive">
-                Inactive ({counts.inactive})
-              </TabsTrigger>
-              <TabsTrigger value="archived">
-                Archived ({counts.archived})
-              </TabsTrigger>
+            <Select
+              value={tab}
+              onValueChange={(v) => setTab((v as StatusTab) ?? "all")}
+            >
+              <SelectTrigger className="w-full md:hidden">
+                <SelectValue>
+                  {(value) => {
+                    const opt = STATUS_TAB_OPTIONS.find((o) => o.value === value);
+                    return opt ? opt.label(counts) : "Filter teams";
+                  }}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {STATUS_TAB_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label(counts)}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+
+            <TabsList className="hidden w-fit md:inline-flex">
+              {STATUS_TAB_OPTIONS.map((opt) => (
+                <TabsTrigger key={opt.value} value={opt.value}>
+                  {opt.label(counts)}
+                </TabsTrigger>
+              ))}
             </TabsList>
+
             <InputGroup className="w-full lg:max-w-xs">
               <InputGroupAddon>
                 <Search className="size-4" />

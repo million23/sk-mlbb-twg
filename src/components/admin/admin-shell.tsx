@@ -301,17 +301,17 @@ function AdminShellContent({ children }: { children?: ReactNode }) {
           <SidebarGroup>
             <SidebarGroupLabel>Tournament</SidebarGroupLabel>
             <SidebarGroupContent className="gap-2">
-              {!tournamentId ? (
-                <div className="px-2 group-data-[collapsible=icon]:hidden">
-                  <AdminTournamentSelector
-                    value=""
-                    onSelected={closeMobileSidebar}
-                  />
+              <div className="mb-3 px-2 group-data-[collapsible=icon]:hidden">
+                <AdminTournamentSelector
+                  value={tournamentId}
+                  onSelected={closeMobileSidebar}
+                />
+                {!tournamentId ? (
                   <p className="mt-2 px-0.5 text-muted-foreground text-xs text-pretty">
                     Choose a tournament to unlock overview, roster, and matches.
                   </p>
-                </div>
-              ) : null}
+                ) : null}
+              </div>
               <SidebarMenu>
                 {tournamentId
                   ? visibleTournamentNavItems.map((item) => (

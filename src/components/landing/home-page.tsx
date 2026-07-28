@@ -1,127 +1,161 @@
+import { StarsBackground } from "@/components/animate-ui/components/backgrounds/stars";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { useResolvedTheme } from "@/hooks/use-resolved-theme";
+import { cn } from "@/lib/utils";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 
 import {
-  LANDING_HEADLINE,
-  LANDING_SITE_TITLE,
+  LANDING_CTA_HEADLINE,
+  LANDING_CTA_SUPPORT,
   LANDING_STEPS,
-  LANDING_SUPPORT,
   LANDING_WHO,
+  LANDING_WHO_EYEBROW,
+  LANDING_WHO_HEADLINE,
+  LANDING_WHO_SUPPORT,
 } from "./content";
+import { LandingHero } from "./hero";
 import { LandingShell } from "./shell";
 
-/** Classic marketing stack: full-bleed hero → how it works → who can join → CTA. */
+/** Full-bleed starfield landing: hero → steps → eligibility → CTA. */
 export function HomePage() {
+  const theme = useResolvedTheme();
+  const isDark = theme === "dark";
+
   return (
     <LandingShell transparentNav>
-      <section className="relative flex min-h-svh flex-col justify-center overflow-hidden bg-background px-5 pb-12 pt-24 text-foreground sm:justify-end sm:px-8 sm:pb-20 sm:pt-28 lg:px-12">
-        <div
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_70%_at_70%_20%,color-mix(in_oklch,var(--primary)_28%,transparent),transparent_55%)]"
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_10%_80%,color-mix(in_oklch,var(--primary)_12%,transparent),transparent_50%)]"
+      <div className="relative isolate">
+        <StarsBackground
+          className={cn(
+            "absolute inset-0 size-auto min-h-full",
+            isDark
+              ? "bg-[radial-gradient(ellipse_at_bottom,color-mix(in_oklch,var(--primary)_22%,#1a1210)_0%,#090808_45%,#050505_100%)]"
+              : "bg-[radial-gradient(ellipse_at_bottom,color-mix(in_oklch,var(--primary)_14%,#f3ebe4)_0%,#faf6f2_48%,#f7f3ef_100%)]",
+          )}
+          starColor={isDark ? "#f0d0c4" : "#b08978"}
+          pointerEvents={false}
+          factor={0.04}
+          speed={60}
           aria-hidden
         />
 
-        <div className="relative mx-auto flex w-full max-w-7xl flex-col gap-5 animate-in fade-in slide-in-from-bottom-3 duration-700 sm:gap-6">
-          <p className="max-w-5xl text-balance font-serif text-[clamp(2.125rem,8.5vw,5rem)] leading-[1.02] tracking-tight">
-            {LANDING_SITE_TITLE}
-          </p>
-          <h1 className="max-w-2xl text-pretty text-base font-medium leading-snug sm:text-xl lg:text-2xl">
-            {LANDING_HEADLINE}
-          </h1>
-          <p className="max-w-xl text-pretty text-muted-foreground text-sm leading-relaxed sm:text-base lg:text-lg">
-            {LANDING_SUPPORT}
-          </p>
-          <div className="flex w-full flex-col gap-3 pt-2 sm:w-auto sm:flex-row sm:flex-wrap">
-            <Button
-              size="lg"
-              className="w-full shadow-[0_12px_40px_-18px] shadow-primary/60 sm:w-auto"
-              render={<Link to="/register" />}
-            >
-              Register now
-              <ArrowRight data-icon="inline-end" />
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              className="w-full sm:w-auto"
-              render={<Link to="/legacy/p/tournaments" />}
-            >
-              View tournaments
-            </Button>
+        <LandingHero />
+
+        {/* How it works */}
+        <section className="relative z-10 mx-auto w-full max-w-7xl px-5 pb-16 pt-4 sm:px-8 sm:pb-24 sm:pt-6 lg:px-12 lg:pb-28">
+          <div className="flex max-w-2xl flex-col gap-3">
+            <p className="font-mono text-[0.65rem] text-primary uppercase tracking-[0.24em]">
+              How it works
+            </p>
+            <h2 className="text-balance font-serif text-2xl tracking-tight sm:text-3xl lg:text-4xl">
+              How to register in three steps.
+            </h2>
           </div>
-        </div>
-      </section>
-
-      <section className="mx-auto w-full max-w-7xl px-5 py-14 sm:px-8 sm:py-20 lg:px-12 lg:py-24">
-        <div className="flex max-w-2xl flex-col gap-3">
-          <p className="font-mono text-[0.65rem] text-primary uppercase tracking-[0.24em]">
-            How it works
-          </p>
-          <h2 className="text-balance font-serif text-2xl tracking-tight sm:text-3xl lg:text-4xl">
-            Three steps from form to pending review.
-          </h2>
-        </div>
-        <ol className="mt-8 flex flex-col gap-0 sm:mt-12">
-          {LANDING_STEPS.map((step, i) => (
-            <li key={step.title}>
-              {i > 0 ? <Separator className="my-0" /> : null}
-              <div className="grid gap-3 py-7 sm:grid-cols-[5rem_1fr] sm:gap-8 sm:py-10">
-                <span className="font-mono text-2xl text-primary/80 tabular-nums sm:text-3xl">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <div className="flex flex-col gap-2">
-                  <h3 className="font-serif text-xl tracking-tight sm:text-2xl">
-                    {step.title}
-                  </h3>
-                  <p className="max-w-2xl text-pretty text-muted-foreground text-sm leading-relaxed sm:text-base">
-                    {step.blurb}
-                  </p>
+          <ol className="mt-8 flex flex-col gap-0 sm:mt-12">
+            {LANDING_STEPS.map((step, i) => (
+              <li key={step.title}>
+                {i > 0 ? (
+                  <Separator className="my-0 bg-border/40" />
+                ) : null}
+                <div className="grid gap-3 py-7 sm:grid-cols-[5rem_1fr] sm:gap-8 sm:py-10">
+                  <span className="font-mono text-2xl text-primary/80 tabular-nums sm:text-3xl">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <div className="flex flex-col gap-2">
+                    <h3 className="font-serif text-xl tracking-tight sm:text-2xl">
+                      {step.title}
+                    </h3>
+                    <p className="max-w-2xl text-pretty text-muted-foreground text-sm leading-relaxed sm:text-base">
+                      {step.blurb}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </li>
-          ))}
-        </ol>
-      </section>
+              </li>
+            ))}
+          </ol>
+        </section>
 
-      <section className="border-y border-border/70 bg-muted/30">
-        <div className="mx-auto grid w-full max-w-7xl gap-8 px-5 py-14 sm:grid-cols-2 sm:gap-10 sm:px-8 sm:py-20 lg:grid-cols-3 lg:px-12">
-          {LANDING_WHO.map((item) => (
-            <div key={item.title} className="flex flex-col gap-2">
-              <h3 className="font-serif text-xl tracking-tight sm:text-2xl">
-                {item.title}
-              </h3>
+        {/* Eligibility — editorial checklist, not a card grid */}
+        <section className="relative z-10 mx-auto w-full max-w-7xl px-5 py-16 sm:px-8 sm:py-24 lg:px-12 lg:py-28">
+          <div className="grid gap-12 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-16 lg:items-start">
+            <div className="flex max-w-md flex-col gap-3 lg:sticky lg:top-28">
+              <p className="font-mono text-[0.65rem] text-primary uppercase tracking-[0.24em]">
+                {LANDING_WHO_EYEBROW}
+              </p>
+              <h2 className="text-balance font-serif text-3xl tracking-tight sm:text-4xl lg:text-5xl">
+                {LANDING_WHO_HEADLINE}
+              </h2>
               <p className="text-pretty text-muted-foreground text-sm leading-relaxed sm:text-base">
-                {item.blurb}
+                {LANDING_WHO_SUPPORT}
               </p>
             </div>
-          ))}
-        </div>
-      </section>
 
-      <section className="mx-auto flex w-full max-w-7xl flex-col items-stretch gap-6 px-5 py-14 sm:flex-row sm:items-end sm:justify-between sm:px-8 sm:py-20 lg:px-12 lg:py-24">
-        <div className="flex max-w-xl flex-col gap-2">
-          <h2 className="text-balance font-serif text-2xl tracking-tight sm:text-3xl lg:text-4xl">
-            Ready when the window opens.
-          </h2>
-          <p className="text-pretty text-muted-foreground text-sm sm:text-base">
-            Start registration and choose an open tournament. Committee review
-            follows after you submit.
-          </p>
-        </div>
-        <Button
-          size="lg"
-          className="w-full shrink-0 sm:w-auto"
-          render={<Link to="/register" />}
-        >
-          Start registration
-          <ArrowRight data-icon="inline-end" />
-        </Button>
-      </section>
+            <ul className="flex flex-col">
+              {LANDING_WHO.map((item, i) => (
+                <li
+                  key={item.title}
+                  className={cn(
+                    "group border-border/40 py-8 sm:py-10",
+                    i === 0 ? "border-t border-b" : "border-b",
+                  )}
+                >
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-[17rem_minmax(0,1fr)] sm:items-baseline sm:gap-x-8">
+                    <span className="whitespace-nowrap font-mono text-2xl font-medium leading-none tracking-tight text-primary transition-transform duration-500 ease-out group-hover:translate-x-1 sm:text-3xl">
+                      {item.mark}
+                    </span>
+                    <h3 className="font-heading text-lg font-medium tracking-tight sm:text-xl">
+                      {item.title}
+                    </h3>
+                    <p className="max-w-md text-pretty text-muted-foreground text-sm leading-relaxed sm:col-start-2 sm:text-base">
+                      {item.blurb}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        {/* Closing CTA — one job, one action */}
+        <section className="relative z-10 px-5 pb-28 pt-8 sm:px-8 sm:pb-36 sm:pt-12 lg:px-12">
+          <div className="relative mx-auto flex w-full max-w-7xl flex-col items-start gap-8 border-t border-border/50 pt-14 sm:gap-10 sm:pt-20">
+            <p className="font-mono text-[0.65rem] text-primary uppercase tracking-[0.24em]">
+              Open registration
+            </p>
+            <h2 className="max-w-4xl text-balance font-serif text-[clamp(2.25rem,6vw,4.5rem)] leading-[1.02] tracking-tight">
+              {LANDING_CTA_HEADLINE}
+            </h2>
+            <p className="max-w-xl text-pretty text-muted-foreground text-sm leading-relaxed sm:text-base lg:text-lg">
+              {LANDING_CTA_SUPPORT}
+            </p>
+            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+              <Button
+                size="lg"
+                className="w-full sm:w-auto"
+                render={<Link to="/register" />}
+              >
+                Start registration
+                <ArrowRight data-icon="inline-end" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="lg"
+                className="w-full text-muted-foreground sm:w-auto"
+                render={<Link to="/verify" />}
+              >
+                Already registered? Check status
+              </Button>
+            </div>
+          </div>
+        </section>
+
+        {/* Soft handoff into the footer */}
+        <div
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-28 bg-linear-to-t from-background to-transparent"
+          aria-hidden
+        />
+      </div>
     </LandingShell>
   );
 }

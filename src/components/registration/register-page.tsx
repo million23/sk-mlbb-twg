@@ -1,10 +1,10 @@
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+} from "@/components/ui/responsive-modal";
 import {
   fetchRegistrationEmailAvailable,
   registrationApiErrorMessage,
@@ -342,20 +342,20 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
         </div>
       </div>
 
-      <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
-        <DialogContent className="flex max-h-[min(85svh,40rem)] max-w-lg flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
-          <DialogHeader
+      <ResponsiveModal open={pickerOpen} onOpenChange={setPickerOpen}>
+        <ResponsiveModalContent className="flex max-h-[min(85svh,40rem)] max-w-lg flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
+          <ResponsiveModalHeader
             data-modal-enter="from-top"
             className="shrink-0 border-b border-border/70 px-5 py-4 sm:px-6"
           >
-            <DialogTitle className="font-serif text-xl tracking-tight">
+            <ResponsiveModalTitle className="font-serif text-xl tracking-tight">
               Choose a tournament
-            </DialogTitle>
-            <DialogDescription>
+            </ResponsiveModalTitle>
+            <ResponsiveModalDescription>
               Only events with open registration are listed. Switching clears
               your current form progress.
-            </DialogDescription>
-          </DialogHeader>
+            </ResponsiveModalDescription>
+          </ResponsiveModalHeader>
           <ul
             data-modal-enter="fade"
             className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-5 py-4 sm:px-6"
@@ -390,8 +390,8 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
               );
             })}
           </ul>
-        </DialogContent>
-      </Dialog>
+        </ResponsiveModalContent>
+      </ResponsiveModal>
     </div>
   );
 }

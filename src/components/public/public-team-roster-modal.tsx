@@ -1,11 +1,11 @@
 import { LaneRoleIcon } from "@/components/participants/preferred-lane-icons";
 import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogHeader,
-	DialogTitle,
-} from "@/components/ui/dialog";
+	ResponsiveModal,
+	ResponsiveModalContent,
+	ResponsiveModalDescription,
+	ResponsiveModalHeader,
+	ResponsiveModalTitle,
+} from "@/components/ui/responsive-modal";
 import { useParticipants } from "@/hooks/legacy/use-participants";
 import { useTeams } from "@/hooks/legacy/use-teams";
 import {
@@ -97,30 +97,30 @@ export function PublicTeamRosterModalProvider({
 	return (
 		<PublicTeamRosterContext.Provider value={contextValue}>
 			{children}
-			<Dialog open={teamId !== null} onOpenChange={onOpenChange}>
-				<DialogContent
+			<ResponsiveModal open={teamId !== null} onOpenChange={onOpenChange}>
+				<ResponsiveModalContent
 					showCloseButton
 					className={cn(
 						"fixed inset-0 z-50 box-border flex h-dvh max-h-dvh min-h-0 w-full min-w-0 translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none border-0 bg-background p-0 shadow-none ring-0 max-w-none! sm:rounded-none",
 						"data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
 					)}
 				>
-					<DialogHeader className="w-full min-w-0 shrink-0 flex flex-col gap-1 border-b border-border/80 bg-card/40 px-4 py-4 sm:px-6 sm:py-5">
+					<ResponsiveModalHeader className="w-full min-w-0 shrink-0 flex flex-col gap-1 border-b border-border/80 bg-card/40 px-4 py-4 sm:px-6 sm:py-5">
 						<div className="flex items-start gap-3">
 							<span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-primary/30 bg-primary/10 text-primary">
 								<UsersRound className="size-5" aria-hidden />
 							</span>
 							<div className="min-w-0 flex-1 flex flex-col gap-1 pr-10 text-left">
-								<DialogTitle className="font-serif text-2xl leading-tight sm:text-3xl">
+								<ResponsiveModalTitle className="font-serif text-2xl leading-tight sm:text-3xl">
 									{teamTitle}
-								</DialogTitle>
-								<DialogDescription className="text-left text-muted-foreground text-sm">
+								</ResponsiveModalTitle>
+								<ResponsiveModalDescription className="text-left text-muted-foreground text-sm">
 									Public roster — preferred lanes only. {roster.length} player
 									{roster.length === 1 ? "" : "s"}.
-								</DialogDescription>
+								</ResponsiveModalDescription>
 							</div>
 						</div>
-					</DialogHeader>
+					</ResponsiveModalHeader>
 
 					<div className="flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden bg-muted/15">
 						{roster.length === 0 ? (
@@ -221,8 +221,8 @@ export function PublicTeamRosterModalProvider({
 							</div>
 						)}
 					</div>
-				</DialogContent>
-			</Dialog>
+				</ResponsiveModalContent>
+			</ResponsiveModal>
 		</PublicTeamRosterContext.Provider>
 	);
 }

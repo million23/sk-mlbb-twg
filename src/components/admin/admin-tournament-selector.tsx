@@ -1,11 +1,11 @@
 import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from "@/components/ui/combobox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTournaments } from "@/hooks/legacy/use-tournaments";
 import { setActiveTournamentId } from "@/lib/admin/active-tournament";
@@ -26,6 +26,7 @@ export function AdminTournamentSelector({
   const navigate = useNavigate();
   const { data: tournaments, isLoading, isError } = useTournaments();
   const items = (tournaments ?? []).filter((t) => Boolean(t.id));
+  const itemIds = items.map((t) => t.id).filter((id): id is string => Boolean(id));
 
   const selectTournament = (id: string | null) => {
     if (!id) return;
@@ -58,36 +59,54 @@ export function AdminTournamentSelector({
   }
 
   return (
-    <Select
+    <Combobox
+      items={itemIds}
       value={value || null}
       onValueChange={selectTournament}
+      itemToStringLabel={(id: string) => {
+        const t = items.find((row) => row.id === id);
+        return t ? tournamentLabel(t) : "";
+      }}
+      filter={(itemId, query) => {
+        const q = query.trim().toLowerCase();
+        if (!q) return true;
+        const t = items.find((row) => row.id === itemId);
+        if (!t) return false;
+        const label = tournamentLabel(t).toLowerCase();
+        const slug = t.slug?.trim().toLowerCase() ?? "";
+        const rawTitle = t.title?.trim().toLowerCase() ?? "";
+        return label.includes(q) || slug.includes(q) || rawTitle.includes(q);
+      }}
     >
-      <SelectTrigger
+      <ComboboxInput
         className={className ?? "w-full min-w-0 max-w-full"}
+        placeholder="Search tournaments…"
         aria-label="Select tournament"
-      >
-        <SelectValue placeholder="Select tournament">
-          {(selected) => {
-            if (selected == null || selected === "") return null;
-            const t = items.find((row) => row.id === selected);
-            return t ? tournamentLabel(t) : String(selected);
-          }}
-        </SelectValue>
-      </SelectTrigger>
-      <SelectContent alignItemWithTrigger={false} align="start" side="bottom">
-        <SelectGroup>
-          {items.map((t) => {
-            const id = t.id;
-            if (!id) return null;
+      />
+      <ComboboxContent align="start" side="bottom">
+        <ComboboxList>
+          {(id: string) => {
+            const t = items.find((row) => row.id === id);
+            if (!t) return null;
             return (
-              <SelectItem key={id} value={id}>
-                <span className="truncate">{tournamentLabel(t)}</span>
-              </SelectItem>
+              <ComboboxItem key={id} value={id}>
+                <span className="flex w-full min-w-0 flex-col gap-0.5 text-left">
+                  <span className="truncate font-medium">
+                    {tournamentLabel(t)}
+                  </span>
+                  {t.status ? (
+                    <span className="truncate text-xs text-muted-foreground capitalize">
+                      {t.status}
+                    </span>
+                  ) : null}
+                </span>
+              </ComboboxItem>
             );
-          })}
-        </SelectGroup>
-      </SelectContent>
-    </Select>
+          }}
+        </ComboboxList>
+        <ComboboxEmpty>No tournaments match your search.</ComboboxEmpty>
+      </ComboboxContent>
+    </Combobox>
   );
 }
 

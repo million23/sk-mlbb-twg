@@ -13,3 +13,6 @@ __unconfig*
 todos.json
 .scratch
 .vscode
+
+.vercel
+.env*

@@ -3,41 +3,53 @@ import { PUBLIC_SITE_TITLE } from "@/lib/public-site";
 export const LANDING_SITE_TITLE = PUBLIC_SITE_TITLE;
 
 export const LANDING_HEADLINE =
-  "Your barangay. Your squad. One Mobile Legends tournament.";
+  "Sign up for the barangay Mobile Legends tournament.";
 
 export const LANDING_SUPPORT =
-  "Register online, upload your documents, and wait for SK committee approval—no walk-in encoding.";
+  "Join as a player from Barangay 176-E. Fill out the form, send your documents, and wait for the SK committee to confirm your spot.";
 
 export const LANDING_STEPS = [
   {
-    title: "Accept the terms",
+    title: "Agree to the rules",
     blurb:
-      "Read and accept the SK consent form before the registration fields unlock.",
+      "Read the SK terms first. Once you agree, you can continue with your registration.",
   },
   {
-    title: "Submit credentials",
+    title: "Tell us about yourself",
     blurb:
-      "Name, birthdate, Phase–Package–Block–Lot address, IGN, server ID, user ID, and preferred lane.",
+      "Share your name, birthday, home address in the barangay, in-game name, and the lane you play.",
   },
   {
-    title: "Upload proofs",
+    title: "Upload your documents",
     blurb:
-      "School ID (front and back) plus purok endorsement—then the committee reviews your entry.",
+      "Send a photo of your school ID (front and back) and your purok endorsement. The committee will review everything after.",
   },
 ] as const;
 
+export const LANDING_WHO_EYEBROW = "Who can join";
+export const LANDING_WHO_HEADLINE = "Check if you’re eligible.";
+export const LANDING_WHO_SUPPORT =
+  "These are the basic rules before you start the form.";
+
 export const LANDING_WHO = [
   {
-    title: "Ages 15+",
-    blurb: "You must be at least 15 years old on the tournament date.",
+    mark: "15 and above",
+    title: "Age",
+    blurb: "You need to be at least 15 years old on the day of the tournament.",
   },
   {
-    title: "Phase 4, 9, or 10",
-    blurb: "Residency is limited to these eligible phases in Barangay 176-E.",
+    mark: "4 / 9 / 10A / 10B",
+    title: "Home phase",
+    blurb: "You live in Phase 4, 9, 10A and 10B in Bagong Silang.",
   },
   {
-    title: "Team options",
+    mark: "Solo or Squad",
+    title: "Team choice",
     blurb:
-      "Open matching, join a listed team, or name a team you want to create.",
+      "Get matched with others, join a listed team, or start one with a name you pick.",
   },
 ] as const;
+
+export const LANDING_CTA_HEADLINE = "Ready to join?";
+export const LANDING_CTA_SUPPORT =
+  "When a tournament is open, register in a few minutes. After you submit, you can check your status anytime.";

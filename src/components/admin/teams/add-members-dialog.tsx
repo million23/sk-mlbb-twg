@@ -2,13 +2,13 @@ import { PreferredLaneIcons } from "@/components/participants/preferred-lane-ico
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+} from "@/components/ui/responsive-modal";
 import { Input } from "@/components/ui/input";
 import type { ParticipantsRecord } from "@/hooks/orval/model/participantsRecord";
 import { groupParticipantsByTournamentAge } from "@/lib/legacy/age";
@@ -83,18 +83,18 @@ export function AddMembersDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[90vh] max-w-lg flex-col overflow-hidden sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Add members</DialogTitle>
-          <DialogDescription>
+    <ResponsiveModal open={open} onOpenChange={onOpenChange}>
+      <ResponsiveModalContent className="flex max-h-[90vh] max-w-lg flex-col overflow-hidden sm:max-w-lg">
+        <ResponsiveModalHeader>
+          <ResponsiveModalTitle>Add members</ResponsiveModalTitle>
+          <ResponsiveModalDescription>
             Pick unassigned approved players for{" "}
             <span className="font-medium text-foreground">{teamName}</span>.
             {maxSelectable < 99
               ? ` Up to ${maxSelectable} slot(s) left.`
               : null}
-          </DialogDescription>
-        </DialogHeader>
+          </ResponsiveModalDescription>
+        </ResponsiveModalHeader>
 
         <Input
           value={search}
@@ -161,7 +161,7 @@ export function AddMembersDialog({
           </p>
         ) : null}
 
-        <DialogFooter>
+        <ResponsiveModalFooter>
           <Button
             type="button"
             variant="outline"
@@ -189,8 +189,8 @@ export function AddMembersDialog({
               ? "Adding…"
               : `Add ${selected.size || ""} member${selected.size === 1 ? "" : "s"}`.trim()}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </ResponsiveModalFooter>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 }

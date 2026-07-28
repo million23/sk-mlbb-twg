@@ -12,7 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as VerifyRouteImport } from './routes/verify'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as TournamentsIndexRouteImport } from './routes/tournaments/index'
 import { Route as LegacyIndexRouteImport } from './routes/legacy/index'
+import { Route as TournamentsIdRouteImport } from './routes/tournaments/$id'
 import { Route as LegacyComponentsRouteImport } from './routes/legacy/components'
 import { Route as AppLoginRouteImport } from './routes/app/login'
 import { Route as LegacyPRouteRouteImport } from './routes/legacy/p/route'
@@ -67,9 +69,19 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TournamentsIndexRoute = TournamentsIndexRouteImport.update({
+  id: '/tournaments/',
+  path: '/tournaments/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LegacyIndexRoute = LegacyIndexRouteImport.update({
   id: '/legacy/',
   path: '/legacy/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TournamentsIdRoute = TournamentsIdRouteImport.update({
+  id: '/tournaments/$id',
+  path: '/tournaments/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LegacyComponentsRoute = LegacyComponentsRouteImport.update({
@@ -285,7 +297,9 @@ export interface FileRoutesByFullPath {
   '/legacy/p': typeof LegacyPRouteRouteWithChildren
   '/app/login': typeof AppLoginRoute
   '/legacy/components': typeof LegacyComponentsRoute
+  '/tournaments/$id': typeof TournamentsIdRoute
   '/legacy/': typeof LegacyIndexRoute
+  '/tournaments/': typeof TournamentsIndexRoute
   '/legacy/app/$id': typeof LegacyAppIdRouteRouteWithChildren
   '/app/admins': typeof AppAuthedAdminsRoute
   '/app/audit-logs': typeof AppAuthedAuditLogsRoute
@@ -327,7 +341,9 @@ export interface FileRoutesByTo {
   '/app/auth': typeof AppAuthRouteRouteWithChildren
   '/app/login': typeof AppLoginRoute
   '/legacy/components': typeof LegacyComponentsRoute
+  '/tournaments/$id': typeof TournamentsIdRoute
   '/legacy': typeof LegacyIndexRoute
+  '/tournaments': typeof TournamentsIndexRoute
   '/app/admins': typeof AppAuthedAdminsRoute
   '/app/audit-logs': typeof AppAuthedAuditLogsRoute
   '/app/auth/login': typeof AppAuthLoginRoute
@@ -370,7 +386,9 @@ export interface FileRoutesById {
   '/legacy/p': typeof LegacyPRouteRouteWithChildren
   '/app/login': typeof AppLoginRoute
   '/legacy/components': typeof LegacyComponentsRoute
+  '/tournaments/$id': typeof TournamentsIdRoute
   '/legacy/': typeof LegacyIndexRoute
+  '/tournaments/': typeof TournamentsIndexRoute
   '/legacy/app/$id': typeof LegacyAppIdRouteRouteWithChildren
   '/app/_authed/admins': typeof AppAuthedAdminsRoute
   '/app/_authed/audit-logs': typeof AppAuthedAuditLogsRoute
@@ -416,7 +434,9 @@ export interface FileRouteTypes {
     | '/legacy/p'
     | '/app/login'
     | '/legacy/components'
+    | '/tournaments/$id'
     | '/legacy/'
+    | '/tournaments/'
     | '/legacy/app/$id'
     | '/app/admins'
     | '/app/audit-logs'
@@ -458,7 +478,9 @@ export interface FileRouteTypes {
     | '/app/auth'
     | '/app/login'
     | '/legacy/components'
+    | '/tournaments/$id'
     | '/legacy'
+    | '/tournaments'
     | '/app/admins'
     | '/app/audit-logs'
     | '/app/auth/login'
@@ -500,7 +522,9 @@ export interface FileRouteTypes {
     | '/legacy/p'
     | '/app/login'
     | '/legacy/components'
+    | '/tournaments/$id'
     | '/legacy/'
+    | '/tournaments/'
     | '/legacy/app/$id'
     | '/app/_authed/admins'
     | '/app/_authed/audit-logs'
@@ -545,7 +569,9 @@ export interface RootRouteChildren {
   LegacyPRouteRoute: typeof LegacyPRouteRouteWithChildren
   AppLoginRoute: typeof AppLoginRoute
   LegacyComponentsRoute: typeof LegacyComponentsRoute
+  TournamentsIdRoute: typeof TournamentsIdRoute
   LegacyIndexRoute: typeof LegacyIndexRoute
+  TournamentsIndexRoute: typeof TournamentsIndexRoute
   LegacyAppIdRouteRoute: typeof LegacyAppIdRouteRouteWithChildren
   LegacyAppAuthCheckRoute: typeof LegacyAppAuthCheckRoute
   LegacyAppAuthLoginRoute: typeof LegacyAppAuthLoginRoute
@@ -574,11 +600,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tournaments/': {
+      id: '/tournaments/'
+      path: '/tournaments'
+      fullPath: '/tournaments/'
+      preLoaderRoute: typeof TournamentsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/legacy/': {
       id: '/legacy/'
       path: '/legacy'
       fullPath: '/legacy/'
       preLoaderRoute: typeof LegacyIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tournaments/$id': {
+      id: '/tournaments/$id'
+      path: '/tournaments/$id'
+      fullPath: '/tournaments/$id'
+      preLoaderRoute: typeof TournamentsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/legacy/components': {
@@ -976,7 +1016,9 @@ const rootRouteChildren: RootRouteChildren = {
   LegacyPRouteRoute: LegacyPRouteRouteWithChildren,
   AppLoginRoute: AppLoginRoute,
   LegacyComponentsRoute: LegacyComponentsRoute,
+  TournamentsIdRoute: TournamentsIdRoute,
   LegacyIndexRoute: LegacyIndexRoute,
+  TournamentsIndexRoute: TournamentsIndexRoute,
   LegacyAppIdRouteRoute: LegacyAppIdRouteRouteWithChildren,
   LegacyAppAuthCheckRoute: LegacyAppAuthCheckRoute,
   LegacyAppAuthLoginRoute: LegacyAppAuthLoginRoute,

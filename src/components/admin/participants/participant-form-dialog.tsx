@@ -1,13 +1,13 @@
 import { BirthdayPicker } from "@/components/ui/birthday-picker";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+} from "@/components/ui/responsive-modal";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -162,21 +162,21 @@ export function ParticipantFormDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>
+    <ResponsiveModal open={open} onOpenChange={onOpenChange}>
+      <ResponsiveModalContent className="flex max-h-[90vh] max-w-lg flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
+        <ResponsiveModalHeader className="shrink-0 border-b border-border/70 px-5 py-4 sm:px-6">
+          <ResponsiveModalTitle>
             {mode === "create" ? "Add participant" : "Edit participant"}
-          </DialogTitle>
-          <DialogDescription>
+          </ResponsiveModalTitle>
+          <ResponsiveModalDescription>
             {mode === "create"
               ? "Create a participant record for this tournament (admin)."
               : "Update credentials, team intent, and registration status."}
-          </DialogDescription>
-        </DialogHeader>
+          </ResponsiveModalDescription>
+        </ResponsiveModalHeader>
 
         <form
-          className="grid gap-3"
+          className="flex min-h-0 flex-1 flex-col"
           onSubmit={async (e) => {
             e.preventDefault();
             const err = validate();
@@ -188,6 +188,7 @@ export function ParticipantFormDialog({
             await onSubmit({ values, uploads });
           }}
         >
+          <div className="grid min-h-0 flex-1 gap-3 overflow-y-auto px-5 py-4 sm:px-6">
           <Field label="Name">
             <Input
               value={values.name}
@@ -442,8 +443,9 @@ export function ParticipantFormDialog({
               {error}
             </p>
           ) : null}
+          </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          <ResponsiveModalFooter className="mx-0! mb-0! mt-auto shrink-0 flex-col-reverse gap-2 border-t border-border/70 px-5 py-4 sm:flex-row sm:justify-end sm:gap-2 sm:px-6">
             <Button
               type="button"
               variant="outline"
@@ -455,9 +457,9 @@ export function ParticipantFormDialog({
             <Button type="submit" disabled={pending}>
               {pending ? "Saving…" : mode === "create" ? "Create" : "Save"}
             </Button>
-          </DialogFooter>
+          </ResponsiveModalFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 }
