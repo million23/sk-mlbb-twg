@@ -1,7 +1,4 @@
 import { LandingShell } from "@/components/landing/shell";
-import { PublicPageHeader } from "@/components/public/public-page-header";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Empty,
   EmptyDescription,
@@ -12,11 +9,13 @@ import { Spinner } from "@/components/ui/spinner";
 import { usePublicTournaments } from "@/hooks/legacy/use-tournaments";
 import { getTournamentStatusLabel } from "@/lib/legacy/tournament-status";
 import { tournamentLabel } from "@/lib/legacy/tournament-label";
-import type { Collections } from "@/types/__pocketbase-types";
+import type { Collections } from "@/lib/pocketbase.types";
 import { cn } from "@/lib/utils";
 import { Link } from "@tanstack/react-router";
 import { format } from "date-fns";
-import { MapPin, Swords, Trophy } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+
+type PublicTournament = Collections["tournaments"];
 
 function formatWhen(iso: string | undefined) {
   if (!iso) return null;
@@ -27,23 +26,64 @@ function formatWhen(iso: string | undefined) {
   }
 }
 
-function statusRailClass(
-  status: Collections["tournaments"]["status"] | undefined,
-) {
+function formatRange(
+  startIso: string | undefined,
+  endIso: string | undefined,
+): string | null {
+  const start = formatWhen(startIso);
+  const end = formatWhen(endIso);
+  if (start && end) return `${start} → ${end}`;
+  if (start) return `From ${start}`;
+  if (end) return `Until ${end}`;
+  return null;
+}
+
+function registrationSummary(t: PublicTournament): string {
+  if (!t.registration_enabled) return "Closed";
+  return (
+    formatRange(t.registration_open_at, t.registration_close_at) ??
+    "Dates not set"
+  );
+}
+
+function tournamentSummary(t: PublicTournament): string {
+  return formatRange(t.start_at, t.end_at) ?? "Dates not set";
+}
+
+function statusMarkClass(status: PublicTournament["status"] | undefined) {
   switch (status) {
     case "live":
-      return "border-l-primary bg-linear-to-r from-primary/12 to-transparent";
+      return "text-primary";
     case "upcoming":
-      return "border-l-chart-3 bg-linear-to-r from-chart-3/12 to-transparent";
-    case "draft":
-      return "border-l-muted-foreground/45 bg-linear-to-r from-muted/35 to-transparent";
-    case "completed":
-      return "border-l-secondary bg-linear-to-r from-secondary/15 to-transparent";
-    case "archived":
-      return "border-l-border from-muted/25";
+      return "text-primary/75";
     default:
-      return "border-l-border from-transparent";
+      return "text-muted-foreground";
   }
+}
+
+function sortPublicTournaments(list: PublicTournament[]) {
+  const order = (s: PublicTournament["status"] | undefined) =>
+    s === "live" ? 0 : s === "upcoming" ? 1 : s === "draft" ? 2 : 3;
+  return [...list].sort((a, b) => order(a.status) - order(b.status));
+}
+
+function ScheduleLine({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <p className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-x-3 text-sm leading-relaxed sm:grid-cols-[7.25rem_minmax(0,1fr)]">
+      <span className="font-mono text-[0.65rem] text-muted-foreground uppercase tracking-[0.16em]">
+        {label}
+      </span>
+      <span className="min-w-0 text-pretty text-foreground/80 transition-colors group-hover:text-foreground/90">
+        {value}
+      </span>
+    </p>
+  );
 }
 
 export function TournamentsPage() {
@@ -56,14 +96,14 @@ export function TournamentsPage() {
 
   return (
     <LandingShell>
-      <main className="mx-auto w-full max-w-5xl flex-1 px-5 py-10 sm:px-8 sm:py-14 lg:px-12">
+      <main className="relative z-10 mx-auto w-full max-w-7xl flex-1 px-5 py-12 sm:px-8 sm:py-16 lg:px-12 lg:py-20">
         {isLoading ? (
           <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3">
             <Spinner className="size-8 text-primary" />
             <p className="text-muted-foreground text-sm">Loading tournaments…</p>
           </div>
         ) : isError ? (
-          <Empty className="min-h-[40vh] border border-dashed border-destructive/30 bg-destructive/5">
+          <Empty className="min-h-[40vh] border-0">
             <EmptyHeader>
               <EmptyTitle>Could not load tournaments</EmptyTitle>
               <EmptyDescription>
@@ -74,7 +114,7 @@ export function TournamentsPage() {
             </EmptyHeader>
           </Empty>
         ) : !(tournaments ?? []).length ? (
-          <Empty className="min-h-[40vh] border border-dashed">
+          <Empty className="min-h-[40vh] border-0">
             <EmptyHeader>
               <EmptyTitle>No upcoming or live tournaments</EmptyTitle>
               <EmptyDescription>
@@ -83,86 +123,81 @@ export function TournamentsPage() {
             </EmptyHeader>
           </Empty>
         ) : (
-          <div className="flex flex-col gap-10">
-            <PublicPageHeader
-              eyebrow="Schedule board"
-              title="Tournaments"
-              description="Upcoming and live tournaments in Barangay 176-E. The status strip highlights what is on deck or in play."
-              icon={Trophy}
-            />
-            <ul className="grid gap-5 sm:grid-cols-2">
-              {[...(tournaments ?? [])]
-                .sort((a, b) => {
-                  const order = (s: string | undefined) =>
-                    s === "live"
-                      ? 0
-                      : s === "upcoming"
-                        ? 1
-                        : s === "draft"
-                          ? 2
-                          : 3;
-                  return order(a.status) - order(b.status);
-                })
-                .map((t) => {
-                  const start = formatWhen(t.startAt);
-                  const end = formatWhen(t.endAt);
-                  return (
-                    <li key={t.id}>
-                      <Link
-                        to="/tournaments/$id"
-                        params={{ id: t.id }}
-                        className="group block h-full"
+          <div className="grid gap-12 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-start lg:gap-16">
+            <header className="flex max-w-md flex-col gap-3 lg:sticky lg:top-28">
+              <p className="font-mono text-[0.65rem] text-primary uppercase tracking-[0.24em]">
+                Schedule
+              </p>
+              <h1 className="text-balance font-serif text-3xl tracking-tight sm:text-4xl lg:text-5xl">
+                Upcoming and live events.
+              </h1>
+              <p className="text-pretty text-muted-foreground text-sm leading-relaxed sm:text-base">
+                Open a tournament to see the match board for{" "}
+                <span className="whitespace-nowrap">Barangay 176‑E</span>.
+              </p>
+            </header>
+
+            <ul className="flex flex-col">
+              {sortPublicTournaments(tournaments ?? []).map((t, i) => {
+                const status = getTournamentStatusLabel(t.status);
+                const venue = t.venue?.trim();
+
+                return (
+                  <li
+                    key={t.id}
+                    className={cn(
+                      "border-border/40",
+                      i === 0 ? "border-t border-b" : "border-b",
+                    )}
+                  >
+                    <Link
+                      to="/tournaments/$id"
+                      params={{ id: t.id }}
+                      className="group relative -mx-3 grid cursor-pointer gap-4 rounded-xl px-3 py-7 outline-none transition-[background-color,box-shadow] duration-300 hover:bg-primary/8 focus-visible:bg-primary/8 focus-visible:ring-2 focus-visible:ring-primary/50 sm:-mx-4 sm:grid-cols-[7.5rem_minmax(0,1fr)_auto] sm:items-start sm:gap-x-8 sm:px-4 sm:py-9"
+                    >
+                      <span
+                        className={cn(
+                          "pt-1 font-mono text-sm font-medium uppercase tracking-[0.18em] transition-colors group-hover:text-primary",
+                          statusMarkClass(t.status),
+                        )}
                       >
-                        <Card
-                          className={cn(
-                            "h-full overflow-hidden border-border/80 border-l-4 bg-card/55 backdrop-blur-[2px] transition-[transform,box-shadow,border-color] duration-300 ease-out group-hover:-translate-y-1 group-hover:border-primary/30 group-hover:shadow-lg group-hover:shadow-primary/20",
-                            statusRailClass(t.status),
+                        {status}
+                      </span>
+
+                      <div className="min-w-0 flex flex-col gap-3">
+                        <h2 className="text-balance font-serif text-2xl tracking-tight underline decoration-transparent decoration-2 underline-offset-[0.2em] transition-[color,text-decoration-color] duration-300 group-hover:text-primary group-hover:decoration-primary/50 sm:text-3xl">
+                          {tournamentLabel(
+                            t as Parameters<typeof tournamentLabel>[0],
                           )}
-                        >
-                          <CardHeader className="pb-2">
-                            <div className="flex flex-wrap items-start justify-between gap-2">
-                              <CardTitle className="font-serif text-xl leading-snug sm:text-2xl">
-                                {tournamentLabel(t)}
-                              </CardTitle>
-                              <Badge
-                                variant="outline"
-                                className={cn(
-                                  "shrink-0 border-primary/25 font-mono text-[0.65rem] uppercase tracking-wider",
-                                  t.status === "live" &&
-                                    "border-primary/50 bg-primary/10 text-primary",
-                                )}
-                              >
-                                {getTournamentStatusLabel(t.status)}
-                              </Badge>
-                            </div>
-                          </CardHeader>
-                          <CardContent className="flex flex-col gap-2 border-border/50 border-t border-dashed pt-3 text-muted-foreground text-sm">
-                            {t.venue ? (
-                              <p className="flex items-center gap-2">
-                                <MapPin className="size-3.5 shrink-0 text-primary/80" />
-                                {t.venue}
-                              </p>
-                            ) : null}
-                            {start ? (
-                              <p className="font-mono text-xs tracking-wide">
-                                Starts {start}
-                              </p>
-                            ) : null}
-                            {end ? (
-                              <p className="font-mono text-xs tracking-wide">
-                                Ends {end}
-                              </p>
-                            ) : null}
-                            <span className="mt-1 flex w-fit items-center gap-1.5 font-mono text-[0.7rem] uppercase tracking-widest text-primary/80 transition-colors group-hover:text-primary">
-                              <Swords className="size-3 shrink-0" aria-hidden />
-                              View Matches →
-                            </span>
-                          </CardContent>
-                        </Card>
-                      </Link>
-                    </li>
-                  );
-                })}
+                        </h2>
+                        {venue ? (
+                          <p className="text-pretty text-muted-foreground text-sm leading-relaxed">
+                            {venue}
+                          </p>
+                        ) : null}
+                        <div className="flex flex-col gap-1.5">
+                          <ScheduleLine
+                            label="Registration"
+                            value={registrationSummary(t)}
+                          />
+                          <ScheduleLine
+                            label="Tournament"
+                            value={tournamentSummary(t)}
+                          />
+                        </div>
+                      </div>
+
+                      <span className="inline-flex w-fit items-center gap-2 border border-primary/35 bg-primary/10 px-3 py-2 font-mono text-[0.65rem] text-primary uppercase tracking-[0.18em] transition-[background-color,border-color,transform] duration-300 group-hover:border-primary/60 group-hover:bg-primary/20 group-active:translate-x-0.5 sm:mt-1 sm:justify-self-end">
+                        View matches
+                        <ArrowRight
+                          className="size-3.5 transition-transform duration-300 group-hover:translate-x-0.5"
+                          aria-hidden
+                        />
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}

@@ -11,6 +11,14 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
+import {
+	Drawer,
+	DrawerContent,
+	DrawerDescription,
+	DrawerFooter,
+	DrawerHeader,
+	DrawerTitle,
+} from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import {
 	Select,
@@ -21,6 +29,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import skConsentMarkdown from "@/content/sk-consent.md?raw";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { LANE_ROLE_LABELS } from "@/lib/legacy/lane-role-icons";
 import { sanitizePhilippineMobileInput } from "@/lib/legacy/philippine-mobile";
 import {
@@ -46,7 +55,14 @@ import {
 	House,
 	Mail,
 } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import {
+	useCallback,
+	useEffect,
+	useRef,
+	useState,
+	type ReactNode,
+	type UIEvent,
+} from "react";
 import ReactMarkdown from "react-markdown";
 
 function digitsOnly(raw: string, max: number): string {
@@ -119,8 +135,85 @@ export function ClosedStep({ state }: Props) {
 	);
 }
 
+function isScrolledToBottom(el: HTMLElement, threshold = 8) {
+	return el.scrollTop + el.clientHeight >= el.scrollHeight - threshold;
+}
+
 export function ConsentStep({ state, dispatch }: Props) {
 	const [open, setOpen] = useState(false);
+	const [scrolledToEnd, setScrolledToEnd] = useState(false);
+	const scrollRef = useRef<HTMLDivElement>(null);
+	const isMobile = useIsMobile();
+
+	const syncScrollEnd = useCallback(() => {
+		const el = scrollRef.current;
+		if (!el) return;
+		// Content shorter than the viewport counts as fully read.
+		if (el.scrollHeight <= el.clientHeight + 8) {
+			setScrolledToEnd(true);
+			return;
+		}
+		setScrolledToEnd(isScrolledToBottom(el));
+	}, []);
+
+	useEffect(() => {
+		if (!open) {
+			setScrolledToEnd(false);
+			return;
+		}
+		let cancelled = false;
+		const check = () => {
+			if (!cancelled) syncScrollEnd();
+		};
+		const raf = window.requestAnimationFrame(() => {
+			check();
+			// Drawer/dialog layout settles a frame later.
+			window.requestAnimationFrame(check);
+		});
+		const el = scrollRef.current;
+		const ro =
+			el && typeof ResizeObserver !== "undefined"
+				? new ResizeObserver(check)
+				: null;
+		if (el && ro) ro.observe(el);
+		return () => {
+			cancelled = true;
+			window.cancelAnimationFrame(raf);
+			ro?.disconnect();
+		};
+	}, [open, syncScrollEnd, isMobile]);
+
+	const onConsentScroll = (event: UIEvent<HTMLDivElement>) => {
+		setScrolledToEnd(isScrolledToBottom(event.currentTarget));
+	};
+
+	const accept = () => {
+		if (!scrolledToEnd) return;
+		dispatch({ type: "ACCEPT_CONSENT" });
+		setOpen(false);
+	};
+
+	const handleOpenChange = (next: boolean) => {
+		setOpen(next);
+		if (!next) setScrolledToEnd(false);
+	};
+
+	const consentBody = (
+		<div className="prose prose-sm dark:prose-invert max-w-none prose-headings:font-serif prose-headings:tracking-tight">
+			<ReactMarkdown>{skConsentMarkdown}</ReactMarkdown>
+		</div>
+	);
+
+	const consentActions = (
+		<>
+			<Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
+				Cancel
+			</Button>
+			<Button type="button" onClick={accept} disabled={!scrolledToEnd}>
+				I accept
+			</Button>
+		</>
+	);
 
 	return (
 		<div className="flex flex-col gap-4">
@@ -141,53 +234,68 @@ export function ConsentStep({ state, dispatch }: Props) {
 				</p>
 			) : (
 				<>
-					<Button type="button" onClick={() => setOpen(true)}>
+					<Button type="button" onClick={() => handleOpenChange(true)}>
 						I accept the SK consent (T&A)
 					</Button>
-					<Dialog open={open} onOpenChange={setOpen}>
-						<DialogContent className="flex max-h-[min(85svh,40rem)] max-w-lg flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
-							<DialogHeader
-								data-modal-enter="from-top"
-								className="shrink-0 border-b border-border/70 px-5 py-4 sm:px-6"
-							>
-								<DialogTitle className="font-serif text-xl tracking-tight">
-									Terms & Agreement
-								</DialogTitle>
-								<DialogDescription>
-									Read the full consent, then accept to continue registration.
-								</DialogDescription>
-							</DialogHeader>
-							<div
-								data-modal-enter="fade"
-								className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6"
-							>
-								<div className="prose prose-sm dark:prose-invert max-w-none prose-headings:font-serif prose-headings:tracking-tight">
-									<ReactMarkdown>{skConsentMarkdown}</ReactMarkdown>
+					{isMobile ? (
+						<Drawer
+							open={open}
+							onOpenChange={handleOpenChange}
+							swipeDirection="down"
+							showSwipeHandle
+						>
+							<DrawerContent className="flex h-[92svh] max-h-[92svh] w-full max-w-none flex-col overflow-hidden rounded-none rounded-t-2xl border-x-0 border-b-0 [--drawer-inset:0px]">
+								<DrawerHeader className="shrink-0 gap-1 border-b border-border/70 px-4 pt-1 pb-4 text-left group-data-[swipe-axis=y]/drawer-popup:text-left">
+									<DrawerTitle className="font-serif text-xl tracking-tight">
+										Terms & Agreement
+									</DrawerTitle>
+									<DrawerDescription className="text-left">
+										Read the full consent, then accept to continue registration.
+									</DrawerDescription>
+								</DrawerHeader>
+								<div
+									ref={scrollRef}
+									onScroll={onConsentScroll}
+									className="min-h-0 flex-1 overflow-y-auto px-4 py-4"
+								>
+									{consentBody}
 								</div>
-							</div>
-							<DialogFooter
-								data-modal-enter="from-bottom"
-								className="shrink-0 border-t border-border/70 px-5 py-4 sm:px-6"
-							>
-								<Button
-									type="button"
-									variant="outline"
-									onClick={() => setOpen(false)}
+								<DrawerFooter className="shrink-0 gap-2 border-t border-border/70 bg-background px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+									{consentActions}
+								</DrawerFooter>
+							</DrawerContent>
+						</Drawer>
+					) : (
+						<Dialog open={open} onOpenChange={handleOpenChange}>
+							<DialogContent className="flex max-h-[min(85svh,40rem)] max-w-lg flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
+								<DialogHeader
+									data-modal-enter="from-top"
+									className="shrink-0 border-b border-border/70 px-5 py-4 sm:px-6"
 								>
-									Cancel
-								</Button>
-								<Button
-									type="button"
-									onClick={() => {
-										dispatch({ type: "ACCEPT_CONSENT" });
-										setOpen(false);
-									}}
+									<DialogTitle className="font-serif text-xl tracking-tight">
+										Terms & Agreement
+									</DialogTitle>
+									<DialogDescription>
+										Read the full consent, then accept to continue registration.
+									</DialogDescription>
+								</DialogHeader>
+								<div
+									ref={scrollRef}
+									data-modal-enter="fade"
+									onScroll={onConsentScroll}
+									className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6"
 								>
-									I accept
-								</Button>
-							</DialogFooter>
-						</DialogContent>
-					</Dialog>
+									{consentBody}
+								</div>
+								<DialogFooter
+									data-modal-enter="from-bottom"
+									className="shrink-0 flex-col border-t border-border/70 px-5 py-4 sm:px-6"
+								>
+									{consentActions}
+								</DialogFooter>
+							</DialogContent>
+						</Dialog>
+					)}
 				</>
 			)}
 		</div>

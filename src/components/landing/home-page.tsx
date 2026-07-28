@@ -1,6 +1,7 @@
 import { StarsBackground } from "@/components/animate-ui/components/backgrounds/stars";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { useResolvedTheme } from "@/hooks/use-resolved-theme";
 import { cn } from "@/lib/utils";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
@@ -19,12 +20,20 @@ import { LandingShell } from "./shell";
 
 /** Full-bleed starfield landing: hero → steps → eligibility → CTA. */
 export function HomePage() {
+  const theme = useResolvedTheme();
+  const isDark = theme === "dark";
+
   return (
     <LandingShell transparentNav>
       <div className="relative isolate">
         <StarsBackground
-          className="absolute inset-0 size-auto min-h-full bg-[radial-gradient(ellipse_at_bottom,color-mix(in_oklch,var(--primary)_22%,#1a1210)_0%,#090808_45%,#050505_100%)]"
-          starColor="#f0d0c4"
+          className={cn(
+            "absolute inset-0 size-auto min-h-full",
+            isDark
+              ? "bg-[radial-gradient(ellipse_at_bottom,color-mix(in_oklch,var(--primary)_22%,#1a1210)_0%,#090808_45%,#050505_100%)]"
+              : "bg-[radial-gradient(ellipse_at_bottom,color-mix(in_oklch,var(--primary)_14%,#f3ebe4)_0%,#faf6f2_48%,#f7f3ef_100%)]",
+          )}
+          starColor={isDark ? "#f0d0c4" : "#b08978"}
           pointerEvents={false}
           factor={0.04}
           speed={60}
@@ -87,18 +96,18 @@ export function HomePage() {
                 <li
                   key={item.title}
                   className={cn(
-                    "group grid gap-3 border-border/40 py-8 sm:grid-cols-[9.5rem_1fr] sm:gap-8 sm:py-10",
+                    "group border-border/40 py-8 sm:py-10",
                     i === 0 ? "border-t border-b" : "border-b",
                   )}
                 >
-                  <span className="whitespace-nowrap font-mono text-2xl font-medium tracking-tight text-primary transition-transform duration-500 ease-out group-hover:translate-x-1 sm:text-3xl">
-                    {item.mark}
-                  </span>
-                  <div className="flex min-w-0 flex-col gap-1.5">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-[17rem_minmax(0,1fr)] sm:items-baseline sm:gap-x-8">
+                    <span className="whitespace-nowrap font-mono text-2xl font-medium leading-none tracking-tight text-primary transition-transform duration-500 ease-out group-hover:translate-x-1 sm:text-3xl">
+                      {item.mark}
+                    </span>
                     <h3 className="font-heading text-lg font-medium tracking-tight sm:text-xl">
                       {item.title}
                     </h3>
-                    <p className="max-w-md text-pretty text-muted-foreground text-sm leading-relaxed sm:text-base">
+                    <p className="max-w-md text-pretty text-muted-foreground text-sm leading-relaxed sm:col-start-2 sm:text-base">
                       {item.blurb}
                     </p>
                   </div>

@@ -356,7 +356,7 @@ export function TournamentOverview({
                 index="03"
                 icon={Swords}
                 title="Matches"
-                description="Bracket and match results — coming soon."
+                description="Bracket slots, scores, and player results."
               />
             </div>
           </section>

@@ -1,13 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { DateTimeRangePicker } from "@/components/ui/date-time-range-picker";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+} from "@/components/ui/responsive-modal";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -230,18 +230,18 @@ export function TournamentFormDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>
+    <ResponsiveModal open={open} onOpenChange={onOpenChange}>
+      <ResponsiveModalContent className="max-h-[90vh] max-w-lg overflow-y-auto sm:max-w-lg">
+        <ResponsiveModalHeader>
+          <ResponsiveModalTitle>
             {mode === "create" ? "Add tournament" : "Edit tournament"}
-          </DialogTitle>
-          <DialogDescription>
+          </ResponsiveModalTitle>
+          <ResponsiveModalDescription>
             {mode === "create"
               ? "Create an event workspace for participants, teams, and matches."
               : "Update event details, schedule, and registration settings."}
-          </DialogDescription>
-        </DialogHeader>
+          </ResponsiveModalDescription>
+        </ResponsiveModalHeader>
 
         <form
           className="grid gap-3"
@@ -424,7 +424,7 @@ export function TournamentFormDialog({
             </p>
           ) : null}
 
-          <DialogFooter className="gap-2 sm:gap-2">
+          <ResponsiveModalFooter className="gap-2 sm:gap-2">
             <Button
               type="button"
               variant="outline"
@@ -440,9 +440,9 @@ export function TournamentFormDialog({
                   ? "Add tournament"
                   : "Save changes"}
             </Button>
-          </DialogFooter>
+          </ResponsiveModalFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 }

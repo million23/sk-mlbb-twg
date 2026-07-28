@@ -16,6 +16,14 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -46,6 +54,18 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 type StatusTab = "pending" | "approved" | "rejected" | "all";
+
+type StatusCounts = Record<StatusTab, number>;
+
+const STATUS_TAB_OPTIONS: {
+  value: StatusTab;
+  label: (counts: StatusCounts) => string;
+}[] = [
+  { value: "pending", label: (c) => `Pending (${c.pending})` },
+  { value: "approved", label: (c) => `Approved (${c.approved})` },
+  { value: "rejected", label: (c) => `Rejected (${c.rejected})` },
+  { value: "all", label: (c) => `All (${c.all})` },
+];
 
 export const Route = createFileRoute(
   "/app/_authed/tournaments/$tournamentId/participants",
@@ -164,20 +184,39 @@ function TournamentParticipantsPage() {
           value={tab}
           onValueChange={(v) => setTab((v as StatusTab) ?? "pending")}
         >
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <TabsList>
-              <TabsTrigger value="pending">
-                Pending ({counts.pending})
-              </TabsTrigger>
-              <TabsTrigger value="approved">
-                Approved ({counts.approved})
-              </TabsTrigger>
-              <TabsTrigger value="rejected">
-                Rejected ({counts.rejected})
-              </TabsTrigger>
-              <TabsTrigger value="all">All ({counts.all})</TabsTrigger>
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <Select
+              value={tab}
+              onValueChange={(v) => setTab((v as StatusTab) ?? "pending")}
+            >
+              <SelectTrigger className="w-full md:hidden">
+                <SelectValue>
+                  {(value) => {
+                    const opt = STATUS_TAB_OPTIONS.find((o) => o.value === value);
+                    return opt ? opt.label(counts) : "Filter participants";
+                  }}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {STATUS_TAB_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label(counts)}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+
+            <TabsList className="hidden w-fit md:inline-flex">
+              {STATUS_TAB_OPTIONS.map((opt) => (
+                <TabsTrigger key={opt.value} value={opt.value}>
+                  {opt.label(counts)}
+                </TabsTrigger>
+              ))}
             </TabsList>
-            <InputGroup className="w-full sm:max-w-xs">
+
+            <InputGroup className="w-full md:max-w-xs">
               <InputGroupAddon>
                 <Search className="size-4" />
               </InputGroupAddon>

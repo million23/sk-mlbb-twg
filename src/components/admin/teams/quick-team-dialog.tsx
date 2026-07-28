@@ -2,13 +2,13 @@ import { PreferredLaneIcons } from "@/components/participants/preferred-lane-ico
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+} from "@/components/ui/responsive-modal";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -180,16 +180,16 @@ export function QuickTeamDialog({
     selected.size <= QUICK_TEAM_MAX_MEMBERS;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[90vh] max-w-lg flex-col overflow-hidden sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Quick team</DialogTitle>
-          <DialogDescription>
+    <ResponsiveModal open={open} onOpenChange={onOpenChange}>
+      <ResponsiveModalContent className="flex max-h-[90vh] max-w-lg flex-col overflow-hidden sm:max-w-lg">
+        <ResponsiveModalHeader>
+          <ResponsiveModalTitle>Quick team</ResponsiveModalTitle>
+          <ResponsiveModalDescription>
             {step === 1
               ? "Name a team and pick unassigned approved players (up to 6)."
               : "Confirm creation — members will be assigned immediately."}
-          </DialogDescription>
-        </DialogHeader>
+          </ResponsiveModalDescription>
+        </ResponsiveModalHeader>
 
         {step === 1 ? (
           <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden">
@@ -347,7 +347,7 @@ export function QuickTeamDialog({
           </p>
         ) : null}
 
-        <DialogFooter>
+        <ResponsiveModalFooter>
           {step === 1 ? (
             <>
               <Button
@@ -405,8 +405,8 @@ export function QuickTeamDialog({
               </Button>
             </>
           )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </ResponsiveModalFooter>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 }

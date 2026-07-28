@@ -33,17 +33,17 @@ export const LANDING_WHO_SUPPORT =
 
 export const LANDING_WHO = [
   {
-    mark: "15+",
+    mark: "15 and above",
     title: "Age",
     blurb: "You need to be at least 15 years old on the day of the tournament.",
   },
   {
-    mark: "4 / 9 / 10",
+    mark: "4 / 9 / 10A / 10B",
     title: "Home phase",
-    blurb: "You live in Phase 4, 9, or 10 in Barangay 176-E.",
+    blurb: "You live in Phase 4, 9, 10A and 10B in Bagong Silang.",
   },
   {
-    mark: "Squad",
+    mark: "Solo or Squad",
     title: "Team choice",
     blurb:
       "Get matched with others, join a listed team, or start one with a name you pick.",

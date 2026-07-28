@@ -1,4 +1,9 @@
-import { AdminPlaceholderPage } from "@/components/admin/admin-placeholder-page";
+import { TeamStandingPage } from "@/components/admin/team-standing/team-standing-page";
+import { useTournamentParticipants } from "@/hooks/admin/use-tournament-participants";
+import { useTournamentTeams } from "@/hooks/admin/use-tournament-teams";
+import { useMatchesForTournament } from "@/hooks/legacy/use-matches";
+import { useTournaments } from "@/hooks/legacy/use-tournaments";
+import { tournamentLabel } from "@/lib/legacy/tournament-label";
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute(
@@ -8,11 +13,48 @@ export const Route = createFileRoute(
 });
 
 function TournamentTeamStandingPage() {
+  const { tournamentId } = Route.useParams();
+  const teamsQuery = useTournamentTeams(tournamentId);
+  const participantsQuery = useTournamentParticipants(tournamentId);
+  const matchesQuery = useMatchesForTournament(tournamentId);
+  const tournamentsQuery = useTournaments();
+
+  const tournament = tournamentsQuery.data?.find((t) => t.id === tournamentId);
+  const tournamentTitle = tournament
+    ? tournamentLabel(tournament as Parameters<typeof tournamentLabel>[0])
+    : undefined;
+
+  const isLoading =
+    teamsQuery.isLoading ||
+    participantsQuery.isLoading ||
+    matchesQuery.isLoading;
+  const isError =
+    teamsQuery.isError ||
+    participantsQuery.isError ||
+    matchesQuery.isError;
+
   return (
-    <AdminPlaceholderPage
-      eyebrow="Tournament workspace"
-      title="Team Standing"
-      description="Rankings and standings for this tournament."
+    <TeamStandingPage
+      tournamentTitle={tournamentTitle}
+      teams={teamsQuery.data ?? []}
+      participants={participantsQuery.data ?? []}
+      matches={matchesQuery.data ?? []}
+      isLoading={isLoading}
+      isError={isError}
+      errorMessage={
+        teamsQuery.error instanceof Error
+          ? teamsQuery.error.message
+          : participantsQuery.error instanceof Error
+            ? participantsQuery.error.message
+            : matchesQuery.error instanceof Error
+              ? matchesQuery.error.message
+              : undefined
+      }
+      onRetry={() => {
+        void teamsQuery.refetch();
+        void participantsQuery.refetch();
+        void matchesQuery.refetch();
+      }}
     />
   );
 }

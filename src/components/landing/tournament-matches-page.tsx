@@ -15,12 +15,12 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+} from "@/components/ui/responsive-modal";
 import { Spinner } from "@/components/ui/spinner";
 import {
   Table,
@@ -133,14 +133,14 @@ function MatchResultModal({
   const hasResults = (byTeam.a.length + byTeam.b.length) > 0;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[90vh] w-full max-w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl">
-        <DialogHeader className="border-b border-border/50 px-6 pt-6 pb-4">
-          <DialogTitle className="font-serif text-xl pr-6">
+    <ResponsiveModal open={open} onOpenChange={onOpenChange}>
+      <ResponsiveModalContent className="flex max-h-[90vh] w-full max-w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl">
+        <ResponsiveModalHeader className="border-b border-border/50 px-6 pt-6 pb-4">
+          <ResponsiveModalTitle className="font-serif text-xl pr-6">
             {match?.matchLabel?.trim() || "Match Results"}
-          </DialogTitle>
+          </ResponsiveModalTitle>
           {match && (
-            <DialogDescription className="flex flex-wrap items-center gap-3 pt-1">
+            <ResponsiveModalDescription className="flex flex-wrap items-center gap-3 pt-1">
               <span className={cn("font-medium text-sm", win === tA && "text-primary")}>{tA}</span>
               <span className="font-mono text-muted-foreground text-sm">
                 {match.scoreA ?? 0} : {match.scoreB ?? 0}
@@ -152,9 +152,9 @@ function MatchResultModal({
                   {win} wins
                 </span>
               )}
-            </DialogDescription>
+            </ResponsiveModalDescription>
           )}
-        </DialogHeader>
+        </ResponsiveModalHeader>
 
         <div className="flex-1 overflow-y-auto px-6 py-5">
           {isLoading ? (
@@ -236,8 +236,8 @@ function MatchResultModal({
             </div>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 }
 
