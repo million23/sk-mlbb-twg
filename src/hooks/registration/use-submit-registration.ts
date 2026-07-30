@@ -1,16 +1,18 @@
 import {
-	createParticipantRecord,
+	createParticipantRecords,
 	registrationApiErrorMessage,
+	type BatchSubmitResult,
 	type SubmitRegistrationInput,
 } from "@/lib/registration/orval";
 import { useMutation } from "@tanstack/react-query";
 
-/** Public registration create — Orval participants path with multipart body. */
+/** Public registration create — single or create-team batch. */
 export function useSubmitRegistration() {
 	return useMutation({
 		mutationKey: ["registration", "submit"],
-		mutationFn: async (input: SubmitRegistrationInput) =>
-			createParticipantRecord(input),
+		mutationFn: async (
+			input: SubmitRegistrationInput,
+		): Promise<BatchSubmitResult> => createParticipantRecords(input),
 		meta: {
 			errorMessage: registrationApiErrorMessage,
 		},

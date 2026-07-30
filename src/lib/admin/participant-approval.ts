@@ -2,16 +2,15 @@ import type { ParticipantsRecord } from "@/hooks/orval/model/participantsRecord"
 import {
   ageOnTournamentDay,
   ELIGIBLE_PHASES,
-  type EligiblePhase,
   type ListedTeam,
   type TeamIntent,
 } from "@/lib/registration/flow";
 
-/** Committee Phase-9 check before approving a pending registrant. */
+/** Committee checks before approving a pending registrant. Phase-9 deferred. */
 export function committeeApproveBlockReason(
   participant: ParticipantsRecord,
   listedTeams: ListedTeam[],
-  peers: ParticipantsRecord[],
+  _peers: ParticipantsRecord[],
   tournamentDay: string,
 ): string | null {
   if (participant.registration_status !== "pending") {
@@ -32,15 +31,11 @@ export function committeeApproveBlockReason(
   const intent = (participant.team_intent ?? "open_matching") as TeamIntent;
   if (intent === "open_matching") return null;
 
-  const registrantPhase = participant.address_phase as EligiblePhase;
-
   if (intent === "create_team") {
     if (!participant.preferred_team_name?.trim()) {
       return "Team name is required when creating a team";
     }
-    if (registrantPhase !== "9") {
-      return "Phase-9 team rule: creator must be Phase 9 (no other members yet)";
-    }
+    // Phase-9 team rule deferred — do not block approve.
     return null;
   }
 
@@ -48,29 +43,7 @@ export function committeeApproveBlockReason(
     if (!participant.preferred_team) return "Pick a listed team to join";
     const team = listedTeams.find((t) => t.id === participant.preferred_team);
     if (!team) return "Unknown team";
-
-    const peerPhases = peers
-      .filter(
-        (p) =>
-          p.id !== participant.id &&
-          p.preferred_team === participant.preferred_team &&
-          (p.registration_status === "pending" ||
-            p.registration_status === "approved") &&
-          !p.archived,
-      )
-      .map((p) => p.address_phase as EligiblePhase);
-
-    const memberPhases =
-      team.member_phases.length > 0 ? team.member_phases : peerPhases;
-
-    const hasPhase9 =
-      memberPhases.length === 0 ||
-      memberPhases.includes("9") ||
-      registrantPhase === "9";
-
-    if (!hasPhase9) {
-      return `Phase-9 team rule: "${team.name}" has no Phase-9 resident and registrant is Phase ${registrantPhase}`;
-    }
+    // Phase-9 team rule deferred — do not block approve.
   }
 
   return null;

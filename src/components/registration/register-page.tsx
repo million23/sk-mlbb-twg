@@ -16,6 +16,8 @@ import {
 } from "@/hooks/registration";
 import {
   canAdvance,
+  isCreateTeamBatch,
+  validateAllRegistrants,
   validateCredentials,
   validateTeamDetails,
   validateTeamIntent,
@@ -27,7 +29,13 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { Check, House } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
-import { ErrorBanner, NavRow, STEP_LABELS, StepBody } from "./steps";
+import {
+  ErrorBanner,
+  NavRow,
+  STEP_LABELS,
+  StepBody,
+  stepLabelFor,
+} from "./steps";
 import {
   isTurnstileConfigured,
   TurnstileField,
@@ -94,6 +102,8 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
         tournament_day: tournamentRecord.tournament_day,
         registration_open: tournamentRecord.registration_open,
         listed_teams: listedTeams ?? [],
+        min_team_size: tournamentRecord.min_team_size ?? 5,
+        max_team_size: tournamentRecord.max_team_size ?? 6,
       },
     });
   }, [dispatch, tournamentRecord, listedTeams]);
@@ -172,12 +182,13 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
   };
 
   const handleSubmit = async () => {
-    if (state.step !== "uploads") return;
+    if (state.step !== "documents") return;
     const err =
       canAdvance(state) ??
-      validateCredentials(state) ??
       validateTeamIntent(state) ??
       validateTeamDetails(state) ??
+      validateAllRegistrants(state) ??
+      validateCredentials(state) ??
       validateUploads(state);
     if (err) {
       dispatch({ type: "SET_LAST_ERROR", message: err });
@@ -195,14 +206,25 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
       return;
     }
     try {
-      const record = await submit.mutateAsync({
+      const result = await submit.mutateAsync({
         draft: state,
         turnstileToken,
         website: honeypot,
       });
+      if (result.failedIndex != null) {
+        setTurnstileToken(null);
+        dispatch({
+          type: "SUBMIT_PARTIAL",
+          submitted: result.submitted,
+          failedIndex: result.failedIndex,
+          message: registrationApiErrorMessage(result.error),
+        });
+        return;
+      }
       dispatch({
         type: "SUBMIT_SUCCESS",
-        statusCode: record.registration_status_code ?? null,
+        statusCodes: result.submitted.map((s) => s.statusCode),
+        submitted: result.submitted,
       });
     } catch (error) {
       setTurnstileToken(null);
@@ -212,6 +234,11 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
       });
     }
   };
+
+  const onLastDocumentPlayer =
+    state.step === "documents" &&
+    (!isCreateTeamBatch(state) ||
+      state.active_registrant_index >= state.member_count - 1);
 
   return (
     <div className="flex min-h-svh flex-col bg-background text-foreground">
@@ -281,7 +308,8 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
                             : "bg-muted/40 text-muted-foreground"
                       }`}
                     >
-                      {String(i + 1).padStart(2, "0")} {STEP_LABELS[step]}
+                      {String(i + 1).padStart(2, "0")}{" "}
+                      {stepLabelFor(step, state.team_intent)}
                     </li>
                   );
                 })}
@@ -301,7 +329,7 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
                 ) : null}
                 <div className="flex flex-col gap-4">
                   <StepBody state={state} dispatch={dispatch} />
-                  {state.step === "uploads" ? (
+                  {onLastDocumentPlayer ? (
                     <>
                       {/* Honeypot — leave empty (off-screen for bots that autofill) */}
                       <div
@@ -330,7 +358,7 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
                     onSubmit={handleSubmit}
                     submitting={submit.isPending || checkingEmail}
                     submitDisabled={
-                      state.step === "uploads" &&
+                      onLastDocumentPlayer &&
                       isTurnstileConfigured() &&
                       !turnstileToken
                     }

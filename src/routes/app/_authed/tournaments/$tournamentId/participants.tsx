@@ -354,11 +354,48 @@ function TournamentParticipantsPage() {
         approvePending={mutations.approve.isPending}
         rejectPending={mutations.reject.isPending}
         archivePending={mutations.archive.isPending}
+        formTeamPending={mutations.formCreateTeam.isPending}
         onApprove={async () => {
           if (!selected?.id || !canManageParticipants) return;
           try {
-            await mutations.approve.mutateAsync(selected.id);
-            toast.success("Registration approved");
+            const { teamResult } = await mutations.approve.mutateAsync(
+              selected.id,
+            );
+            if (teamResult.formed) {
+              toast.success(
+                teamResult.createdNew
+                  ? `Approved — created team "${teamResult.teamName}" with ${teamResult.memberCount} members`
+                  : `Approved — assigned to team "${teamResult.teamName}" (${teamResult.memberCount} members)`,
+              );
+            } else if (teamResult.reason === "still_pending") {
+              toast.success(
+                "Registration approved — team will appear when all teammates with this name are approved",
+              );
+            } else {
+              toast.success("Registration approved");
+            }
+          } catch (err) {
+            toast.error(participantMutationErrorMessage(err));
+          }
+        }}
+        onFormCreateTeam={async () => {
+          if (!selected || !canManageParticipants) return;
+          try {
+            const teamResult =
+              await mutations.formCreateTeam.mutateAsync(selected);
+            if (teamResult.formed) {
+              toast.success(
+                teamResult.createdNew
+                  ? `Created team "${teamResult.teamName}" with ${teamResult.memberCount} members`
+                  : `Assigned to team "${teamResult.teamName}" (${teamResult.memberCount} members)`,
+              );
+            } else if (teamResult.reason === "still_pending") {
+              toast.error(
+                "Still waiting — approve every teammate with this preferred name first",
+              );
+            } else {
+              toast.error("Could not form team from this registrant");
+            }
           } catch (err) {
             toast.error(participantMutationErrorMessage(err));
           }

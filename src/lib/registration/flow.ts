@@ -1,8 +1,8 @@
 /**
  * Public registration flow state machine:
- * window → consent → credentials → team intent → (team details) → uploads →
- * pending → approve/reject — with age, phase, email uniqueness, and Phase-9
- * team rules. Team details is only used for join / create intents.
+ * window → consent → team intent → credentials (×N for create) →
+ * (team select | team name) → documents (×N for create) → pending.
+ * Phase-9 team rule is deferred (informational copy only).
  */
 
 export const ELIGIBLE_PHASES = ["4", "9", "10"] as const;
@@ -21,10 +21,10 @@ export type TeamIntent = (typeof TEAM_INTENTS)[number];
 export type FlowStep =
 	| "closed"
 	| "consent"
-	| "credentials"
 	| "team_intent"
+	| "credentials"
 	| "team_details"
-	| "uploads"
+	| "documents"
 	| "pending"
 	| "approved"
 	| "rejected";
@@ -51,6 +51,11 @@ export type Uploads = {
 	purok_endorsement: File | null;
 };
 
+export type RegistrantDraft = {
+	credentials: Credentials;
+	uploads: Uploads;
+};
+
 export type ListedTeam = {
 	id: string;
 	name: string;
@@ -69,37 +74,139 @@ export type StoredRegistration = {
 	preferred_team_name?: string;
 };
 
+export type SubmittedRegistrant = {
+	index: number;
+	email: string;
+	statusCode: string;
+};
+
 export type RegistrationDraft = {
 	step: FlowStep;
 	tournament_id: string;
 	tournament_day: string; // YYYY-MM-DD — age checked against this
 	registration_open: boolean;
+	min_team_size: number;
+	max_team_size: number;
 	consent_accepted: boolean;
 	consent_version: string | null;
 	consent_accepted_at: string | null;
+	/** Active registrant mirror — always equals registrants[active_registrant_index]. */
 	credentials: Credentials;
+	uploads: Uploads;
 	team_intent: TeamIntent | null;
+	member_count: number;
+	active_registrant_index: number;
+	registrants: RegistrantDraft[];
 	preferred_team: string | null;
 	preferred_team_name: string;
-	uploads: Uploads;
 	registration_status: "pending" | "approved" | "rejected" | null;
+	/** Primary / first status code (single-player flows). */
 	registration_status_code: string | null;
+	/** All status codes from a create-team batch (and single-player as length 1). */
+	registration_status_codes: string[];
+	submitted_registrants: SubmittedRegistrant[];
 	registration_reject_reason: string;
 	last_error: string | null;
-	/** In-memory peers for uniqueness / Phase-9 checks (not persisted) */
+	/** In-memory peers for uniqueness checks (not persisted) */
 	existing: StoredRegistration[];
 	listed_teams: ListedTeam[];
 };
+
+export function emptyCredentials(): Credentials {
+	return {
+		name: "",
+		email: "",
+		ign: "",
+		birthdate: "",
+		user_id: "",
+		server_id: "",
+		address_phase: "",
+		address_package: "",
+		address_block: "",
+		address_lot: "",
+		preferred_lane: "",
+		contact_number: "",
+	};
+}
+
+export function emptyUploads(): Uploads {
+	return {
+		school_id_front: null,
+		school_id_back: null,
+		purok_endorsement: null,
+	};
+}
+
+export function emptyRegistrant(): RegistrantDraft {
+	return {
+		credentials: emptyCredentials(),
+		uploads: emptyUploads(),
+	};
+}
+
+/**
+ * Create-team registration size: always 2–6.
+ * Tournament min/max still inform admin ready status; public create allows smaller squads.
+ */
+export function memberCountBounds(
+	_minTeamSize?: number,
+	maxTeamSize?: number,
+): { min: number; max: number } {
+	const rawMax =
+		Number.isFinite(maxTeamSize) && (maxTeamSize as number) > 0
+			? (maxTeamSize as number)
+			: 6;
+	const max = Math.min(6, Math.max(2, rawMax));
+	return { min: 2, max };
+}
 
 export function needsTeamDetails(intent: TeamIntent | null): boolean {
 	return intent === "join_team" || intent === "create_team";
 }
 
-/** Stepper steps for the current draft (team details only when needed). */
+export function isCreateTeamBatch(state: RegistrationDraft): boolean {
+	return state.team_intent === "create_team";
+}
+
+function resizeRegistrants(
+	current: RegistrantDraft[],
+	count: number,
+): RegistrantDraft[] {
+	const next = current.slice(0, count);
+	while (next.length < count) next.push(emptyRegistrant());
+	return next;
+}
+
+function syncActive(state: RegistrationDraft): RegistrationDraft {
+	const idx = Math.min(
+		Math.max(0, state.active_registrant_index),
+		Math.max(0, state.registrants.length - 1),
+	);
+	const reg = state.registrants[idx] ?? emptyRegistrant();
+	return {
+		...state,
+		active_registrant_index: idx,
+		credentials: reg.credentials,
+		uploads: reg.uploads,
+	};
+}
+
+/** Persist active credentials/uploads into registrants[active]. */
+function persistActive(state: RegistrationDraft): RegistrationDraft {
+	const idx = state.active_registrant_index;
+	const registrants = state.registrants.map((r, i) =>
+		i === idx
+			? { credentials: state.credentials, uploads: state.uploads }
+			: r,
+	);
+	return { ...state, registrants };
+}
+
+/** Stepper steps for the current draft. */
 export function wizardStepsFor(state: RegistrationDraft): FlowStep[] {
-	const steps: FlowStep[] = ["consent", "credentials", "team_intent"];
+	const steps: FlowStep[] = ["consent", "team_intent", "credentials"];
 	if (needsTeamDetails(state.team_intent)) steps.push("team_details");
-	steps.push("uploads", "pending");
+	steps.push("documents", "pending");
 	return steps;
 }
 
@@ -111,12 +218,24 @@ export type Action =
 	| { type: "SET_CREDENTIALS"; patch: Partial<Credentials> }
 	| { type: "LOAD_PRESET"; preset: CredentialPreset }
 	| { type: "SET_TEAM_INTENT"; intent: TeamIntent }
+	| { type: "SET_MEMBER_COUNT"; count: number }
 	| { type: "SET_PREFERRED_TEAM"; teamId: string }
 	| { type: "SET_PREFERRED_TEAM_NAME"; name: string }
 	| { type: "SET_UPLOAD"; file: keyof Uploads; value: File | null }
 	| { type: "HYDRATE"; patch: Partial<RegistrationDraft> }
 	| { type: "SET_LAST_ERROR"; message: string | null }
-	| { type: "SUBMIT_SUCCESS"; statusCode?: string | null }
+	| {
+			type: "SUBMIT_SUCCESS";
+			statusCode?: string | null;
+			statusCodes?: string[];
+			submitted?: SubmittedRegistrant[];
+	  }
+	| {
+			type: "SUBMIT_PARTIAL";
+			submitted: SubmittedRegistrant[];
+			failedIndex: number;
+			message: string;
+	  }
 	| { type: "APPROVE" }
 	| { type: "REJECT"; reason: string }
 	| { type: "RESET_DRAFT" }
@@ -129,49 +248,47 @@ export type CredentialPreset =
 	| "bad_phase"
 	| "duplicate_email";
 
-const emptyCredentials = (): Credentials => ({
-	name: "",
-	email: "",
-	ign: "",
-	birthdate: "",
-	user_id: "",
-	server_id: "",
-	address_phase: "",
-	address_package: "",
-	address_block: "",
-	address_lot: "",
-	preferred_lane: "",
-	contact_number: "",
-});
-
 export function createInitialState(
 	overrides: Partial<RegistrationDraft> = {},
 ): RegistrationDraft {
-	return {
+	const first = emptyRegistrant();
+	const base: RegistrationDraft = {
 		step: "consent",
 		tournament_id: "",
 		tournament_day: "",
 		registration_open: false,
+		min_team_size: 5,
+		max_team_size: 6,
 		consent_accepted: false,
 		consent_version: null,
 		consent_accepted_at: null,
-		credentials: emptyCredentials(),
+		credentials: first.credentials,
+		uploads: first.uploads,
 		team_intent: "open_matching",
+		member_count: 1,
+		active_registrant_index: 0,
+		registrants: [first],
 		preferred_team: null,
 		preferred_team_name: "",
-		uploads: {
-			school_id_front: null,
-			school_id_back: null,
-			purok_endorsement: null,
-		},
 		registration_status: null,
 		registration_status_code: null,
+		registration_status_codes: [],
+		submitted_registrants: [],
 		registration_reject_reason: "",
 		last_error: null,
 		existing: [],
 		listed_teams: [],
-		...overrides,
 	};
+	const merged = { ...base, ...overrides };
+	if (!merged.registrants?.length) {
+		merged.registrants = [
+			{
+				credentials: merged.credentials ?? emptyCredentials(),
+				uploads: merged.uploads ?? emptyUploads(),
+			},
+		];
+	}
+	return syncActive(merged);
 }
 
 export function ageOnTournamentDay(
@@ -188,8 +305,10 @@ export function ageOnTournamentDay(
 	return age;
 }
 
-export function validateCredentials(state: RegistrationDraft): string | null {
-	const c = state.credentials;
+export function validateCredentialsFields(
+	c: Credentials,
+	tournamentDay: string,
+): string | null {
 	if (!c.name.trim()) return "Name is required";
 	if (!c.email.trim() || !c.email.includes("@")) return "Valid email is required";
 	if (!c.ign.trim()) return "IGN is required";
@@ -205,19 +324,33 @@ export function validateCredentials(state: RegistrationDraft): string | null {
 	if (!c.address_lot.trim()) return "Lot is required";
 	if (!c.preferred_lane) return "Preferred lane is required";
 
-	if (!state.tournament_day) {
+	if (!tournamentDay) {
 		return "Tournament date is missing — set start_at on the tournament in PocketBase";
 	}
-	const age = ageOnTournamentDay(c.birthdate, state.tournament_day);
+	const age = ageOnTournamentDay(c.birthdate, tournamentDay);
 	if (age === null) return "Invalid birthdate";
 	if (age < 15) {
-		return `Must be 15+ on tournament day (age on ${state.tournament_day}: ${age})`;
+		return `Must be 15+ on tournament day (age on ${tournamentDay}: ${age})`;
 	}
+	return null;
+}
 
+export function validateCredentials(
+	state: RegistrationDraft,
+	registrantIndex = state.active_registrant_index,
+): string | null {
+	const persisted = persistActive(state);
+	const c =
+		persisted.registrants[registrantIndex]?.credentials ??
+		persisted.credentials;
+	const fieldErr = validateCredentialsFields(c, state.tournament_day);
+	if (fieldErr) return fieldErr;
+
+	const email = c.email.trim().toLowerCase();
 	const emailTaken = state.existing.some(
 		(r) =>
 			r.tournament_id === state.tournament_id &&
-			r.email.toLowerCase() === c.email.toLowerCase() &&
+			r.email.toLowerCase() === email &&
 			(r.registration_status === "pending" ||
 				r.registration_status === "approved"),
 	);
@@ -225,12 +358,35 @@ export function validateCredentials(state: RegistrationDraft): string | null {
 		return "This email already has a pending or approved registration for this tournament";
 	}
 
+	const dupInBatch = persisted.registrants.some(
+		(r, i) =>
+			i !== registrantIndex &&
+			r.credentials.email.trim().toLowerCase() === email &&
+			email.length > 0,
+	);
+	if (dupInBatch) {
+		return "Each teammate needs a different registration email";
+	}
+
 	return null;
 }
 
-/** Choice only — join/create details are validated on `team_details`. */
+/** Choice + create-team member count. */
 export function validateTeamIntent(state: RegistrationDraft): string | null {
 	if (!state.team_intent) return "Choose a team intent";
+	if (state.team_intent === "create_team") {
+		const { min, max } = memberCountBounds(
+			state.min_team_size,
+			state.max_team_size,
+		);
+		if (
+			!Number.isFinite(state.member_count) ||
+			state.member_count < min ||
+			state.member_count > max
+		) {
+			return `Team size must be between ${min} and ${max}`;
+		}
+	}
 	return null;
 }
 
@@ -243,24 +399,14 @@ export function validateTeamDetails(state: RegistrationDraft): string | null {
 		if (!state.preferred_team) return "Pick a listed team to join";
 		const team = state.listed_teams.find((t) => t.id === state.preferred_team);
 		if (!team) return "Unknown team";
-		const registrantPhase = state.credentials.address_phase;
-		// Empty member_phases means API has not exposed roster phases yet — defer to server.
-		const hasPhase9 =
-			team.member_phases.length === 0 ||
-			team.member_phases.includes("9") ||
-			registrantPhase === "9";
-		if (!hasPhase9) {
-			return `Phase-9 team rule: "${team.name}" has no Phase-9 resident and you are Phase ${registrantPhase}`;
-		}
+		// Phase-9 team rule deferred — do not block join.
 	}
 
 	if (state.team_intent === "create_team") {
 		if (!state.preferred_team_name.trim()) {
 			return "Team name is required when creating a team";
 		}
-		if (state.credentials.address_phase !== "9") {
-			return "Phase-9 team rule: creator must be Phase 9 (no other members yet)";
-		}
+		// Phase-9 team rule deferred — do not require creator Phase 9.
 	}
 
 	return null;
@@ -285,15 +431,48 @@ export function validateUploadFile(file: File): string | null {
 	return null;
 }
 
-export function validateUploads(state: RegistrationDraft): string | null {
-	const u = state.uploads;
+export function validateUploadsFields(u: Uploads): string | null {
 	if (!u.school_id_front) return "School ID front is required";
 	if (!u.school_id_back) return "School ID back is required";
 	if (!u.purok_endorsement) return "Purok endorsement is required";
-	for (const [key, file] of Object.entries(u) as [keyof Uploads, File | null][]) {
+	for (const [key, file] of Object.entries(u) as [
+		keyof Uploads,
+		File | null,
+	][]) {
 		if (!file) continue;
 		const err = validateUploadFile(file);
 		if (err) return `${key.replaceAll("_", " ")}: ${err}`;
+	}
+	return null;
+}
+
+export function validateUploads(
+	state: RegistrationDraft,
+	registrantIndex = state.active_registrant_index,
+): string | null {
+	const persisted = persistActive(state);
+	const u =
+		persisted.registrants[registrantIndex]?.uploads ?? persisted.uploads;
+	return validateUploadsFields(u);
+}
+
+/** Validate every registrant before batch submit. */
+export function validateAllRegistrants(
+	state: RegistrationDraft,
+): string | null {
+	const persisted = persistActive(state);
+	const count = isCreateTeamBatch(persisted)
+		? persisted.member_count
+		: 1;
+	for (let i = 0; i < count; i++) {
+		const credErr = validateCredentials(persisted, i);
+		if (credErr) {
+			return `Player ${i + 1}: ${credErr}`;
+		}
+		const upErr = validateUploads(persisted, i);
+		if (upErr) {
+			return `Player ${i + 1}: ${upErr}`;
+		}
 	}
 	return null;
 }
@@ -303,13 +482,13 @@ export function canAdvance(state: RegistrationDraft): string | null {
 	switch (state.step) {
 		case "consent":
 			return state.consent_accepted ? null : "Accept consent (T&A) first";
-		case "credentials":
-			return validateCredentials(state);
 		case "team_intent":
 			return validateTeamIntent(state);
+		case "credentials":
+			return validateCredentials(state);
 		case "team_details":
 			return validateTeamDetails(state);
-		case "uploads":
+		case "documents":
 			return validateUploads(state);
 		default:
 			return "Cannot advance from this step";
@@ -386,35 +565,35 @@ const PRESETS: Record<CredentialPreset, Partial<Credentials>> = {
 	},
 };
 
-function nextStep(state: RegistrationDraft): FlowStep | null {
+function nextMajorStep(state: RegistrationDraft): FlowStep | null {
 	switch (state.step) {
 		case "consent":
-			return "credentials";
-		case "credentials":
 			return "team_intent";
 		case "team_intent":
+			return "credentials";
+		case "credentials":
 			return needsTeamDetails(state.team_intent)
 				? "team_details"
-				: "uploads";
+				: "documents";
 		case "team_details":
-			return "uploads";
+			return "documents";
 		default:
 			return null;
 	}
 }
 
-function prevStep(state: RegistrationDraft): FlowStep | null {
+function prevMajorStep(state: RegistrationDraft): FlowStep | null {
 	switch (state.step) {
-		case "credentials":
-			return "consent";
 		case "team_intent":
-			return "credentials";
-		case "team_details":
+			return "consent";
+		case "credentials":
 			return "team_intent";
-		case "uploads":
+		case "team_details":
+			return "credentials";
+		case "documents":
 			return needsTeamDetails(state.team_intent)
 				? "team_details"
-				: "team_intent";
+				: "credentials";
 		default:
 			return null;
 	}
@@ -460,17 +639,111 @@ export function reduce(
 		}
 
 		case "BACK": {
-			const prev = prevStep(state);
+			if (
+				state.step === "credentials" &&
+				isCreateTeamBatch(state) &&
+				state.active_registrant_index > 0
+			) {
+				const persisted = persistActive(state);
+				const idx = state.active_registrant_index - 1;
+				return clearErr(
+					syncActive({
+						...persisted,
+						active_registrant_index: idx,
+					}),
+				);
+			}
+			if (
+				state.step === "documents" &&
+				isCreateTeamBatch(state) &&
+				state.active_registrant_index > 0
+			) {
+				const persisted = persistActive(state);
+				const idx = state.active_registrant_index - 1;
+				return clearErr(
+					syncActive({
+						...persisted,
+						active_registrant_index: idx,
+					}),
+				);
+			}
+			const prev = prevMajorStep(state);
 			if (!prev) return { ...state, last_error: "Already at first step" };
-			return clearErr({ ...state, step: prev });
+			const persisted = persistActive(state);
+			let nextState = { ...persisted, step: prev };
+			if (prev === "credentials" && isCreateTeamBatch(persisted)) {
+				nextState = {
+					...nextState,
+					active_registrant_index: Math.max(0, persisted.member_count - 1),
+				};
+			} else if (prev === "documents" && isCreateTeamBatch(persisted)) {
+				nextState = {
+					...nextState,
+					active_registrant_index: Math.max(0, persisted.member_count - 1),
+				};
+			} else if (prev === "team_intent" || prev === "consent") {
+				nextState = { ...nextState, active_registrant_index: 0 };
+			} else if (
+				prev === "credentials" &&
+				!isCreateTeamBatch(persisted)
+			) {
+				nextState = { ...nextState, active_registrant_index: 0 };
+			} else if (prev === "team_details") {
+				nextState = { ...nextState, active_registrant_index: 0 };
+			}
+			return clearErr(syncActive(nextState));
 		}
 
 		case "NEXT": {
 			const err = canAdvance(state);
 			if (err) return { ...state, last_error: err };
-			const n = nextStep(state);
-			if (!n) return { ...state, last_error: "Use submit from uploads" };
-			return clearErr({ ...state, step: n });
+
+			if (
+				state.step === "credentials" &&
+				isCreateTeamBatch(state) &&
+				state.active_registrant_index < state.member_count - 1
+			) {
+				const persisted = persistActive(state);
+				const idx = state.active_registrant_index + 1;
+				return clearErr(
+					syncActive({
+						...persisted,
+						active_registrant_index: idx,
+					}),
+				);
+			}
+
+			if (
+				state.step === "documents" &&
+				isCreateTeamBatch(state) &&
+				state.active_registrant_index < state.member_count - 1
+			) {
+				const persisted = persistActive(state);
+				const idx = state.active_registrant_index + 1;
+				return clearErr(
+					syncActive({
+						...persisted,
+						active_registrant_index: idx,
+					}),
+				);
+			}
+
+			const n = nextMajorStep(state);
+			if (!n) {
+				return {
+					...state,
+					last_error: "Use submit from documents",
+				};
+			}
+			const persisted = persistActive(state);
+			let nextState: RegistrationDraft = { ...persisted, step: n };
+			if (n === "credentials" || n === "documents") {
+				nextState = { ...nextState, active_registrant_index: 0 };
+			}
+			if (n === "team_details") {
+				nextState = { ...nextState, active_registrant_index: 0 };
+			}
+			return clearErr(syncActive(nextState));
 		}
 
 		case "SET_CREDENTIALS":
@@ -488,15 +761,53 @@ export function reduce(
 			});
 		}
 
-		case "SET_TEAM_INTENT":
-			return clearErr({
-				...state,
-				team_intent: action.intent,
-				preferred_team:
-					action.intent === "join_team" ? state.preferred_team : null,
-				preferred_team_name:
-					action.intent === "create_team" ? state.preferred_team_name : "",
-			});
+		case "SET_TEAM_INTENT": {
+			const intent = action.intent;
+			const { min } = memberCountBounds(
+				state.min_team_size,
+				state.max_team_size,
+			);
+			const member_count = intent === "create_team" ? min : 1;
+			const registrants = resizeRegistrants(
+				persistActive(state).registrants,
+				member_count,
+			);
+			return clearErr(
+				syncActive({
+					...state,
+					team_intent: intent,
+					member_count,
+					registrants,
+					active_registrant_index: 0,
+					preferred_team:
+						intent === "join_team" ? state.preferred_team : null,
+					preferred_team_name:
+						intent === "create_team" ? state.preferred_team_name : "",
+					submitted_registrants: [],
+					registration_status_codes: [],
+				}),
+			);
+		}
+
+		case "SET_MEMBER_COUNT": {
+			const { min, max } = memberCountBounds(
+				state.min_team_size,
+				state.max_team_size,
+			);
+			const count = Math.min(max, Math.max(min, Math.floor(action.count)));
+			const persisted = persistActive(state);
+			return clearErr(
+				syncActive({
+					...persisted,
+					member_count: count,
+					registrants: resizeRegistrants(persisted.registrants, count),
+					active_registrant_index: Math.min(
+						persisted.active_registrant_index,
+						count - 1,
+					),
+				}),
+			);
+		}
 
 		case "SET_PREFERRED_TEAM":
 			return clearErr({ ...state, preferred_team: action.teamId });
@@ -513,8 +824,8 @@ export function reduce(
 				},
 			});
 
-		case "HYDRATE":
-			return clearErr({
+		case "HYDRATE": {
+			const next = {
 				...state,
 				...action.patch,
 				credentials: action.patch.credentials
@@ -523,32 +834,76 @@ export function reduce(
 				uploads: action.patch.uploads
 					? { ...state.uploads, ...action.patch.uploads }
 					: state.uploads,
-			});
+			};
+			if (
+				action.patch.min_team_size != null ||
+				action.patch.max_team_size != null
+			) {
+				if (next.team_intent === "create_team") {
+					const { min, max } = memberCountBounds(
+						next.min_team_size,
+						next.max_team_size,
+					);
+					const count = Math.min(max, Math.max(min, next.member_count));
+					next.member_count = count;
+					next.registrants = resizeRegistrants(next.registrants, count);
+				}
+			}
+			return clearErr(syncActive(next));
+		}
 
 		case "SET_LAST_ERROR":
 			return { ...state, last_error: action.message };
 
-		case "SUBMIT_SUCCESS":
+		case "SUBMIT_SUCCESS": {
+			const codes =
+				action.statusCodes?.filter((c) => c.trim()) ??
+				(action.statusCode?.trim()
+					? [action.statusCode.trim()]
+					: state.registration_status_codes);
+			const submitted =
+				action.submitted ??
+				(codes.length
+					? codes.map((statusCode, index) => ({
+							index,
+							email:
+								state.registrants[index]?.credentials.email.trim() ||
+								state.credentials.email.trim(),
+							statusCode,
+						}))
+					: state.submitted_registrants);
 			return clearErr({
-				...state,
+				...persistActive(state),
 				step: "pending",
 				registration_status: "pending",
-				registration_status_code:
-					action.statusCode?.trim() || state.registration_status_code,
+				registration_status_code: codes[0] ?? null,
+				registration_status_codes: codes,
+				submitted_registrants: submitted,
 				registration_reject_reason: "",
 			});
+		}
+
+		case "SUBMIT_PARTIAL": {
+			const codes = action.submitted.map((s) => s.statusCode);
+			return {
+				...persistActive(state),
+				step: "documents",
+				active_registrant_index: action.failedIndex,
+				submitted_registrants: action.submitted,
+				registration_status_codes: codes,
+				registration_status_code: codes[0] ?? null,
+				last_error: `Player ${action.failedIndex + 1}: ${action.message}`,
+				credentials:
+					state.registrants[action.failedIndex]?.credentials ??
+					state.credentials,
+				uploads:
+					state.registrants[action.failedIndex]?.uploads ?? state.uploads,
+			};
+		}
 
 		case "APPROVE": {
 			if (state.step !== "pending") {
 				return { ...state, last_error: "Approve only while pending" };
-			}
-			// Committee re-check Phase-9 for team intents
-			const teamErr = validateTeamDetails(state);
-			if (teamErr) {
-				return {
-					...state,
-					last_error: `Committee blocked: ${teamErr}`,
-				};
 			}
 			return clearErr({
 				...state,
@@ -590,6 +945,8 @@ export function reduce(
 				tournament_id: state.tournament_id,
 				tournament_day: state.tournament_day,
 				registration_open: state.registration_open,
+				min_team_size: state.min_team_size,
+				max_team_size: state.max_team_size,
 			});
 
 		case "SEED_EXISTING_EMAIL":
@@ -625,4 +982,19 @@ export function verifyByEmail(
 				r.email.toLowerCase() === email.toLowerCase(),
 		) ?? null
 	);
+}
+
+/** Draft slice for submitting one registrant in a batch. */
+export function draftForRegistrant(
+	state: RegistrationDraft,
+	index: number,
+): RegistrationDraft {
+	const persisted = persistActive(state);
+	const reg = persisted.registrants[index] ?? emptyRegistrant();
+	return {
+		...persisted,
+		active_registrant_index: index,
+		credentials: reg.credentials,
+		uploads: reg.uploads,
+	};
 }

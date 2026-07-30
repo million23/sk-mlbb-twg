@@ -36,6 +36,8 @@ import {
 	ELIGIBLE_PHASES,
 	LANES,
 	ageOnTournamentDay,
+	isCreateTeamBatch,
+	memberCountBounds,
 	validateUploadFile,
 	type Action,
 	type Credentials,
@@ -77,10 +79,10 @@ const PHASE_LABELS: Record<(typeof ELIGIBLE_PHASES)[number], string> = {
 
 export const FLOW_STEPS: FlowStep[] = [
 	"consent",
-	"credentials",
 	"team_intent",
+	"credentials",
 	"team_details",
-	"uploads",
+	"documents",
 	"pending",
 	"approved",
 	"rejected",
@@ -89,14 +91,33 @@ export const FLOW_STEPS: FlowStep[] = [
 export const STEP_LABELS: Record<FlowStep, string> = {
 	closed: "Closed",
 	consent: "Consent",
-	credentials: "Credentials",
 	team_intent: "Team",
+	credentials: "Credentials",
 	team_details: "Squad",
-	uploads: "Uploads",
+	documents: "Documents",
 	pending: "Pending",
 	approved: "Approved",
 	rejected: "Rejected",
 };
+
+export function stepLabelFor(
+	step: FlowStep,
+	intent: TeamIntent | null,
+): string {
+	if (step === "team_details") {
+		return intent === "create_team" ? "Team name" : "Team select";
+	}
+	return STEP_LABELS[step];
+}
+
+function PlayerChrome({ state }: { state: RegistrationDraft }) {
+	if (!isCreateTeamBatch(state)) return null;
+	return (
+		<p className="rounded-2xl border border-border/70 bg-muted/30 px-3 py-2 font-mono text-[0.7rem] uppercase tracking-wider text-muted-foreground">
+			Player {state.active_registrant_index + 1} of {state.member_count}
+		</p>
+	);
+}
 
 type Props = {
 	state: RegistrationDraft;
@@ -315,6 +336,7 @@ export function CredentialsStep({ state, dispatch }: Props) {
 
 	return (
 		<div className="flex flex-col gap-4">
+			<PlayerChrome state={state} />
 			{!state.tournament_day ? (
 				<p className="rounded-2xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-destructive text-sm">
 					Tournament date is missing. In PocketBase, set{" "}
@@ -503,6 +525,14 @@ export function CredentialsStep({ state, dispatch }: Props) {
 }
 
 export function TeamIntentStep({ state, dispatch }: Props) {
+	const { min, max } = memberCountBounds(
+		state.min_team_size,
+		state.max_team_size,
+	);
+	const sizeOptions = Array.from(
+		{ length: max - min + 1 },
+		(_, i) => min + i,
+	);
 	const intents: { id: TeamIntent; title: string; blurb: string }[] = [
 		{
 			id: "open_matching",
@@ -512,38 +542,73 @@ export function TeamIntentStep({ state, dispatch }: Props) {
 		{
 			id: "join_team",
 			title: "Join a listed team",
-			blurb: "Next: pick a team. Phase-9 rule applies.",
+			blurb: "Next: enter your details, then pick a listed team.",
 		},
 		{
 			id: "create_team",
 			title: "Create / name a team",
-			blurb: "Next: name your squad. You must be Phase 9.",
+			blurb: `Register ${min}–${max} teammates in one go, then name the squad.`,
 		},
 	];
 
 	return (
-		<div className="grid gap-2">
-			{intents.map((intent) => {
-				const on = state.team_intent === intent.id;
-				return (
-					<button
-						key={intent.id}
-						type="button"
-						onClick={() =>
-							dispatch({ type: "SET_TEAM_INTENT", intent: intent.id })
-						}
-						className={cn(
-							"rounded-2xl border px-4 py-3 text-left transition-colors",
-							on
-								? "border-primary bg-primary/10"
-								: "border-border hover:bg-muted/60",
-						)}
+		<div className="flex flex-col gap-4">
+			<p className="text-muted-foreground text-sm leading-relaxed">
+				Choose how you want to enter. The committee may still prefer teams with
+				a Phase 9 resident — that rule is not enforced in this form right now.
+			</p>
+			<div className="grid gap-2">
+				{intents.map((intent) => {
+					const on = state.team_intent === intent.id;
+					return (
+						<button
+							key={intent.id}
+							type="button"
+							onClick={() =>
+								dispatch({ type: "SET_TEAM_INTENT", intent: intent.id })
+							}
+							className={cn(
+								"rounded-2xl border px-4 py-3 text-left transition-colors",
+								on
+									? "border-primary bg-primary/10"
+									: "border-border hover:bg-muted/60",
+							)}
+						>
+							<p className="font-medium text-sm">{intent.title}</p>
+							<p className="text-muted-foreground text-xs">{intent.blurb}</p>
+						</button>
+					);
+				})}
+			</div>
+			{state.team_intent === "create_team" ? (
+				<Field label="How many teammates are registering now?">
+					<Select
+						value={String(state.member_count)}
+						onValueChange={(v) => {
+							const n = Number(v);
+							if (!Number.isFinite(n)) return;
+							dispatch({ type: "SET_MEMBER_COUNT", count: n });
+						}}
 					>
-						<p className="font-medium text-sm">{intent.title}</p>
-						<p className="text-muted-foreground text-xs">{intent.blurb}</p>
-					</button>
-				);
-			})}
+						<SelectTrigger className="w-full">
+							<SelectValue>
+								{(selected) =>
+									selected ? `${selected} players` : "Choose count"
+								}
+							</SelectValue>
+						</SelectTrigger>
+						<SelectContent>
+							<SelectGroup>
+								{sizeOptions.map((n) => (
+									<SelectItem key={n} value={String(n)}>
+										{n} players
+									</SelectItem>
+								))}
+							</SelectGroup>
+						</SelectContent>
+					</Select>
+				</Field>
+			) : null}
 		</div>
 	);
 }
@@ -564,8 +629,8 @@ function JoinTeamPicker({ state, dispatch }: Props) {
 	return (
 		<div className="flex flex-col gap-3">
 			<p className="text-muted-foreground text-sm leading-relaxed">
-				Search and pick a listed team. Phase-9 rule: the team or you must
-				include a Phase 9 resident.
+				Search and pick a listed team. This is a preference — the committee
+				assigns the final roster.
 			</p>
 			<Field label="Search teams">
 				<Input
@@ -623,8 +688,8 @@ export function TeamDetailsStep({ state, dispatch }: Props) {
 		return (
 			<div className="flex flex-col gap-3">
 				<p className="text-muted-foreground text-sm leading-relaxed">
-					Name the team you want to create. Only Phase 9 residents can start a
-					team alone.
+					Name the team for all {state.member_count} registrants in this
+					session. The committee will create the official team after review.
 				</p>
 				<Field label="Preferred team name">
 					<Input
@@ -655,7 +720,7 @@ function formatFileSize(bytes: number): string {
 	return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function UploadsStep({ state, dispatch }: Props) {
+export function DocumentsStep({ state, dispatch }: Props) {
 	const files: { key: keyof Uploads; label: string }[] = [
 		{ key: "school_id_front", label: "School ID — front" },
 		{ key: "school_id_back", label: "School ID — back" },
@@ -664,6 +729,7 @@ export function UploadsStep({ state, dispatch }: Props) {
 
 	return (
 		<div className="flex flex-col gap-3">
+			<PlayerChrome state={state} />
 			<p className="text-muted-foreground text-sm">
 				Attach all three documents (JPG, PNG, WebP, HEIC, or PDF — max 5 MiB
 				each). They upload with your registration for committee review.
@@ -834,18 +900,54 @@ function OutcomeShell({
 
 export function OutcomeStep({ state }: Props) {
 	if (state.step === "pending") {
-		const email = state.credentials.email.trim();
-		const code = state.registration_status_code?.trim() || "";
+		const batch =
+			state.submitted_registrants.length > 0
+				? state.submitted_registrants
+				: state.registration_status_codes.map((statusCode, index) => ({
+						index,
+						email:
+							state.registrants[index]?.credentials.email.trim() ||
+							state.credentials.email.trim(),
+						statusCode,
+					}));
+		const multi = batch.length > 1;
+		const code = batch[0]?.statusCode?.trim() || "";
+		const email = batch[0]?.email?.trim() || state.credentials.email.trim();
 		return (
 			<OutcomeShell
 				tone="pending"
 				icon={<Clock3 className="size-6" />}
 				eyebrow="Registration received"
-				title="You’re in the review queue"
-				body="The SK committee will check your credentials and documents. Save your status code — the same one is emailed to you for tracking approval."
+				title={
+					multi
+						? "Your team is in the review queue"
+						: "You’re in the review queue"
+				}
+				body={
+					multi
+						? "Each teammate got their own status code by email. Save every code below for tracking."
+						: "The SK committee will check your credentials and documents. Save your status code — the same one is emailed to you for tracking approval."
+				}
 				details={
 					<div className="flex flex-col gap-3">
-						{code ? (
+						{multi ? (
+							<ul className="flex flex-col gap-2">
+								{batch.map((row) => (
+									<li
+										key={`${row.index}-${row.statusCode}`}
+										className="rounded-2xl border border-primary/30 bg-primary/5 px-4 py-3"
+									>
+										<p className="font-mono text-[0.65rem] text-muted-foreground uppercase tracking-[0.18em]">
+											Player {row.index + 1}
+											{row.email ? ` · ${row.email}` : ""}
+										</p>
+										<p className="mt-1 font-mono text-2xl tracking-[0.22em] text-foreground">
+											{row.statusCode}
+										</p>
+									</li>
+								))}
+							</ul>
+						) : code ? (
 							<div className="rounded-2xl border border-primary/30 bg-primary/5 px-4 py-4 text-center">
 								<p className="font-mono text-[0.65rem] text-muted-foreground uppercase tracking-[0.18em]">
 									Your status code
@@ -855,7 +957,7 @@ export function OutcomeStep({ state }: Props) {
 								</p>
 							</div>
 						) : null}
-						{email ? (
+						{!multi && email ? (
 							<div className="flex items-start gap-3 rounded-2xl border border-border/70 bg-muted/30 px-4 py-3 text-left">
 								<Mail
 									className="mt-0.5 size-4 shrink-0 text-primary"
@@ -872,8 +974,10 @@ export function OutcomeStep({ state }: Props) {
 					</div>
 				}
 				next={[
-					"Check your inbox (and spam) for the registration-received email with this code.",
-					"Open Verify registration and enter this code to check pending / approved / rejected.",
+					multi
+						? "Each player should check inbox (and spam) for their own registration-received email."
+						: "Check your inbox (and spam) for the registration-received email with this code.",
+					"Open Verify registration and enter a status code to check pending / approved / rejected.",
 					"No walk-in encoding needed unless the committee asks.",
 				]}
 				actions={
@@ -882,11 +986,9 @@ export function OutcomeStep({ state }: Props) {
 							size="lg"
 							variant="outline"
 							className="w-full sm:w-auto"
-							render={
-								<Link to="/verify" search={{ code }} />
-							}
+							render={<Link to="/verify" search={{ code }} />}
 						>
-							Verify this code
+							Verify {multi ? "first code" : "this code"}
 						</Button>
 					) : (
 						<Button
@@ -941,8 +1043,8 @@ export function StepBody(props: Props) {
 			return <TeamIntentStep {...props} />;
 		case "team_details":
 			return <TeamDetailsStep {...props} />;
-		case "uploads":
-			return <UploadsStep {...props} />;
+		case "documents":
+			return <DocumentsStep {...props} />;
 		case "pending":
 		case "approved":
 		case "rejected":
@@ -986,9 +1088,16 @@ export function NavRow({
 		state.step === "credentials" ||
 		state.step === "team_intent" ||
 		state.step === "team_details" ||
-		state.step === "uploads";
+		state.step === "documents";
 
 	if (!fillable) return null;
+
+	const onLastDocumentPlayer =
+		state.step === "documents" &&
+		(!isCreateTeamBatch(state) ||
+			state.active_registrant_index >= state.member_count - 1);
+
+	const showSubmitButton = Boolean(showSubmit) || onLastDocumentPlayer;
 
 	return (
 		<div className="flex flex-wrap items-center gap-2">
@@ -1000,7 +1109,7 @@ export function NavRow({
 			>
 				Back
 			</Button>
-			{state.step === "uploads" || showSubmit ? (
+			{showSubmitButton ? (
 				<Button
 					type="button"
 					onClick={() => onSubmit?.()}
@@ -1010,7 +1119,9 @@ export function NavRow({
 						? "Submitting…"
 						: submitDisabled
 							? "Complete verification…"
-							: "Submit registration"}
+							: isCreateTeamBatch(state)
+								? "Submit team registration"
+								: "Submit registration"}
 				</Button>
 			) : (
 				<Button
@@ -1021,7 +1132,13 @@ export function NavRow({
 					}}
 					disabled={submitting}
 				>
-					{submitting ? "Checking…" : "Continue"}
+					{submitting
+						? "Checking…"
+						: state.step === "documents" || state.step === "credentials"
+							? isCreateTeamBatch(state)
+								? "Next player"
+								: "Continue"
+							: "Continue"}
 				</Button>
 			)}
 		</div>
