@@ -6,25 +6,10 @@
  *
  * Deploy this whole pb_hooks/ folder onto the PocketHost instance, then restart.
  *
- * registration-received uses AfterCreateSuccess (same reliability as approve/reject).
- * Status code is still assigned in CreateRequest before save.
+ * IMPORTANT: helpers must come from require(`${__hooks}/sk_mail.js`) inside
+ * each handler — PocketBase isolates handlers so top-level *.pb.js functions
+ * are not visible (that caused ReferenceError: requestAppOrigin is not defined).
  */
-
-function requestAppOrigin(e) {
-  try {
-    const info = e.requestInfo();
-    const query = (info && info.query) || {};
-    const headers = (info && info.headers) || {};
-    const fromQuery = query.app_origin;
-    if (fromQuery != null && String(fromQuery).trim()) {
-      return String(Array.isArray(fromQuery) ? fromQuery[0] : fromQuery).trim();
-    }
-    const fromHeader = headers.origin || headers.Origin || "";
-    return String(fromHeader).trim();
-  } catch (err) {
-    return "";
-  }
-}
 
 /** Ensure status code exists before the participant row is saved. */
 onRecordCreateRequest((e) => {
@@ -50,7 +35,7 @@ onRecordAfterCreateSuccess((e) => {
     return;
   }
 
-  const requestOrigin = requestAppOrigin(e);
+  const requestOrigin = mail.requestAppOrigin(e);
   const appURL = mail.resolveMailAppURL(requestOrigin) || mail.metaAppURL();
   const verifyURL = mail.verifyURL(code, requestOrigin || appURL);
   const tournamentTitle = mail.tournamentTitle(

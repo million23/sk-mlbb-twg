@@ -62,6 +62,27 @@ function isAllowedAppOrigin(origin) {
 }
 
 /**
+ * Read `app_origin` (or Origin header) from a hook event.
+ * Must live in this require()'d module — *.pb.js top-level fns are NOT
+ * visible inside isolated PocketBase handlers.
+ */
+function requestAppOrigin(e) {
+  try {
+    const info = e.requestInfo();
+    const query = (info && info.query) || {};
+    const headers = (info && info.headers) || {};
+    const fromQuery = query.app_origin;
+    if (fromQuery != null && String(fromQuery).trim()) {
+      return String(Array.isArray(fromQuery) ? fromQuery[0] : fromQuery).trim();
+    }
+    const fromHeader = headers.origin || headers.Origin || "";
+    return String(fromHeader).trim();
+  } catch (err) {
+    return "";
+  }
+}
+
+/**
  * Prefer the origin from the registration request (`app_origin` query),
  * then fall back to PocketBase Settings → Application URL.
  */
@@ -177,6 +198,7 @@ module.exports = {
   metaAppURL,
   normalizeOrigin,
   isAllowedAppOrigin,
+  requestAppOrigin,
   resolveMailAppURL,
   verifyURL,
   plainTextFromData,
