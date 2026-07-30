@@ -51,7 +51,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { ParticipantsRecord } from "@/hooks/orval/model/participantsRecord";
 import type { TeamsRecord } from "@/hooks/orval/model/teamsRecord";
 import type { TeamsRecordStatus } from "@/hooks/orval/model/teamsRecordStatus";
-import { summarizeTeamAgeBracketCounts } from "@/lib/legacy/age";
 import { formatParticipantNameDisplay } from "@/lib/legacy/participant-normalize";
 import { compareRegisteredDesc } from "@/lib/legacy/registered-date";
 import {
@@ -539,7 +538,6 @@ export function TeamsPage({
                   <TableBody>
                     {filtered.map((t) => {
                       const members = memberOfTeam(participants, t.id ?? "");
-                      const ageLine = summarizeTeamAgeBracketCounts(members);
                       return (
                         <TableRow
                           key={t.id}
@@ -563,14 +561,7 @@ export function TeamsPage({
                             {captainLabel(t, participants)}
                           </TableCell>
                           <TableCell>
-                            <div className="min-w-0">
-                              <p className="tabular-nums">{members.length}</p>
-                              {ageLine ? (
-                                <p className="text-muted-foreground text-xs text-pretty">
-                                  {ageLine}
-                                </p>
-                              ) : null}
-                            </div>
+                            <p className="tabular-nums">{members.length}</p>
                           </TableCell>
                           <TableCell>
                             <TeamStatusBadge status={t.status} />

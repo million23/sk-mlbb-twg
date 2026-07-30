@@ -14,7 +14,6 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { summarizeTeamAgeBracketCounts } from "@/lib/legacy/age";
 import { getTeamAvatarUrl } from "@/lib/legacy/avatar";
 import { RegisteredDateCell } from "@/components/ui/registered-date-cell";
 import { getTeamStatusStyle } from "@/lib/legacy/team-status";
@@ -22,7 +21,6 @@ import { cn } from "@/lib/utils";
 import type { Collections } from "@/types/__pocketbase-types";
 import {
 	Archive,
-	CalendarDays,
 	Clock,
 	ChevronDown,
 	Pencil,
@@ -132,12 +130,6 @@ export function TeamCard({
 					icon={Users}
 					value={`${memberCount} member${memberCount !== 1 ? "s" : ""}`}
 				/>
-				{members.length > 0 && (
-					<InfoRow
-						icon={CalendarDays}
-						value={summarizeTeamAgeBracketCounts(members)}
-					/>
-				)}
 				{members.length > 0 && (
 					<Collapsible>
 						<CollapsibleTrigger

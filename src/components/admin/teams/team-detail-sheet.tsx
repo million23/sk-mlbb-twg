@@ -21,15 +21,11 @@ import {
 } from "@/components/ui/sheet";
 import type { ParticipantsRecord } from "@/hooks/orval/model/participantsRecord";
 import type { TeamsRecord } from "@/hooks/orval/model/teamsRecord";
-import {
-  groupParticipantsByTournamentAge,
-  summarizeTeamAgeBracketCounts,
-} from "@/lib/legacy/age";
 import { formatParticipantNameDisplay } from "@/lib/legacy/participant-normalize";
 import type { PlayerRole } from "@/types/__pocketbase-types";
 import { format, isValid, parseISO } from "date-fns";
 import { Archive, Pencil, UserMinus, UserPlus } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 function formatWhen(iso?: string) {
   if (!iso) return "—";
@@ -80,11 +76,6 @@ export function TeamDetailSheet({
     if (team) setDisplay(team);
   }, [team]);
 
-  const ageGroups = useMemo(
-    () => groupParticipantsByTournamentAge(members),
-    [members],
-  );
-  const ageSummary = summarizeTeamAgeBracketCounts(members);
   const captain = members.find((m) => m.id === display?.captain);
 
   return (
@@ -117,12 +108,6 @@ export function TeamDetailSheet({
                 <dt className="text-muted-foreground text-xs">Registered</dt>
                 <dd className="mt-0.5">{formatWhen(display?.created)}</dd>
               </div>
-              {ageSummary ? (
-                <div>
-                  <dt className="text-muted-foreground text-xs">Age mix</dt>
-                  <dd className="mt-0.5 text-pretty">{ageSummary}</dd>
-                </div>
-              ) : null}
             </dl>
 
             <section className="space-y-3">
@@ -148,54 +133,49 @@ export function TeamDetailSheet({
                   No members yet. Add unassigned players or use Quick team.
                 </p>
               ) : (
-                ageGroups.map((group) => (
-                  <div key={group.key} className="space-y-1.5">
-                    <p className="text-muted-foreground text-xs">{group.label}</p>
-                    <ul className="space-y-1.5">
-                      {group.items.map((p) =>
-                        p.id ? (
-                          <li
-                            key={p.id}
-                            className="flex items-center gap-2 rounded-xl border border-border/70 bg-background/60 px-3 py-2"
-                          >
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate font-medium text-sm">
-                                {formatParticipantNameDisplay(p.name)}
-                                {p.id === display?.captain ? (
-                                  <span className="ml-1.5 font-mono text-[0.65rem] text-primary uppercase tracking-wider">
-                                    Captain
-                                  </span>
-                                ) : null}
-                              </p>
-                              <p className="truncate font-mono text-muted-foreground text-xs">
-                                {p.ign}
-                              </p>
-                            </div>
-                            <PreferredLaneIcons roles={laneRoles(p)} />
-                            {canManage ? (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon-sm"
-                                className="text-destructive hover:text-destructive"
-                                disabled={removePending && removingId === p.id}
-                                aria-label="Remove from team"
-                                onClick={() => {
-                                  setRemovingId(p.id!);
-                                  void Promise.resolve(
-                                    onRemoveMember(p.id!),
-                                  ).finally(() => setRemovingId(null));
-                                }}
-                              >
-                                <UserMinus className="size-3.5" />
-                              </Button>
+                <ul className="space-y-1.5">
+                  {members.map((p) =>
+                    p.id ? (
+                      <li
+                        key={p.id}
+                        className="flex items-center gap-2 rounded-xl border border-border/70 bg-background/60 px-3 py-2"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium text-sm">
+                            {formatParticipantNameDisplay(p.name)}
+                            {p.id === display?.captain ? (
+                              <span className="ml-1.5 font-mono text-[0.65rem] text-primary uppercase tracking-wider">
+                                Captain
+                              </span>
                             ) : null}
-                          </li>
-                        ) : null,
-                      )}
-                    </ul>
-                  </div>
-                ))
+                          </p>
+                          <p className="truncate font-mono text-muted-foreground text-xs">
+                            {p.ign}
+                          </p>
+                        </div>
+                        <PreferredLaneIcons roles={laneRoles(p)} />
+                        {canManage ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            className="text-destructive hover:text-destructive"
+                            disabled={removePending && removingId === p.id}
+                            aria-label="Remove from team"
+                            onClick={() => {
+                              setRemovingId(p.id!);
+                              void Promise.resolve(
+                                onRemoveMember(p.id!),
+                              ).finally(() => setRemovingId(null));
+                            }}
+                          >
+                            <UserMinus className="size-3.5" />
+                          </Button>
+                        ) : null}
+                      </li>
+                    ) : null,
+                  )}
+                </ul>
               )}
             </section>
           </div>
