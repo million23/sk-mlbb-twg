@@ -90,8 +90,10 @@ Registration-received verify links prefer `app_origin` from the submitting brows
 
 | Trigger | Template |
 | --- | --- |
-| `participants` create | `registration-received` |
-| `participants` → approved / rejected | `registration-approved` / `registration-rejected` |
+| `participants` after create success | `registration-received` |
+| `participants` → approved / rejected (after update success) | `registration-approved` / `registration-rejected` |
 | `admins` password reset / verification | `admin-password-reset` / `admin-verification` |
+
+If approve/reject mail works but registration-received does not, redeploy `pb_hooks/` and **restart** the PocketHost instance — received mail must use `onRecordAfterCreateSuccess` (not mail-after-`e.next()` in create request).
 
 HTML: `views/emails/` (`layout.html` + per-message body).

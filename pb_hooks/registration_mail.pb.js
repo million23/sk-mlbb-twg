@@ -6,8 +6,8 @@
  *
  * Deploy this whole pb_hooks/ folder onto the PocketHost instance, then restart.
  *
- * Verify links prefer `app_origin` from the registration request (browser host),
- * allowlisted in sk_mail.js — so local / beta / prod do not share one hard-coded URL.
+ * registration-received uses AfterCreateSuccess (same reliability as approve/reject).
+ * Status code is still assigned in CreateRequest before save.
  */
 
 function requestAppOrigin(e) {
@@ -26,27 +26,35 @@ function requestAppOrigin(e) {
   }
 }
 
+/** Ensure status code exists before the participant row is saved. */
 onRecordCreateRequest((e) => {
   const mail = require(`${__hooks}/sk_mail.js`);
-
-  // Ensure a status code exists before the record is saved.
   if (!e.record.get("registration_status_code")) {
     e.record.set("registration_status_code", mail.generateStatusCode());
   }
-
   e.next();
+}, "participants");
 
-  const code = String(e.record.get("registration_status_code") || "");
-  const name = String(e.record.get("name") || "registrant");
-  const ign = String(e.record.get("ign") || "");
-  const to = String(e.record.get("email") || "");
-  if (!to) return;
+/** Send receipt after a successful create (mirrors approve/reject after-success). */
+onRecordAfterCreateSuccess((e) => {
+  const mail = require(`${__hooks}/sk_mail.js`);
+  const record = e.record;
+
+  const code = String(record.get("registration_status_code") || "");
+  const name = String(record.get("name") || "registrant");
+  const ign = String(record.get("ign") || "");
+  const to = String(record.get("email") || "");
+  if (!to) {
+    console.log("[sk-mail] registration-received skip — empty email");
+    e.next();
+    return;
+  }
 
   const requestOrigin = requestAppOrigin(e);
-  const appURL = mail.resolveMailAppURL(requestOrigin);
-  const verifyURL = mail.verifyURL(code, requestOrigin);
+  const appURL = mail.resolveMailAppURL(requestOrigin) || mail.metaAppURL();
+  const verifyURL = mail.verifyURL(code, requestOrigin || appURL);
   const tournamentTitle = mail.tournamentTitle(
-    String(e.record.get("tournament") || ""),
+    String(record.get("tournament") || ""),
   );
 
   try {
@@ -68,6 +76,8 @@ onRecordCreateRequest((e) => {
   } catch (err) {
     console.log("[sk-mail] registration-received failed", err);
   }
+
+  e.next();
 }, "participants");
 
 onRecordAfterUpdateSuccess((e) => {
