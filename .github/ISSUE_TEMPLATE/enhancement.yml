@@ -1,0 +1,63 @@
+name: Enhancement
+description: Something works but should be clearer or easier
+title: "[Enhancement]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this when the app works but the experience should improve.
+        Do **not** paste real passwords, API keys, or unblurred personal IDs/documents.
+
+  - type: textarea
+    id: current
+    attributes:
+      label: Current behavior
+      description: What happens today.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed
+    attributes:
+      label: Proposed behavior
+      description: What should happen instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it matters
+      description: Who gets stuck — registrant, committee, admin.
+      placeholder: e.g. Registrants cannot tell why their email was rejected.
+    validations:
+      required: true
+
+  - type: textarea
+    id: scenario
+    attributes:
+      label: Scenario
+      description: Steps or situation where this comes up.
+      value: |
+        1. ...
+        2. ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority feel
+      options:
+        - Nice-to-have
+        - Should-have
+        - Blocker for go-live
+    validations:
+      required: true
+
+  - type: input
+    id: related
+    attributes:
+      label: Related issue (if any)
+      placeholder: e.g. #12
