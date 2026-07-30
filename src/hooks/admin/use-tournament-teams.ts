@@ -198,13 +198,16 @@ export function useTeamMutations(tournamentId: string) {
       status?: TeamsRecordStatus;
     }) => {
       assertCanManageTeams();
+      // Omit empty optional relations — PocketBase rejects `captain: ""` on create
+      // ("Cannot be blank" / values should not be empty) even when the field is optional.
+      const captain = values.captain?.trim();
       const res = await postCollectionsTeamsRecords(
         withAuditCreate({
           tournament: tournamentId,
           name: values.name.trim(),
           status: values.status ?? "forming",
           archived: false,
-          captain: values.captain?.trim() || "",
+          ...(captain ? { captain } : {}),
         }) as unknown as TeamsRecord,
       );
       return unwrapOrvalRecord<TeamsRecord>(res);
@@ -380,7 +383,25 @@ export function useTeamMutations(tournamentId: string) {
 }
 
 export function teamMutationErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) return registrationApiErrorMessage(error);
+  if (error instanceof ApiError) {
+    const data = error.data;
+    if (data && typeof data === "object") {
+      const envelope = data as {
+        message?: string;
+        data?: Record<string, { message?: string; code?: string }>;
+      };
+      if (envelope.data && typeof envelope.data === "object") {
+        const entry = Object.entries(envelope.data).find(
+          ([, v]) => v?.message,
+        );
+        if (entry) {
+          const [field, detail] = entry;
+          return `${field}: ${detail?.message}`;
+        }
+      }
+    }
+    return registrationApiErrorMessage(error);
+  }
   if (error instanceof Error) return error.message;
   return "Request failed";
 }
