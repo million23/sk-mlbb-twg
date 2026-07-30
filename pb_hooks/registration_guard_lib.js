@@ -207,6 +207,79 @@ function enforceCreateGuards(e) {
       );
     }
   }
+
+  ensureFormingTeamForCreateIntent(e);
+}
+
+/**
+ * Create-team registration: find or create a forming teams row and link
+ * preferred_team so committee can verify immediately. Players stay pending /
+ * unassigned until approve.
+ */
+function ensureFormingTeamForCreateIntent(e) {
+  const intent = String(e.record.get("team_intent") || "");
+  if (intent !== "create_team") return;
+
+  const teamName = String(e.record.get("preferred_team_name") || "").trim();
+  if (!teamName) {
+    throw new BadRequestError("Team name is required when creating a team");
+  }
+  e.record.set("preferred_team_name", teamName);
+
+  const tournamentId = String(e.record.get("tournament") || "").trim();
+  if (!tournamentId) {
+    throw new BadRequestError("Tournament is required");
+  }
+
+  if (String(e.record.get("preferred_team") || "").trim()) return;
+
+  const key = teamName.toLowerCase();
+  let team = null;
+  try {
+    const teams = e.app.findRecordsByFilter(
+      "teams",
+      "tournament = {:tid} && archived != true",
+      "-created",
+      500,
+      0,
+      { tid: tournamentId },
+    );
+    for (let i = 0; i < (teams || []).length; i++) {
+      const t = teams[i];
+      const n = String(t.get("name") || "")
+        .trim()
+        .toLowerCase();
+      if (n === key) {
+        team = t;
+        break;
+      }
+    }
+  } catch (err) {
+    console.log("[sk-guard] team lookup failed", err);
+    throw new BadRequestError("Could not reserve team name. Try again.");
+  }
+
+  if (!team) {
+    try {
+      const collection = e.app.findCollectionByNameOrId("teams");
+      team = new Record(collection);
+      team.set("tournament", tournamentId);
+      team.set("name", teamName);
+      team.set("status", "forming");
+      team.set("archived", false);
+      e.app.save(team);
+      console.log(
+        "[sk-guard] created forming team",
+        String(team.id || ""),
+        teamName,
+      );
+    } catch (err) {
+      console.log("[sk-guard] team create failed", err);
+      throw new BadRequestError("Could not create team. Try again.");
+    }
+  }
+
+  e.record.set("preferred_team", team.id);
 }
 
 function emailAvailable(app, tournamentId, email) {
@@ -215,6 +288,81 @@ function emailAvailable(app, tournamentId, email) {
     'tournament = {:tid} && email = {:email} && (registration_status = "pending" || registration_status = "approved")',
     { tid: tournamentId, email: email },
   );
+}
+
+/**
+ * Public join-team list. Hides forming teams that only exist as create-team
+ * registration placeholders (preferred_team links, nobody assigned yet).
+ */
+function listedJoinableTeams(app, tournamentId) {
+  let teams;
+  try {
+    teams = app.findRecordsByFilter(
+      "teams",
+      'tournament = {:tid} && archived = false && status != "inactive"',
+      "name",
+      200,
+      0,
+      { tid: tournamentId },
+    );
+  } catch (err) {
+    console.log("[sk-guard] listed teams query failed", err);
+    throw new BadRequestError("Could not load teams. Try again.");
+  }
+
+  let participants;
+  try {
+    participants = app.findRecordsByFilter(
+      "participants",
+      'tournament = {:tid} && archived != true && (team_intent = "create_team" || status = "assigned")',
+      "-created",
+      500,
+      0,
+      { tid: tournamentId },
+    );
+  } catch (err) {
+    console.log("[sk-guard] listed teams peers query failed", err);
+    throw new BadRequestError("Could not load teams. Try again.");
+  }
+
+  const items = [];
+  for (let i = 0; i < (teams || []).length; i++) {
+    const team = teams[i];
+    const teamId = String(team.id || "");
+    if (!teamId) continue;
+    const status = String(team.get("status") || "");
+
+    if (status === "forming") {
+      let assigned = false;
+      let pendingCreatePlaceholder = false;
+      for (let j = 0; j < (participants || []).length; j++) {
+        const p = participants[j];
+        if (
+          String(p.get("team") || "") === teamId &&
+          String(p.get("status") || "") === "assigned"
+        ) {
+          assigned = true;
+          break;
+        }
+        if (
+          String(p.get("preferred_team") || "") === teamId &&
+          String(p.get("team_intent") || "") === "create_team" &&
+          (String(p.get("registration_status") || "") === "pending" ||
+            String(p.get("registration_status") || "") === "approved")
+        ) {
+          pendingCreatePlaceholder = true;
+        }
+      }
+      if (!assigned && pendingCreatePlaceholder) continue;
+    }
+
+    items.push({
+      id: teamId,
+      name: String(team.get("name") || ""),
+    });
+  }
+
+  return items;
 }
 
 /**
@@ -297,6 +445,8 @@ function lookupByStatusCode(app, rawCode) {
 
 module.exports = {
   enforceCreateGuards,
+  ensureFormingTeamForCreateIntent,
   emailAvailable,
+  listedJoinableTeams,
   lookupByStatusCode,
 };

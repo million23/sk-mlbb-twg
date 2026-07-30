@@ -34,7 +34,7 @@ function withAudit(
   return { ...data, updated_by: uid };
 }
 
-function nameKey(raw: string | undefined | null): string {
+export function nameKey(raw: string | undefined | null): string {
   return (raw ?? "").trim().toLowerCase();
 }
 
@@ -53,10 +53,56 @@ function statusForCount(
   return current === "forming" ? null : "forming";
 }
 
+export type CreateTeamCohortPeer = {
+  id?: string;
+  preferred_team_name?: string | null;
+  registration_status?: string | null;
+  created?: string;
+};
+
+export type CreateTeamFormationGate =
+  | { ready: false; reason: "still_pending" | "no_approved" }
+  | { ready: true; approved: CreateTeamCohortPeer[] };
+
+/** Pure gate: assign roster only when no pending peers remain for this name. */
+export function createTeamFormationGate(
+  peersForName: CreateTeamCohortPeer[],
+): CreateTeamFormationGate {
+  const active = peersForName.filter(
+    (p) =>
+      p.registration_status === "pending" ||
+      p.registration_status === "approved",
+  );
+  if (active.some((p) => p.registration_status === "pending")) {
+    return { ready: false, reason: "still_pending" };
+  }
+  const approved = active
+    .filter((p) => p.registration_status === "approved")
+    .sort((a, b) => (a.created ?? "").localeCompare(b.created ?? ""));
+  if (approved.length === 0) {
+    return { ready: false, reason: "no_approved" };
+  }
+  return { ready: true, approved };
+}
+
+/** Prefer preferred_team id (set at register), else match by name. */
+export function resolveCreateTeamRecord(
+  teams: TeamsRecord[],
+  preferredTeamId: string | undefined | null,
+  preferredNameKey: string,
+): TeamsRecord | undefined {
+  const byId = preferredTeamId?.trim();
+  if (byId) {
+    const hit = teams.find((t) => t.id === byId);
+    if (hit) return hit;
+  }
+  return teams.find((t) => nameKey(t.name) === preferredNameKey);
+}
+
 /**
  * After approving a create-team registrant: if every peer with the same
- * preferred team name is approved (none still pending), create/reuse the
- * team and assign all approved members.
+ * preferred team name is approved (none still pending), reuse the forming
+ * team (created at register) and assign all approved members.
  */
 export async function ensureCreateTeamAfterApprove(input: {
   tournamentId: string;
@@ -82,21 +128,11 @@ export async function ensureCreateTeamAfterApprove(input: {
     (p) => nameKey(p.preferred_team_name) === key,
   );
 
-  const active = peers.filter(
-    (p) =>
-      p.registration_status === "pending" ||
-      p.registration_status === "approved",
-  );
-  if (active.some((p) => p.registration_status === "pending")) {
-    return { formed: false, reason: "still_pending" };
+  const gate = createTeamFormationGate(peers);
+  if (!gate.ready) {
+    return { formed: false, reason: gate.reason };
   }
-
-  const approved = active
-    .filter((p) => p.registration_status === "approved")
-    .sort((a, b) => (a.created ?? "").localeCompare(b.created ?? ""));
-  if (approved.length === 0) {
-    return { formed: false, reason: "no_approved" };
-  }
+  const approved = gate.approved as ParticipantsRecord[];
 
   const teamsRes = await getCollectionsTeamsRecords({
     page: 1,
@@ -104,7 +140,11 @@ export async function ensureCreateTeamAfterApprove(input: {
     filter: `tournament = "${tournamentId}" && archived != true`,
   });
   const teams = unwrapOrvalListItems<TeamsRecord>(teamsRes);
-  let team = teams.find((t) => nameKey(t.name) === key);
+  let team = resolveCreateTeamRecord(
+    teams,
+    participant.preferred_team,
+    key,
+  );
   let createdNew = false;
 
   if (!team?.id) {
@@ -147,10 +187,14 @@ export async function ensureCreateTeamAfterApprove(input: {
   }
 
   const nextStatus = statusForCount(approved.length, team.status, minReady);
-  if (nextStatus) {
+  const captainId = team.captain || approved[0]?.id || "";
+  const patch: Record<string, unknown> = {};
+  if (nextStatus) patch.status = nextStatus;
+  if (!team.captain && captainId) patch.captain = captainId;
+  if (Object.keys(patch).length > 0) {
     await patchCollectionsTeamsRecordsId(
       teamId,
-      withAudit({ status: nextStatus }, "update") as unknown as TeamsRecord,
+      withAudit(patch, "update") as unknown as TeamsRecord,
     );
   }
 
@@ -161,4 +205,49 @@ export async function ensureCreateTeamAfterApprove(input: {
     memberCount: approved.length,
     createdNew,
   };
+}
+
+/**
+ * After reject: if a registration-created forming team has no remaining
+ * pending/approved peers and no assigned members, archive it.
+ */
+export async function maybeArchiveEmptyCreateTeam(input: {
+  tournamentId: string;
+  participant: ParticipantsRecord;
+}): Promise<{ archived: boolean; teamId?: string }> {
+  const { tournamentId, participant } = input;
+  if (participant.team_intent !== "create_team") {
+    return { archived: false };
+  }
+  const teamId = participant.preferred_team?.trim();
+  if (!teamId) return { archived: false };
+
+  const peersRes = await getCollectionsParticipantsRecords({
+    page: 1,
+    perPage: 500,
+    filter: `tournament = "${tournamentId}" && archived != true && (preferred_team = "${teamId}" || team = "${teamId}")`,
+  });
+  const peers = unwrapOrvalListItems<ParticipantsRecord>(peersRes);
+  const stillActive = peers.some(
+    (p) =>
+      p.id !== participant.id &&
+      (p.registration_status === "pending" ||
+        p.registration_status === "approved" ||
+        p.status === "assigned"),
+  );
+  if (stillActive) return { archived: false };
+
+  const teamsRes = await getCollectionsTeamsRecords({
+    page: 1,
+    perPage: 1,
+    filter: `id = "${teamId}" && archived != true`,
+  });
+  const team = unwrapOrvalListItems<TeamsRecord>(teamsRes)[0];
+  if (!team?.id) return { archived: false };
+
+  await patchCollectionsTeamsRecordsId(
+    team.id,
+    withAudit({ archived: true }, "update") as unknown as TeamsRecord,
+  );
+  return { archived: true, teamId: team.id };
 }

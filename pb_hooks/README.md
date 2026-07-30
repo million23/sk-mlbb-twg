@@ -56,12 +56,15 @@ After a test register, logs should show `[sk-mail] registration-received → …
 - Honeypot field `website` (must be empty)
 - Cloudflare Turnstile token `turnstile_token` (skipped for admin auth)
 - Duplicate **email** and **user_id + server_id** per tournament when status is `pending` / `approved`
+- **Create-team** intent: find-or-create a `forming` row in `teams` for `preferred_team_name`, then set `preferred_team` on the registrant (players stay pending / unassigned until committee approve)
 
 Public pre-checks (used by the Vite form):
 
 `GET /sk/registration/email-available?tournament=ID&email=you@example.com` → `{ available: boolean }`
 
 `GET /sk/registration/status?code=123456` → `{ found: false }` or `{ found: true, receipt: { … } }` (no document file fields)
+
+`GET /sk/registration/listed-teams?tournament=ID` → `{ items: [{ id, name }, …] }` (joinable teams only; hides create-team forming placeholders until members are assigned)
 
 ### PocketHost env
 

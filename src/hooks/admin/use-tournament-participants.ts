@@ -13,7 +13,10 @@ import {
   canManageParticipants,
   type AdminAuthRecord,
 } from "@/lib/admin/permissions";
-import { ensureCreateTeamAfterApprove } from "@/lib/admin/ensure-create-team";
+import {
+  ensureCreateTeamAfterApprove,
+  maybeArchiveEmptyCreateTeam,
+} from "@/lib/admin/ensure-create-team";
 import { PARTICIPANT_DOC_FIELDS } from "@/lib/admin/participant-files";
 import { ApiError, customInstance } from "@/lib/api/mutator/custom-instance";
 import { getAuthRecordId } from "@/lib/legacy/mutation-authors";
@@ -181,7 +184,9 @@ export function useParticipantMutations(tournamentId: string) {
           registration_reject_reason: reason.trim() || "No reason given",
         }) as unknown as ParticipantsRecord,
       );
-      return unwrapOrvalRecord<ParticipantsRecord>(res);
+      const participant = unwrapOrvalRecord<ParticipantsRecord>(res);
+      await maybeArchiveEmptyCreateTeam({ tournamentId, participant });
+      return participant;
     },
     onSuccess: invalidate,
   });
