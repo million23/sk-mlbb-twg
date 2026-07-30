@@ -19,22 +19,21 @@ export const Route = createFileRoute("/register")({
       openRegistrationTournamentsQueryOptions(),
     );
     // Only tournaments with an open registration window are selectable.
+    // Do not default to the first open tournament — registrant picks first.
     const id =
-      (deps.tournament && open.some((t) => t.id === deps.tournament)
+      deps.tournament && open.some((t) => t.id === deps.tournament)
         ? deps.tournament
-        : undefined) || open[0]?.id;
-    if (!id) return { tournamentId: undefined as string | undefined };
+        : undefined;
+    if (!id) return;
     await Promise.all([
       context.queryClient.ensureQueryData(registrationTournamentQueryOptions(id)),
       context.queryClient.ensureQueryData(listedTeamsQueryOptions(id)),
     ]);
-    return { tournamentId: id };
   },
   component: RegisterRoute,
 });
 
 function RegisterRoute() {
   const { tournament } = Route.useSearch();
-  const { tournamentId } = Route.useLoaderData();
-  return <RegisterPage tournamentId={tournament || tournamentId} />;
+  return <RegisterPage tournamentId={tournament} />;
 }

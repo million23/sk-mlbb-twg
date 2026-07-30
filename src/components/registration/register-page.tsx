@@ -26,6 +26,7 @@ import {
 } from "@/lib/registration/flow";
 import { cn } from "@/lib/utils";
 import { Link, useNavigate } from "@tanstack/react-router";
+import { format, parseISO } from "date-fns";
 import { Check, House } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -50,6 +51,16 @@ function tournamentOptionLabel(t: RegistrationTournament): string {
   return t.title?.trim() || t.slug?.trim() || t.id || "Tournament";
 }
 
+function tournamentOptionDate(t: RegistrationTournament): string | null {
+  const day = t.tournament_day?.trim();
+  if (!day) return null;
+  try {
+    return format(parseISO(day), "MMM d, yyyy");
+  } catch {
+    return day;
+  }
+}
+
 /** Public registration — stepper wizard wired to Orval-backed hooks. */
 export function RegisterPage({ tournamentId }: RegisterPageProps) {
   const navigate = useNavigate();
@@ -60,11 +71,16 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
     [openTournaments.data],
   );
   const selectedId =
-    (tournamentId && openList.some((t) => t.id === tournamentId)
+    tournamentId && openList.some((t) => t.id === tournamentId)
       ? tournamentId
-      : undefined) ||
-    openList[0]?.id ||
-    undefined;
+      : undefined;
+  /** Ask first when several are open; sole open tournament can skip the pick screen. */
+  const needsTournamentPick =
+    openTournaments.isSuccess && openList.length > 1 && !selectedId;
+  const soleOpenId =
+    openTournaments.isSuccess && openList.length === 1
+      ? openList[0]?.id
+      : undefined;
   const tournament = useRegistrationTournament(selectedId);
   const teams = useListedTeams(selectedId);
   const submit = useSubmitRegistration();
@@ -79,19 +95,17 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
     state.step === "pending" ||
     state.step === "approved" ||
     state.step === "rejected";
-  const showTournamentPicker = openList.length > 1 && !submitted;
+  const showChangeTournament = openList.length > 1 && !submitted && !!selectedId;
 
+  // One open tournament: land on it without a pick step.
   useEffect(() => {
-    if (!openTournaments.isSuccess || openList.length === 0) return;
-    if (tournamentId && openList.some((t) => t.id === tournamentId)) return;
-    const fallback = openList[0]?.id;
-    if (!fallback) return;
+    if (!soleOpenId || selectedId) return;
     void navigate({
       to: "/register",
-      search: { tournament: fallback },
+      search: { tournament: soleOpenId },
       replace: true,
     });
-  }, [navigate, openList, openTournaments.isSuccess, tournamentId]);
+  }, [navigate, selectedId, soleOpenId]);
 
   useEffect(() => {
     if (!tournamentRecord?.id) return;
@@ -109,11 +123,12 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
   }, [dispatch, tournamentRecord, listedTeams]);
 
   const selectTournament = (id: string) => {
-    if (!id || id === selectedId) {
+    if (!id) return;
+    if (!openList.some((t) => t.id === id)) return;
+    if (id === selectedId) {
       setPickerOpen(false);
       return;
     }
-    if (!openList.some((t) => t.id === id)) return;
     dispatch({ type: "RESET_DRAFT" });
     setTurnstileToken(null);
     setPickerOpen(false);
@@ -136,14 +151,15 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
   const loading =
     openTournaments.isLoading ||
     (!!selectedId && tournament.isLoading) ||
-    (!!selectedId && teams.isLoading);
+    (!!selectedId && teams.isLoading) ||
+    (!!soleOpenId && !selectedId);
 
   const bootError =
     openTournaments.error || tournament.error || teams.error
       ? registrationApiErrorMessage(
           openTournaments.error || tournament.error || teams.error,
         )
-      : !loading && !selectedId
+      : !loading && !selectedId && !needsTournamentPick && openList.length === 0
         ? "No tournament is open for registration right now."
         : tournament.data && !tournament.data.registration_open
           ? "Registration is closed for this tournament."
@@ -250,14 +266,20 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
                 Public registration
               </p>
               <h1 className="font-serif text-2xl tracking-tight">
-                Register for the tournament
+                {needsTournamentPick
+                  ? "Choose a tournament"
+                  : "Register for the tournament"}
               </h1>
               {tournament.data?.title ? (
                 <p className="mt-1 text-muted-foreground text-sm">
                   {tournament.data.title}
                 </p>
+              ) : needsTournamentPick ? (
+                <p className="mt-1 text-muted-foreground text-sm">
+                  Several events are open — pick which one you’re registering for.
+                </p>
               ) : null}
-              {showTournamentPicker ? (
+              {showChangeTournament ? (
                 <button
                   type="button"
                   className="mt-1.5 text-left text-primary text-sm underline-offset-4 hover:underline"
@@ -288,6 +310,36 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
                 Back to home
               </Link>
             </div>
+          ) : needsTournamentPick ? (
+            <>
+              <ol className="flex flex-wrap gap-1">
+                <li className="rounded-full bg-primary px-3 py-1 font-mono text-[0.65rem] text-primary-foreground uppercase tracking-wider">
+                  01 Tournament
+                </li>
+                {wizard.map((step, i) => (
+                  <li
+                    key={step}
+                    className="rounded-full bg-muted/40 px-3 py-1 font-mono text-[0.65rem] text-muted-foreground uppercase tracking-wider"
+                  >
+                    {String(i + 2).padStart(2, "0")}{" "}
+                    {stepLabelFor(step, state.team_intent)}
+                  </li>
+                ))}
+              </ol>
+              <div className="rounded-3xl border border-border/80 bg-card p-5 sm:p-6">
+                <h2 className="mb-2 font-serif text-xl tracking-tight">
+                  Tournament
+                </h2>
+                <p className="mb-4 text-muted-foreground text-sm">
+                  Only events with open registration are listed.
+                </p>
+                <TournamentPickList
+                  openList={openList}
+                  selectedId={selectedId}
+                  onSelect={selectTournament}
+                />
+              </div>
+            </>
           ) : (
             <>
               <ol className="flex flex-wrap gap-1">
@@ -384,42 +436,64 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
               your current form progress.
             </ResponsiveModalDescription>
           </ResponsiveModalHeader>
-          <ul
-            data-modal-enter="fade"
-            className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-5 py-4 sm:px-6"
-          >
-            {openList.map((t) => {
-              const id = t.id;
-              if (!id) return null;
-              const active = id === selectedId;
-              return (
-                <li key={id}>
-                  <button
-                    type="button"
-                    onClick={() => selectTournament(id)}
-                    className={cn(
-                      "flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-colors",
-                      active
-                        ? "border-primary/40 bg-primary/10"
-                        : "border-border/80 bg-background/60 hover:border-primary/30 hover:bg-muted/40",
-                    )}
-                  >
-                    <span className="min-w-0 flex-1 truncate font-medium">
-                      {tournamentOptionLabel(t)}
-                    </span>
-                    {active ? (
-                      <Check
-                        className="size-4 shrink-0 text-primary"
-                        aria-hidden
-                      />
-                    ) : null}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+          <div data-modal-enter="fade" className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6">
+            <TournamentPickList
+              openList={openList}
+              selectedId={selectedId}
+              onSelect={selectTournament}
+            />
+          </div>
         </ResponsiveModalContent>
       </ResponsiveModal>
     </div>
+  );
+}
+
+function TournamentPickList({
+  openList,
+  selectedId,
+  onSelect,
+}: {
+  openList: RegistrationTournament[];
+  selectedId: string | undefined;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <ul className="flex flex-col gap-2">
+      {openList.map((t) => {
+        const id = t.id;
+        if (!id) return null;
+        const active = id === selectedId;
+        const dayLabel = tournamentOptionDate(t);
+        return (
+          <li key={id}>
+            <button
+              type="button"
+              onClick={() => onSelect(id)}
+              className={cn(
+                "flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-colors",
+                active
+                  ? "border-primary/40 bg-primary/10"
+                  : "border-border/80 bg-background/60 hover:border-primary/30 hover:bg-muted/40",
+              )}
+            >
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-medium">
+                  {tournamentOptionLabel(t)}
+                </span>
+                {dayLabel ? (
+                  <span className="mt-0.5 block text-muted-foreground text-sm">
+                    Tournament day · {dayLabel}
+                  </span>
+                ) : null}
+              </span>
+              {active ? (
+                <Check className="size-4 shrink-0 text-primary" aria-hidden />
+              ) : null}
+            </button>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
