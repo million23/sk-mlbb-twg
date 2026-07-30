@@ -9,6 +9,8 @@
  * IMPORTANT: helpers must come from require(`${__hooks}/sk_mail.js`) inside
  * each handler — PocketBase isolates handlers so top-level *.pb.js functions
  * are not visible (that caused ReferenceError: requestAppOrigin is not defined).
+ *
+ * Discord ops alerts live in sk_ops.pb.js (logins + errors only).
  */
 
 /** Ensure status code exists before the participant row is saved. */
@@ -60,6 +62,18 @@ onRecordAfterCreateSuccess((e) => {
     });
   } catch (err) {
     console.log("[sk-mail] registration-received failed", err);
+    try {
+      const discord = require(`${__hooks}/sk_discord.js`);
+      discord.notifyError({
+        title: "Mail failed: registration-received",
+        where: "registration_mail.afterCreate",
+        collection: "participants",
+        recordId: String(record.id || ""),
+        error: String(err && (err.message || err) || "send failed"),
+      });
+    } catch (notifyErr) {
+      console.log("[sk-discord] mail-error notify failed", notifyErr);
+    }
   }
 
   e.next();
@@ -116,6 +130,18 @@ onRecordAfterUpdateSuccess((e) => {
     });
   } catch (err) {
     console.log("[sk-mail] status mail failed", err);
+    try {
+      const discord = require(`${__hooks}/sk_discord.js`);
+      discord.notifyError({
+        title: "Mail failed: " + viewName,
+        where: "registration_mail.afterUpdate",
+        collection: "participants",
+        recordId: String(record.id || ""),
+        error: String(err && (err.message || err) || "send failed"),
+      });
+    } catch (notifyErr) {
+      console.log("[sk-discord] mail-error notify failed", notifyErr);
+    }
   }
 
   e.next();

@@ -41,7 +41,9 @@ sk-mlbb-twg/
     registration_guard_lib.js
     registration_mail.pb.js
     admins_mail.pb.js
+    sk_ops.pb.js
     sk_mail.js
+    sk_discord.js
     views/emails/
 ```
 
@@ -70,9 +72,22 @@ Set on the instance (dashboard env / secrets), then **restart**:
 | `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile secret (**required** — no silent skip) |
 | `TURNSTILE_SKIP=1` | Only local escape hatch; otherwise create fails if secret is missing |
 | `SK_APP_ORIGINS` | Optional extra allowlisted site origins for verify-link emails (comma-separated) |
+| `DISCORD_WEBHOOK_URL` | Discord webhook for **ops** alerts: admin logins + errors (optional; skipped if unset) |
 
 Vite app needs matching `VITE_TURNSTILE_SITE_KEY` in `.env` only (public).  
-**Do not** put the secret in any `VITE_*` variable — set it only on PocketHost.
+**Do not** put secrets in any `VITE_*` variable — set them only on PocketHost.
+
+### Discord ops alerts
+
+[`sk_ops.pb.js`](./sk_ops.pb.js) + [`sk_discord.js`](./sk_discord.js) post embeds for:
+
+- **Admin login** success / failure (`admins` password auth)
+- **Record create/update/delete errors** on `participants`, `teams`, `matches`, `match_result`, `tournaments`, `admins`
+- **Mail send failures** from registration hooks (so you see SMTP issues without opening PocketBase logs)
+
+Not used for normal registration success (that stays email-only).
+
+Set `DISCORD_WEBHOOK_URL` on the PocketHost instance (Channel → Integrations → Webhooks → Copy URL), redeploy `pb_hooks/`, then **restart**.
 
 Cloudflare always-pass test keys: [Turnstile testing](https://developers.cloudflare.com/turnstile/troubleshooting/testing/).
 
