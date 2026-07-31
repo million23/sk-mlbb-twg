@@ -57,6 +57,7 @@ export function AutoMatchDialog({
   onShufflePreview,
 }: AutoMatchDialogProps) {
   const [preview, setPreview] = useState<AutoMatchPreview | null>(null);
+  const [bootError, setBootError] = useState<string | null>(null);
   const seeded = seedPreview != null;
 
   const makeRound1Preview = () =>
@@ -70,20 +71,26 @@ export function AutoMatchDialog({
   useEffect(() => {
     if (!open) {
       setPreview(null);
+      setBootError(null);
       return;
     }
     if (seedPreview) {
       setPreview(seedPreview);
+      setBootError(null);
       return;
     }
     const next = makeRound1Preview();
     if (!next.ok) {
+      // Keep dialog open so Cancel/X can close it. Closing from this effect
+      // can leave Base UI visually stuck while React state is already false.
+      setPreview(null);
+      setBootError(next.error);
       toast.error(next.error);
-      onOpenChange(false);
       return;
     }
+    setBootError(null);
     setPreview(next.preview);
-  }, [open, seedPreview, teams, highestOrder, defaultBestOf, bracketCount, onOpenChange]);
+  }, [open, seedPreview, teams, highestOrder, defaultBestOf, bracketCount]);
 
   const bulkRound = preview?.rows[0]?.round ?? "Round 1";
   const bulkBestOf = preview?.rows[0]?.bestOf ?? defaultBestOf;
@@ -152,7 +159,11 @@ export function AutoMatchDialog({
         </DialogHeader>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
-          {!preview ? (
+          {bootError ? (
+            <p className="text-destructive text-sm" role="alert">
+              {bootError}
+            </p>
+          ) : !preview ? (
             <p className="text-muted-foreground text-sm">No preview available.</p>
           ) : (
             <div className="flex flex-col gap-3">
@@ -283,15 +294,14 @@ export function AutoMatchDialog({
             type="button"
             variant="outline"
             onClick={() => onOpenChange(false)}
-            disabled={pending}
           >
-            Cancel
+            {bootError ? "Close" : "Cancel"}
           </Button>
           <Button
             type="button"
             variant="outline"
             onClick={handleShuffle}
-            disabled={pending}
+            disabled={pending || Boolean(bootError)}
           >
             <Shuffle className="size-4" />
             Shuffle

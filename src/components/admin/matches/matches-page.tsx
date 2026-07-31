@@ -41,9 +41,10 @@ import {
 } from "@/components/ui/table";
 import type { ParticipantsRecord } from "@/hooks/orval/model/participantsRecord";
 import type { MatchRecord } from "@/hooks/legacy/use-matches";
-import type {
-  AutoMatchPreview,
-  AutoMatchTeam,
+import {
+  buildBracketAutoMatchPreview,
+  type AutoMatchPreview,
+  type AutoMatchTeam,
 } from "@/lib/admin/auto-matches";
 import {
   buildAdvanceRoundPreview,
@@ -253,6 +254,20 @@ export function MatchesPage({
     [matches],
   );
 
+  const openAutoMatchPreview = () => {
+    const check = buildBracketAutoMatchPreview({
+      teams: autoMatchTeams,
+      bracketCount,
+      highestOrder,
+      defaultBestOf,
+    });
+    if (!check.ok) {
+      toast.error(check.error);
+      return;
+    }
+    setAutoMatchOpen(true);
+  };
+
   const openAdvancePreview = () => {
     const source = findAdvanceSourceRound(bracketInputs);
     if (!source.ok) {
@@ -300,7 +315,7 @@ export function MatchesPage({
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setAutoMatchOpen(true)}
+                  onClick={openAutoMatchPreview}
                   disabled={autoMatchPending}
                 >
                   <Shuffle className="size-4" />
@@ -369,7 +384,7 @@ export function MatchesPage({
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setAutoMatchOpen(true)}
+                  onClick={openAutoMatchPreview}
                 >
                   <Shuffle className="size-4" />
                   Auto matches
