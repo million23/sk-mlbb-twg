@@ -43,7 +43,7 @@ function toPayload(
     max_teams: maxTeams,
     min_team_size: Number(values.min_team_size),
     max_team_size: Number(values.max_team_size),
-    bracket_count: existing?.bracket_count ?? 1,
+    bracket_count: existing?.bracket_count ?? 4,
     bracket_format: (existing?.bracket_format ??
       "single_elimination") as Collections["tournaments"]["bracket_format"],
     match_best_of: Number(values.match_best_of),

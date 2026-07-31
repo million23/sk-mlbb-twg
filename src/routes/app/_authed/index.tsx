@@ -75,7 +75,7 @@ function toCard(t: TournamentFields): PlatformTournamentCard | null {
     archived: t.archived ?? false,
     min_team_size: 1,
     max_team_size: 1,
-    bracket_count: 1,
+    bracket_count: 4,
     bracket_format: "single_elimination",
     match_best_of: 1,
   };

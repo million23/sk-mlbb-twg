@@ -11,10 +11,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  SK_BRACKET_COUNT,
+  SK_TEAMS_PER_BRACKET,
   type AutoMatchPreview,
   type AutoMatchPreviewRow,
   type AutoMatchTeam,
-  buildAutoMatchPreview,
+  buildBracketAutoMatchPreview,
 } from "@/lib/admin/auto-matches";
 import { Shuffle } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -26,8 +28,18 @@ export type AutoMatchDialogProps = {
   teams: AutoMatchTeam[];
   highestOrder: number;
   defaultBestOf?: number;
+  /** Equal brackets to fill (SK default 4). Team count must be a multiple. */
+  bracketCount?: number;
   pending?: boolean;
   onConfirm: (preview: AutoMatchPreview) => Promise<void> | void;
+  /** When set, show this preview instead of generating Round 1 from teams. */
+  seedPreview?: AutoMatchPreview | null;
+  title?: string;
+  description?: string;
+  /** Custom reshuffle (advance / playoffs). Defaults to Round-1 bracket shuffle. */
+  onShufflePreview?: () =>
+    | { ok: true; preview: AutoMatchPreview }
+    | { ok: false; error: string };
 };
 
 export function AutoMatchDialog({
@@ -36,14 +48,21 @@ export function AutoMatchDialog({
   teams,
   highestOrder,
   defaultBestOf = 3,
+  bracketCount = SK_BRACKET_COUNT,
   pending,
   onConfirm,
+  seedPreview = null,
+  title = "Auto match preview",
+  description,
+  onShufflePreview,
 }: AutoMatchDialogProps) {
   const [preview, setPreview] = useState<AutoMatchPreview | null>(null);
+  const seeded = seedPreview != null;
 
-  const makePreview = () =>
-    buildAutoMatchPreview({
+  const makeRound1Preview = () =>
+    buildBracketAutoMatchPreview({
       teams,
+      bracketCount,
       highestOrder,
       defaultBestOf,
     });
@@ -53,25 +72,33 @@ export function AutoMatchDialog({
       setPreview(null);
       return;
     }
-    const next = buildAutoMatchPreview({
-      teams,
-      highestOrder,
-      defaultBestOf,
-    });
-    if (!next) {
-      toast.error("Need at least 2 active teams");
+    if (seedPreview) {
+      setPreview(seedPreview);
+      return;
+    }
+    const next = makeRound1Preview();
+    if (!next.ok) {
+      toast.error(next.error);
       onOpenChange(false);
       return;
     }
-    setPreview(next);
-  }, [open, teams, highestOrder, defaultBestOf, onOpenChange]);
+    setPreview(next.preview);
+  }, [open, seedPreview, teams, highestOrder, defaultBestOf, bracketCount, onOpenChange]);
 
   const bulkRound = preview?.rows[0]?.round ?? "Round 1";
   const bulkBestOf = preview?.rows[0]?.bestOf ?? defaultBestOf;
+  const perBracket =
+    bracketCount > 0 ? Math.floor(teams.length / bracketCount) : 0;
+
+  const defaultDescription = seeded
+    ? "Review pairings before creating matches."
+    : `${teams.length} team${teams.length === 1 ? "" : "s"} → ${bracketCount} brackets${perBracket > 0 ? ` (${perBracket} each)` : ""}. Pairings stay inside each bracket.${perBracket === SK_TEAMS_PER_BRACKET ? " Full SK field (16 per bracket)." : ""}`;
 
   const updateRow = (
     index: number,
-    patch: Partial<Pick<AutoMatchPreviewRow, "round" | "order" | "bestOf">>,
+    patch: Partial<
+      Pick<AutoMatchPreviewRow, "round" | "order" | "bestOf" | "bracket">
+    >,
   ) => {
     setPreview((prev) => {
       if (!prev) return prev;
@@ -96,14 +123,31 @@ export function AutoMatchDialog({
     });
   };
 
+  const handleShuffle = () => {
+    if (onShufflePreview) {
+      const next = onShufflePreview();
+      if (!next.ok) {
+        toast.error(next.error);
+        return;
+      }
+      setPreview(next.preview);
+      return;
+    }
+    const next = makeRound1Preview();
+    if (!next.ok) {
+      toast.error(next.error);
+      return;
+    }
+    setPreview(next.preview);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[min(90vh,720px)] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
         <DialogHeader className="flex flex-col gap-1 border-b border-border px-6 py-4 text-left">
-          <DialogTitle>Auto match preview</DialogTitle>
+          <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
-            Review the generated pairings before creating matches.{" "}
-            {teams.length} active team{teams.length === 1 ? "" : "s"} available.
+            {description ?? defaultDescription}
           </DialogDescription>
         </DialogHeader>
 
@@ -152,6 +196,11 @@ export function AutoMatchDialog({
                       <Badge variant="outline" className="font-mono text-xs">
                         M{index + 1}
                       </Badge>
+                      {row.bracket ? (
+                        <Badge variant="secondary" className="text-xs">
+                          {row.bracket}
+                        </Badge>
+                      ) : null}
                       <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 text-sm">
                         <span className="truncate text-right font-medium">
                           {row.teamA.name}
@@ -215,10 +264,14 @@ export function AutoMatchDialog({
                 ))}
               </div>
 
-              {preview.leftOut ? (
+              {preview.leftOut.length > 0 ? (
                 <div className="rounded-lg border border-border/70 bg-muted/20 px-3 py-2 text-sm">
-                  <span className="text-muted-foreground">Unpaired team:</span>{" "}
-                  <span className="font-medium">{preview.leftOut.name}</span>
+                  <span className="text-muted-foreground">
+                    Unpaired this round:
+                  </span>{" "}
+                  <span className="font-medium">
+                    {preview.leftOut.map((t) => t.name).join(", ")}
+                  </span>
                 </div>
               ) : null}
             </div>
@@ -237,14 +290,7 @@ export function AutoMatchDialog({
           <Button
             type="button"
             variant="outline"
-            onClick={() => {
-              const next = makePreview();
-              if (!next) {
-                toast.error("Need at least 2 active teams");
-                return;
-              }
-              setPreview(next);
-            }}
+            onClick={handleShuffle}
             disabled={pending}
           >
             <Shuffle className="size-4" />

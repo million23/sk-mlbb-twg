@@ -90,6 +90,7 @@ export interface Collections {
         teamA?: string;
         teamB?: string;
         winner?: string;
+        bracket?: string;
         round?: string;
         order?: number;
         bestOf: number;
