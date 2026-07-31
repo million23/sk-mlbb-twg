@@ -181,14 +181,19 @@ export function ParticipantDetailSheet({
                 label="Team intent"
                 value={TEAM_INTENT_LABELS[intent]}
               />
-              {intent !== "open_matching" ? (
+              {intent === "open_matching" ? (
+                <DetailRow
+                  label="Matching"
+                  value="Unassigned until Auto teams on the Teams page"
+                />
+              ) : (
                 <DetailRow
                   label={
                     intent === "join_team" ? "Preferred team" : "Team name"
                   }
                   value={preferredTeamLabel}
                 />
-              ) : null}
+              )}
               {view.registration_status_code ? (
                 <DetailRow
                   label="Status code"

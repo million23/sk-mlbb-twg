@@ -21,7 +21,7 @@ A Phase value allowed for residency: 4, 9, or 10.
 _Avoid_: Phase 10-A / Phase 10-B as Phase field values
 
 **Team intent**:
-The registrant’s choice early in registration (right after consent): open matching, join an existing listed team, or create/name a preferred team. Create-team may register multiple teammates (2–6, clamped by tournament team size) in one session. Create-team submit immediately creates (or reuses) a `forming` team row for committee verify; roster assign happens after approve.
+The registrant’s choice early in registration (right after consent): open matching, join an existing listed team, or create/name a preferred team. Create-team may register multiple teammates (2–6, clamped by tournament team size) in one session. Create-team submit immediately creates (or reuses) a `forming` team row for committee verify; roster assign happens after approve. Open matching stays unassigned after approve until the committee runs **Auto teams** on the Teams page (lane-balanced squads of 5; leftovers stay for Quick team).
 _Avoid_: Team preference (ambiguous), fill mode alone
 
 **Phase-9 team rule**:

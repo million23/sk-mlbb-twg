@@ -339,12 +339,17 @@ export function VerifyPage({ initialCode = "" }: VerifyPageProps) {
                       : receipt.team_intent || "—"
                   }
                 />
-                {intent !== "open_matching" ? (
+                {intent === "open_matching" ? (
+                  <ReceiptRow
+                    label="Matching"
+                    value="Unassigned until committee runs Auto teams"
+                  />
+                ) : (
                   <ReceiptRow
                     label={intent === "join_team" ? "Preferred team" : "Team name"}
                     value={receipt.preferred_team_name || "—"}
                   />
-                ) : null}
+                )}
                 <ReceiptRow
                   label="Roster status"
                   value={receipt.status || "—"}

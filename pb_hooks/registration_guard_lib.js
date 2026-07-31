@@ -117,6 +117,97 @@ function hasActiveDuplicate(app, filter, params) {
   }
 }
 
+var ELIGIBLE_PHASES = { "4": true, "9": true, "10": true };
+
+/** Prefer calendar date prefix (avoids TZ day-shift). */
+function dayFromDateField(raw) {
+  const s = String(raw || "").trim();
+  if (!s) return "";
+  const m = /^(\d{4}-\d{2}-\d{2})/.exec(s);
+  if (m) return m[1];
+  try {
+    const d = new Date(s);
+    if (isNaN(d.getTime())) return "";
+    const y = d.getFullYear();
+    const mo = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return y + "-" + mo + "-" + day;
+  } catch (err) {
+    return "";
+  }
+}
+
+/** Age-check day: tournament start, else registration window end/start. */
+function resolveTournamentDayFromRecord(tournament) {
+  if (!tournament) return "";
+  return (
+    dayFromDateField(tournament.get("start_at")) ||
+    dayFromDateField(tournament.get("registration_close_at")) ||
+    dayFromDateField(tournament.get("registration_open_at")) ||
+    ""
+  );
+}
+
+/** Calendar age on tournament day (YYYY-MM-DD). Null if invalid. */
+function ageOnTournamentDay(birthdate, tournamentDay) {
+  const b = String(birthdate || "").trim();
+  const day = String(tournamentDay || "").trim();
+  if (!b || !day) return null;
+  const birth = new Date(b + "T00:00:00");
+  const td = new Date(day + "T00:00:00");
+  if (isNaN(birth.getTime()) || isNaN(td.getTime())) return null;
+  let age = td.getFullYear() - birth.getFullYear();
+  const m = td.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && td.getDate() < birth.getDate())) age -= 1;
+  return age;
+}
+
+/**
+ * Phase 4/9/10 + age 15+ on tournament day. Applies to all creates
+ * (public + admin) so API bypass cannot skip eligibility.
+ */
+function enforceEligibilityGuards(e) {
+  const tournamentId = String(e.record.get("tournament") || "").trim();
+  if (!tournamentId) {
+    throw new BadRequestError("Tournament is required");
+  }
+
+  let tournament;
+  try {
+    tournament = e.app.findRecordById("tournaments", tournamentId);
+  } catch (err) {
+    console.log("[sk-guard] tournament lookup failed", err);
+    throw new BadRequestError("Tournament not found");
+  }
+
+  const tournamentDay = resolveTournamentDayFromRecord(tournament);
+  if (!tournamentDay) {
+    throw new BadRequestError(
+      "Tournament date is missing — set start_at on the tournament.",
+    );
+  }
+
+  const phase = String(e.record.get("address_phase") || "").trim();
+  if (!ELIGIBLE_PHASES[phase]) {
+    throw new BadRequestError("Phase must be 4, 9, or 10");
+  }
+
+  const birthdate = String(e.record.get("birthdate") || "").trim();
+  const age = ageOnTournamentDay(birthdate, tournamentDay);
+  if (age === null) {
+    throw new BadRequestError("Invalid birthdate");
+  }
+  if (age < 15) {
+    throw new BadRequestError(
+      "Must be 15+ on tournament day (age on " +
+        tournamentDay +
+        ": " +
+        age +
+        ")",
+    );
+  }
+}
+
 function enforceCreateGuards(e) {
   const body = requestBody(e);
   const headers = requestHeaders(e);
@@ -179,6 +270,8 @@ function enforceCreateGuards(e) {
   if (email) e.record.set("email", email);
   if (userId) e.record.set("user_id", userId);
   if (serverId) e.record.set("server_id", serverId);
+
+  enforceEligibilityGuards(e);
 
   if (tournamentId && email) {
     if (
@@ -445,8 +538,12 @@ function lookupByStatusCode(app, rawCode) {
 
 module.exports = {
   enforceCreateGuards,
+  enforceEligibilityGuards,
   ensureFormingTeamForCreateIntent,
   emailAvailable,
   listedJoinableTeams,
   lookupByStatusCode,
+  dayFromDateField,
+  resolveTournamentDayFromRecord,
+  ageOnTournamentDay,
 };
