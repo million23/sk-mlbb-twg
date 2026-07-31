@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
 	createTeamFormationGate,
 	nameKey,
+	planJoinTeamAssign,
 	resolveCreateTeamRecord,
 } from "./ensure-create-team";
 
@@ -69,5 +70,60 @@ describe("createTeamFormationGate", () => {
 			{ id: "c", registration_status: "rejected" },
 		]);
 		expect(gate).toEqual({ ready: false, reason: "no_approved" });
+	});
+});
+
+describe("planJoinTeamAssign", () => {
+	it("proceeds for join_team with preferred_team", () => {
+		expect(
+			planJoinTeamAssign({
+				team_intent: "join_team",
+				id: "p1",
+				preferred_team: "team_sample",
+				team: "",
+				status: "unassigned",
+			}),
+		).toEqual({
+			proceed: true,
+			participantId: "p1",
+			teamId: "team_sample",
+		});
+	});
+
+	it("skips open_matching", () => {
+		expect(
+			planJoinTeamAssign({
+				team_intent: "open_matching",
+				id: "p1",
+				preferred_team: "team_sample",
+			}),
+		).toEqual({ assigned: false, reason: "not_join_team" });
+	});
+
+	it("requires preferred_team", () => {
+		expect(
+			planJoinTeamAssign({
+				team_intent: "join_team",
+				id: "p1",
+				preferred_team: "",
+			}),
+		).toEqual({ assigned: false, reason: "missing_team" });
+	});
+
+	it("no-ops when already on preferred team", () => {
+		expect(
+			planJoinTeamAssign({
+				team_intent: "join_team",
+				id: "p1",
+				preferred_team: "team_sample",
+				team: "team_sample",
+				status: "assigned",
+			}),
+		).toEqual({
+			assigned: true,
+			teamId: "team_sample",
+			teamName: "",
+			alreadyAssigned: true,
+		});
 	});
 });

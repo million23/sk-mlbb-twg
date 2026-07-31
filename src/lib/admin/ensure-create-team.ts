@@ -24,6 +24,18 @@ export type EnsureCreateTeamResult =
       createdNew: boolean;
     };
 
+export type EnsureJoinTeamResult =
+  | {
+      assigned: false;
+      reason: "not_join_team" | "missing_team" | "team_not_found" | "missing_participant";
+    }
+  | {
+      assigned: true;
+      teamId: string;
+      teamName: string;
+      alreadyAssigned: boolean;
+    };
+
 function withAudit(
   data: Record<string, unknown>,
   mode: "create" | "update",
@@ -97,6 +109,97 @@ export function resolveCreateTeamRecord(
     if (hit) return hit;
   }
   return teams.find((t) => nameKey(t.name) === preferredNameKey);
+}
+
+/** Pure precheck before network assign for join_team approve. */
+export function planJoinTeamAssign(participant: {
+  team_intent?: string | null;
+  id?: string;
+  preferred_team?: string | null;
+  team?: string | null;
+  status?: string | null;
+}):
+  | Extract<EnsureJoinTeamResult, { assigned: false }>
+  | Extract<EnsureJoinTeamResult, { assigned: true; alreadyAssigned: true }>
+  | { proceed: true; participantId: string; teamId: string } {
+  if (participant.team_intent !== "join_team") {
+    return { assigned: false, reason: "not_join_team" };
+  }
+  const participantId = participant.id?.trim() ?? "";
+  if (!participantId) {
+    return { assigned: false, reason: "missing_participant" };
+  }
+  const teamId = participant.preferred_team?.trim() ?? "";
+  if (!teamId) {
+    return { assigned: false, reason: "missing_team" };
+  }
+  if (participant.team === teamId && participant.status === "assigned") {
+    return {
+      assigned: true,
+      teamId,
+      teamName: "",
+      alreadyAssigned: true,
+    };
+  }
+  return { proceed: true, participantId, teamId };
+}
+
+/**
+ * After approving a join-team registrant: assign them to preferred_team.
+ * Registration only stores the preference; roster assign happens on approve.
+ */
+export async function ensureJoinTeamAfterApprove(input: {
+  tournamentId: string;
+  participant: ParticipantsRecord;
+  minReady?: number;
+}): Promise<EnsureJoinTeamResult> {
+  const { tournamentId, participant, minReady = 5 } = input;
+  const plan = planJoinTeamAssign(participant);
+  if ("assigned" in plan) return plan;
+
+  const { participantId, teamId } = plan;
+  const teamsRes = await getCollectionsTeamsRecords({
+    page: 1,
+    perPage: 1,
+    filter: `id = "${teamId}" && tournament = "${tournamentId}" && archived != true`,
+  });
+  const team = unwrapOrvalListItems<TeamsRecord>(teamsRes)[0];
+  if (!team?.id) {
+    return { assigned: false, reason: "team_not_found" };
+  }
+
+  await patchCollectionsParticipantsRecordsId(
+    participantId,
+    withAudit(
+      {
+        team: teamId,
+        status: "assigned",
+      },
+      "update",
+    ) as unknown as ParticipantsRecord,
+  );
+
+  const membersRes = await getCollectionsParticipantsRecords({
+    page: 1,
+    perPage: 500,
+    filter: `tournament = "${tournamentId}" && archived != true && team = "${teamId}" && status = "assigned"`,
+  });
+  const memberCount =
+    unwrapOrvalListItems<ParticipantsRecord>(membersRes).length;
+  const nextStatus = statusForCount(memberCount, team.status, minReady);
+  if (nextStatus) {
+    await patchCollectionsTeamsRecordsId(
+      teamId,
+      withAudit({ status: nextStatus }, "update") as unknown as TeamsRecord,
+    );
+  }
+
+  return {
+    assigned: true,
+    teamId,
+    teamName: team.name?.trim() || teamId,
+    alreadyAssigned: false,
+  };
 }
 
 /**

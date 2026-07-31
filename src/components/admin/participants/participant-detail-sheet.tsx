@@ -101,6 +101,13 @@ export function ParticipantDetailSheet({
     Boolean(view.preferred_team_name?.trim()) &&
     !view.team &&
     Boolean(onFormCreateTeam);
+  const canAssignJoinTeam =
+    canManage &&
+    intent === "join_team" &&
+    view.registration_status === "approved" &&
+    Boolean(view.preferred_team?.trim()) &&
+    !view.team &&
+    Boolean(onFormCreateTeam);
   const blockReason = isPending
     ? committeeApproveBlockReason(
         view,
@@ -235,6 +242,18 @@ export function ParticipantDetailSheet({
                     Reject
                   </Button>
                 </div>
+              ) : null}
+              {canAssignJoinTeam ? (
+                <Button
+                  type="button"
+                  disabled={formTeamPending}
+                  onClick={onFormCreateTeam}
+                >
+                  <UsersRound className="size-4" />
+                  {formTeamPending
+                    ? "Assigning…"
+                    : "Assign to preferred team"}
+                </Button>
               ) : null}
               {canFormCreateTeam ? (
                 <Button

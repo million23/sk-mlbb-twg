@@ -354,14 +354,19 @@ function TournamentParticipantsPage() {
         approvePending={mutations.approve.isPending}
         rejectPending={mutations.reject.isPending}
         archivePending={mutations.archive.isPending}
-        formTeamPending={mutations.formCreateTeam.isPending}
+        formTeamPending={
+          mutations.formCreateTeam.isPending || mutations.formJoinTeam.isPending
+        }
         onApprove={async () => {
           if (!selected?.id || !canManageParticipants) return;
           try {
-            const { teamResult } = await mutations.approve.mutateAsync(
-              selected.id,
-            );
-            if (teamResult.formed) {
+            const { joinResult, teamResult } =
+              await mutations.approve.mutateAsync(selected.id);
+            if (joinResult.assigned && !joinResult.alreadyAssigned) {
+              toast.success(
+                `Approved — joined team "${joinResult.teamName || "preferred team"}"`,
+              );
+            } else if (teamResult.formed) {
               toast.success(
                 teamResult.createdNew
                   ? `Approved — created team "${teamResult.teamName}" with ${teamResult.memberCount} members`
@@ -370,6 +375,13 @@ function TournamentParticipantsPage() {
             } else if (teamResult.reason === "still_pending") {
               toast.success(
                 "Registration approved — team will appear when all teammates with this name are approved",
+              );
+            } else if (
+              joinResult.assigned === false &&
+              joinResult.reason === "team_not_found"
+            ) {
+              toast.success(
+                "Registration approved — preferred team was missing; assign manually",
               );
             } else {
               toast.success("Registration approved");
@@ -381,6 +393,24 @@ function TournamentParticipantsPage() {
         onFormCreateTeam={async () => {
           if (!selected || !canManageParticipants) return;
           try {
+            if (selected.team_intent === "join_team") {
+              const joinResult =
+                await mutations.formJoinTeam.mutateAsync(selected);
+              if (joinResult.assigned && !joinResult.alreadyAssigned) {
+                toast.success(
+                  `Joined team "${joinResult.teamName || "preferred team"}"`,
+                );
+              } else if (joinResult.assigned && joinResult.alreadyAssigned) {
+                toast.success("Already on preferred team");
+              } else if (joinResult.reason === "team_not_found") {
+                toast.error("Preferred team not found or archived");
+              } else if (joinResult.reason === "missing_team") {
+                toast.error("No preferred team on this registrant");
+              } else {
+                toast.error("Could not assign to preferred team");
+              }
+              return;
+            }
             const teamResult =
               await mutations.formCreateTeam.mutateAsync(selected);
             if (teamResult.formed) {

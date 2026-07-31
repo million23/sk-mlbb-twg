@@ -15,6 +15,7 @@ import {
 } from "@/lib/admin/permissions";
 import {
   ensureCreateTeamAfterApprove,
+  ensureJoinTeamAfterApprove,
   maybeArchiveEmptyCreateTeam,
 } from "@/lib/admin/ensure-create-team";
 import { PARTICIPANT_DOC_FIELDS } from "@/lib/admin/participant-files";
@@ -165,11 +166,15 @@ export function useParticipantMutations(tournamentId: string) {
         }) as unknown as ParticipantsRecord,
       );
       const participant = unwrapOrvalRecord<ParticipantsRecord>(res);
+      const joinResult = await ensureJoinTeamAfterApprove({
+        tournamentId,
+        participant,
+      });
       const teamResult = await ensureCreateTeamAfterApprove({
         tournamentId,
         participant,
       });
-      return { participant, teamResult };
+      return { participant, joinResult, teamResult };
     },
     onSuccess: invalidate,
   });
@@ -355,6 +360,17 @@ export function useParticipantMutations(tournamentId: string) {
     onSuccess: invalidate,
   });
 
+  const formJoinTeam = useMutation({
+    mutationFn: async (participant: ParticipantsRecord) => {
+      assertCanManageParticipants();
+      return ensureJoinTeamAfterApprove({
+        tournamentId,
+        participant,
+      });
+    },
+    onSuccess: invalidate,
+  });
+
   return {
     approve,
     reject,
@@ -363,6 +379,7 @@ export function useParticipantMutations(tournamentId: string) {
     create,
     update,
     formCreateTeam,
+    formJoinTeam,
   };
 }
 
