@@ -1,8 +1,11 @@
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { AdminStagger } from "@/components/admin/admin-stagger";
 import { AddMembersDialog } from "@/components/admin/teams/add-members-dialog";
+import { AutoOpenTeamsDialog } from "@/components/admin/teams/auto-open-teams-dialog";
 import { QuickTeamDialog } from "@/components/admin/teams/quick-team-dialog";
 import { TeamDetailSheet } from "@/components/admin/teams/team-detail-sheet";
+import type { AutoOpenTeamsPlan } from "@/lib/admin/auto-open-teams";
+import { openMatchingPool } from "@/lib/admin/auto-open-teams";
 import {
   TeamFormDialog,
   type TeamFormDialogValues,
@@ -51,7 +54,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { ParticipantsRecord } from "@/hooks/orval/model/participantsRecord";
 import type { TeamsRecord } from "@/hooks/orval/model/teamsRecord";
 import type { TeamsRecordStatus } from "@/hooks/orval/model/teamsRecordStatus";
-import { summarizeTeamAgeBracketCounts } from "@/lib/legacy/age";
 import { formatParticipantNameDisplay } from "@/lib/legacy/participant-normalize";
 import { compareRegisteredDesc } from "@/lib/legacy/registered-date";
 import {
@@ -65,6 +67,7 @@ import {
   Plus,
   RotateCcw,
   Search,
+  Shuffle,
   UsersRound,
   Zap,
 } from "lucide-react";
@@ -114,6 +117,7 @@ export type TeamsPageProps = {
   onRetry: () => void;
   formPending?: boolean;
   quickPending?: boolean;
+  autoOpenPending?: boolean;
   assignPending?: boolean;
   archivePending?: boolean;
   removePending?: boolean;
@@ -128,6 +132,7 @@ export type TeamsPageProps = {
     captain: string;
     participantIds: string[];
   }) => Promise<void>;
+  onAutoOpenTeams: (plan: AutoOpenTeamsPlan) => Promise<void>;
   onAssignMembers: (
     teamId: string,
     participantIds: string[],
@@ -186,6 +191,7 @@ export function TeamsPage({
   onRetry,
   formPending,
   quickPending,
+  autoOpenPending,
   assignPending,
   archivePending,
   removePending,
@@ -193,6 +199,7 @@ export function TeamsPage({
   onCreateTeam,
   onUpdateTeam,
   onQuickCreate,
+  onAutoOpenTeams,
   onAssignMembers,
   onRemoveMember,
   onArchive,
@@ -204,6 +211,7 @@ export function TeamsPage({
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<TeamsRecord | null>(null);
   const [quickOpen, setQuickOpen] = useState(false);
+  const [autoOpenOpen, setAutoOpenOpen] = useState(false);
   const [addMembersTeamId, setAddMembersTeamId] = useState<string | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
   const [exportIncludeArchived, setExportIncludeArchived] = useState(false);
@@ -217,6 +225,19 @@ export function TeamsPage({
           p.status !== "inactive",
       ),
     [participants],
+  );
+
+  const openMatchPool = useMemo(
+    () => openMatchingPool(participants),
+    [participants],
+  );
+
+  const existingTeamNames = useMemo(
+    () =>
+      [...teams, ...archivedTeams]
+        .map((t) => t.name?.trim() ?? "")
+        .filter(Boolean),
+    [teams, archivedTeams],
   );
 
   const counts = useMemo(() => {
@@ -381,6 +402,15 @@ export function TeamsPage({
                   <Button
                     type="button"
                     variant="secondary"
+                    onClick={() => setAutoOpenOpen(true)}
+                    disabled={openMatchPool.length < 5}
+                  >
+                    <Shuffle className="size-4" />
+                    Auto teams
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
                     onClick={() => setQuickOpen(true)}
                     disabled={approvedUnassigned.length === 0}
                   >
@@ -539,7 +569,6 @@ export function TeamsPage({
                   <TableBody>
                     {filtered.map((t) => {
                       const members = memberOfTeam(participants, t.id ?? "");
-                      const ageLine = summarizeTeamAgeBracketCounts(members);
                       return (
                         <TableRow
                           key={t.id}
@@ -563,14 +592,7 @@ export function TeamsPage({
                             {captainLabel(t, participants)}
                           </TableCell>
                           <TableCell>
-                            <div className="min-w-0">
-                              <p className="tabular-nums">{members.length}</p>
-                              {ageLine ? (
-                                <p className="text-muted-foreground text-xs text-pretty">
-                                  {ageLine}
-                                </p>
-                              ) : null}
-                            </div>
+                            <p className="tabular-nums">{members.length}</p>
                           </TableCell>
                           <TableCell>
                             <TeamStatusBadge status={t.status} />
@@ -670,6 +692,20 @@ export function TeamsPage({
           onCreate={async (input) => {
             await onQuickCreate(input);
             setQuickOpen(false);
+          }}
+        />
+      ) : null}
+
+      {canManage ? (
+        <AutoOpenTeamsDialog
+          open={autoOpenOpen}
+          onOpenChange={setAutoOpenOpen}
+          participants={participants}
+          existingTeamNames={existingTeamNames}
+          pending={autoOpenPending}
+          onConfirm={async (plan) => {
+            await onAutoOpenTeams(plan);
+            setAutoOpenOpen(false);
           }}
         />
       ) : null}

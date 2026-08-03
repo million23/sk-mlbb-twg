@@ -5,7 +5,7 @@ import {
   EmptyHeader,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { Spinner } from "@/components/ui/spinner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { usePublicTournaments } from "@/hooks/legacy/use-tournaments";
 import { getTournamentStatusLabel } from "@/lib/legacy/tournament-status";
 import { tournamentLabel } from "@/lib/legacy/tournament-label";
@@ -86,6 +86,57 @@ function ScheduleLine({
   );
 }
 
+function TournamentListItemSkeleton({ index }: { index: number }) {
+  return (
+    <li
+      className={cn(
+        "border-border/40",
+        index === 0 ? "border-t border-b" : "border-b",
+      )}
+      aria-hidden
+    >
+      <div className="grid gap-4 px-0 py-7 sm:grid-cols-[7.5rem_minmax(0,1fr)_auto] sm:items-start sm:gap-x-8 sm:py-9">
+        <Skeleton className="h-4 w-16 rounded-md" />
+        <div className="min-w-0 flex flex-col gap-3">
+          <Skeleton className="h-8 w-[85%] max-w-sm rounded-md sm:h-9" />
+          <Skeleton className="h-4 w-40 max-w-full rounded-md" />
+          <div className="flex flex-col gap-2">
+            <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-x-3 sm:grid-cols-[7.25rem_minmax(0,1fr)]">
+              <Skeleton className="h-3 w-20 rounded-md" />
+              <Skeleton className="h-4 w-[70%] max-w-xs rounded-md" />
+            </div>
+            <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-x-3 sm:grid-cols-[7.25rem_minmax(0,1fr)]">
+              <Skeleton className="h-3 w-20 rounded-md" />
+              <Skeleton className="h-4 w-[60%] max-w-xs rounded-md" />
+            </div>
+          </div>
+        </div>
+        <Skeleton className="h-9 w-32 rounded-md sm:mt-1 sm:justify-self-end" />
+      </div>
+    </li>
+  );
+}
+
+function TournamentsPageSkeleton() {
+  return (
+    <div className="grid gap-12 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-start lg:gap-16">
+      <span className="sr-only">Loading tournaments</span>
+      <header className="flex max-w-md flex-col gap-3 lg:sticky lg:top-28">
+        <Skeleton className="h-3 w-20 rounded-md" />
+        <Skeleton className="h-10 w-full max-w-sm rounded-md sm:h-12" />
+        <Skeleton className="h-4 w-full max-w-xs rounded-md" />
+        <Skeleton className="h-4 w-3/4 max-w-56 rounded-md" />
+      </header>
+
+      <ul className="flex flex-col">
+        <TournamentListItemSkeleton index={0} />
+        <TournamentListItemSkeleton index={1} />
+        <TournamentListItemSkeleton index={2} />
+      </ul>
+    </div>
+  );
+}
+
 export function TournamentsPage() {
   const {
     data: tournaments,
@@ -98,10 +149,7 @@ export function TournamentsPage() {
     <LandingShell>
       <main className="relative z-10 mx-auto w-full max-w-7xl flex-1 px-5 py-12 sm:px-8 sm:py-16 lg:px-12 lg:py-20">
         {isLoading ? (
-          <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3">
-            <Spinner className="size-8 text-primary" />
-            <p className="text-muted-foreground text-sm">Loading tournaments…</p>
-          </div>
+          <TournamentsPageSkeleton />
         ) : isError ? (
           <Empty className="min-h-[40vh] border-0">
             <EmptyHeader>

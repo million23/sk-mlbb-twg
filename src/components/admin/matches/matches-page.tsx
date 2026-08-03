@@ -41,15 +41,22 @@ import {
 } from "@/components/ui/table";
 import type { ParticipantsRecord } from "@/hooks/orval/model/participantsRecord";
 import type { MatchRecord } from "@/hooks/legacy/use-matches";
-import type {
-  AutoMatchPreview,
-  AutoMatchTeam,
+import {
+  buildBracketAutoMatchPreview,
+  type AutoMatchPreview,
+  type AutoMatchTeam,
 } from "@/lib/admin/auto-matches";
+import {
+  buildAdvanceRoundPreview,
+  findAdvanceSourceRound,
+  toBracketMatchInput,
+} from "@/lib/admin/bracket-rounds";
 import { getMatchStatusStyle } from "@/lib/legacy/match-status";
 import { cn } from "@/lib/utils";
 import {
   Archive,
   BarChart3,
+  ChevronRight,
   Medal,
   Pencil,
   Plus,
@@ -57,6 +64,7 @@ import {
   Swords,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 
 export type MatchesPageProps = {
   tournamentTitle?: string;
@@ -67,6 +75,8 @@ export type MatchesPageProps = {
   autoMatchTeams: AutoMatchTeam[];
   participants: ParticipantsRecord[];
   defaultBestOf?: number;
+  /** Equal elimination brackets (SK default 4). */
+  bracketCount?: number;
   isLoading: boolean;
   isError: boolean;
   errorMessage?: string;
@@ -199,6 +209,7 @@ export function MatchesPage({
   autoMatchTeams,
   participants,
   defaultBestOf = 3,
+  bracketCount,
   isLoading,
   isError,
   errorMessage,
@@ -219,9 +230,22 @@ export function MatchesPage({
   const [statsMatch, setStatsMatch] = useState<MatchRecord | null>(null);
   const [archiveId, setArchiveId] = useState<string | null>(null);
   const [autoMatchOpen, setAutoMatchOpen] = useState(false);
+  const [advanceOpen, setAdvanceOpen] = useState(false);
+  const [advancePreview, setAdvancePreview] = useState<AutoMatchPreview | null>(
+    null,
+  );
+  const [advanceKind, setAdvanceKind] = useState<
+    "next_round" | "playoffs_ready" | null
+  >(null);
+  const [advanceSourceRound, setAdvanceSourceRound] = useState("Round 1");
 
   const highestOrder = useMemo(
     () => matches.reduce((max, row) => Math.max(max, row.order ?? 0), 0),
+    [matches],
+  );
+
+  const bracketInputs = useMemo(
+    () => matches.map(toBracketMatchInput),
     [matches],
   );
 
@@ -229,6 +253,50 @@ export function MatchesPage({
     () => groupMatchesByRound(matches),
     [matches],
   );
+
+  const openAutoMatchPreview = () => {
+    const check = buildBracketAutoMatchPreview({
+      teams: autoMatchTeams,
+      bracketCount,
+      highestOrder,
+      defaultBestOf,
+    });
+    if (!check.ok) {
+      toast.error(check.error);
+      return;
+    }
+    setAutoMatchOpen(true);
+  };
+
+  const openAdvancePreview = () => {
+    const source = findAdvanceSourceRound(bracketInputs);
+    if (!source.ok) {
+      toast.error(source.error);
+      return;
+    }
+    const result = buildAdvanceRoundPreview({
+      matches: bracketInputs,
+      sourceRound: source.sourceRound,
+      highestOrder,
+      defaultBestOf,
+    });
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+    setAdvanceSourceRound(source.sourceRound);
+    setAdvanceKind(result.kind);
+    setAdvancePreview(result.preview);
+    setAdvanceOpen(true);
+  };
+
+  const reshuffleAdvance = () =>
+    buildAdvanceRoundPreview({
+      matches: bracketInputs,
+      sourceRound: advanceSourceRound,
+      highestOrder,
+      defaultBestOf,
+    });
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
@@ -247,11 +315,20 @@ export function MatchesPage({
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setAutoMatchOpen(true)}
+                  onClick={openAutoMatchPreview}
                   disabled={autoMatchPending}
                 >
                   <Shuffle className="size-4" />
                   Auto matches
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={openAdvancePreview}
+                  disabled={autoMatchPending || matches.length === 0}
+                >
+                  <ChevronRight className="size-4" />
+                  Advance winners
                 </Button>
                 <Button
                   type="button"
@@ -307,7 +384,7 @@ export function MatchesPage({
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setAutoMatchOpen(true)}
+                  onClick={openAutoMatchPreview}
                 >
                   <Shuffle className="size-4" />
                   Auto matches
@@ -359,6 +436,9 @@ export function MatchesPage({
                               <div className="min-w-0">
                                 <p className="truncate font-medium">{label}</p>
                                 <p className="text-muted-foreground text-xs">
+                                  {m.bracket?.trim()
+                                    ? `${m.bracket.trim()} · `
+                                    : ""}
                                   Order {m.order ?? 0}
                                   {m.bestOf != null ? ` · Bo${m.bestOf}` : ""}
                                 </p>
@@ -418,6 +498,9 @@ export function MatchesPage({
                           <div className="min-w-0 flex-1">
                             <p className="font-medium text-sm">{label}</p>
                             <p className="text-muted-foreground text-xs">
+                              {m.bracket?.trim()
+                                ? `${m.bracket.trim()} · `
+                                : ""}
                               Order {m.order ?? 0}
                               {m.bestOf != null ? ` · Bo${m.bestOf}` : ""}
                             </p>
@@ -514,7 +597,45 @@ export function MatchesPage({
           teams={autoMatchTeams}
           highestOrder={highestOrder}
           defaultBestOf={defaultBestOf}
+          bracketCount={bracketCount}
           pending={autoMatchPending}
+          onConfirm={onAutoGenerate}
+        />
+      ) : null}
+
+      {canManage ? (
+        <AutoMatchDialog
+          open={advanceOpen}
+          onOpenChange={(open) => {
+            setAdvanceOpen(open);
+            if (!open) {
+              setAdvancePreview(null);
+              setAdvanceKind(null);
+            }
+          }}
+          teams={autoMatchTeams}
+          highestOrder={highestOrder}
+          defaultBestOf={defaultBestOf}
+          bracketCount={bracketCount}
+          pending={autoMatchPending}
+          seedPreview={advancePreview}
+          title={
+            advanceKind === "playoffs_ready"
+              ? "Playoff quarterfinals preview"
+              : "Advance winners preview"
+          }
+          description={
+            advanceKind === "playoffs_ready"
+              ? `Each bracket is down to 2 teams from ${advanceSourceRound}. Pairings avoid same-bracket rematches.`
+              : `Winners from ${advanceSourceRound}, paired inside each bracket for the next elimination round.`
+          }
+          onShufflePreview={() => {
+            const next = reshuffleAdvance();
+            if (!next.ok) return next;
+            setAdvanceKind(next.kind);
+            setAdvancePreview(next.preview);
+            return { ok: true as const, preview: next.preview };
+          }}
           onConfirm={onAutoGenerate}
         />
       ) : null}

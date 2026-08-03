@@ -7,11 +7,17 @@ import {
 } from "@/hooks/orval/participants-collection/participants-collection";
 import type { ParticipantsRecord } from "@/hooks/orval/model/participantsRecord";
 import { adminParticipantKeys } from "@/hooks/admin/participant-query-keys";
+import { adminTeamKeys } from "@/hooks/admin/team-query-keys";
 import {
   assertPermission,
   canManageParticipants,
   type AdminAuthRecord,
 } from "@/lib/admin/permissions";
+import {
+  ensureCreateTeamAfterApprove,
+  ensureJoinTeamAfterApprove,
+  maybeArchiveEmptyCreateTeam,
+} from "@/lib/admin/ensure-create-team";
 import { PARTICIPANT_DOC_FIELDS } from "@/lib/admin/participant-files";
 import { ApiError, customInstance } from "@/lib/api/mutator/custom-instance";
 import { getAuthRecordId } from "@/lib/legacy/mutation-authors";
@@ -137,10 +143,17 @@ export function useTournamentParticipants(tournamentId: string) {
 
 export function useParticipantMutations(tournamentId: string) {
   const queryClient = useQueryClient();
-  const invalidate = () =>
-    queryClient.invalidateQueries({
+  const invalidate = () => {
+    void queryClient.invalidateQueries({
       queryKey: adminParticipantKeys.list(tournamentId),
     });
+    void queryClient.invalidateQueries({
+      queryKey: adminTeamKeys.list(tournamentId),
+    });
+    void queryClient.invalidateQueries({
+      queryKey: adminTeamKeys.archived(tournamentId),
+    });
+  };
 
   const approve = useMutation({
     mutationFn: async (id: string) => {
@@ -152,7 +165,16 @@ export function useParticipantMutations(tournamentId: string) {
           registration_reject_reason: "",
         }) as unknown as ParticipantsRecord,
       );
-      return unwrapOrvalRecord<ParticipantsRecord>(res);
+      const participant = unwrapOrvalRecord<ParticipantsRecord>(res);
+      const joinResult = await ensureJoinTeamAfterApprove({
+        tournamentId,
+        participant,
+      });
+      const teamResult = await ensureCreateTeamAfterApprove({
+        tournamentId,
+        participant,
+      });
+      return { participant, joinResult, teamResult };
     },
     onSuccess: invalidate,
   });
@@ -167,7 +189,9 @@ export function useParticipantMutations(tournamentId: string) {
           registration_reject_reason: reason.trim() || "No reason given",
         }) as unknown as ParticipantsRecord,
       );
-      return unwrapOrvalRecord<ParticipantsRecord>(res);
+      const participant = unwrapOrvalRecord<ParticipantsRecord>(res);
+      await maybeArchiveEmptyCreateTeam({ tournamentId, participant });
+      return participant;
     },
     onSuccess: invalidate,
   });
@@ -325,7 +349,38 @@ export function useParticipantMutations(tournamentId: string) {
     onSuccess: invalidate,
   });
 
-  return { approve, reject, archive, hardDelete, create, update };
+  const formCreateTeam = useMutation({
+    mutationFn: async (participant: ParticipantsRecord) => {
+      assertCanManageParticipants();
+      return ensureCreateTeamAfterApprove({
+        tournamentId,
+        participant,
+      });
+    },
+    onSuccess: invalidate,
+  });
+
+  const formJoinTeam = useMutation({
+    mutationFn: async (participant: ParticipantsRecord) => {
+      assertCanManageParticipants();
+      return ensureJoinTeamAfterApprove({
+        tournamentId,
+        participant,
+      });
+    },
+    onSuccess: invalidate,
+  });
+
+  return {
+    approve,
+    reject,
+    archive,
+    hardDelete,
+    create,
+    update,
+    formCreateTeam,
+    formJoinTeam,
+  };
 }
 
 export function participantMutationErrorMessage(error: unknown): string {

@@ -41,7 +41,9 @@ sk-mlbb-twg/
     registration_guard_lib.js
     registration_mail.pb.js
     admins_mail.pb.js
+    sk_ops.pb.js
     sk_mail.js
+    sk_discord.js
     views/emails/
 ```
 
@@ -54,12 +56,15 @@ After a test register, logs should show `[sk-mail] registration-received → …
 - Honeypot field `website` (must be empty)
 - Cloudflare Turnstile token `turnstile_token` (skipped for admin auth)
 - Duplicate **email** and **user_id + server_id** per tournament when status is `pending` / `approved`
+- **Create-team** intent: find-or-create a `forming` row in `teams` for `preferred_team_name`, then set `preferred_team` on the registrant (players stay pending / unassigned until committee approve)
 
 Public pre-checks (used by the Vite form):
 
 `GET /sk/registration/email-available?tournament=ID&email=you@example.com` → `{ available: boolean }`
 
 `GET /sk/registration/status?code=123456` → `{ found: false }` or `{ found: true, receipt: { … } }` (no document file fields)
+
+`GET /sk/registration/listed-teams?tournament=ID` → `{ items: [{ id, name }, …] }` (joinable teams only; hides create-team forming placeholders until members are assigned)
 
 ### PocketHost env
 
@@ -70,9 +75,22 @@ Set on the instance (dashboard env / secrets), then **restart**:
 | `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile secret (**required** — no silent skip) |
 | `TURNSTILE_SKIP=1` | Only local escape hatch; otherwise create fails if secret is missing |
 | `SK_APP_ORIGINS` | Optional extra allowlisted site origins for verify-link emails (comma-separated) |
+| `DISCORD_WEBHOOK_URL` | Discord webhook for **ops** alerts: admin logins + errors (optional; skipped if unset) |
 
 Vite app needs matching `VITE_TURNSTILE_SITE_KEY` in `.env` only (public).  
-**Do not** put the secret in any `VITE_*` variable — set it only on PocketHost.
+**Do not** put secrets in any `VITE_*` variable — set them only on PocketHost.
+
+### Discord ops alerts
+
+[`sk_ops.pb.js`](./sk_ops.pb.js) + [`sk_discord.js`](./sk_discord.js) post embeds for:
+
+- **Admin login** success / failure (`admins` password auth)
+- **Record create/update/delete errors** on `participants`, `teams`, `matches`, `match_result`, `tournaments`, `admins`
+- **Mail send failures** from registration hooks (so you see SMTP issues without opening PocketBase logs)
+
+Not used for normal registration success (that stays email-only).
+
+Set `DISCORD_WEBHOOK_URL` on the PocketHost instance (Channel → Integrations → Webhooks → Copy URL), redeploy `pb_hooks/`, then **restart**.
 
 Cloudflare always-pass test keys: [Turnstile testing](https://developers.cloudflare.com/turnstile/troubleshooting/testing/).
 
@@ -90,8 +108,10 @@ Registration-received verify links prefer `app_origin` from the submitting brows
 
 | Trigger | Template |
 | --- | --- |
-| `participants` create | `registration-received` |
-| `participants` → approved / rejected | `registration-approved` / `registration-rejected` |
+| `participants` after create success | `registration-received` |
+| `participants` → approved / rejected (after update success) | `registration-approved` / `registration-rejected` |
 | `admins` password reset / verification | `admin-password-reset` / `admin-verification` |
+
+If approve/reject mail works but registration-received does not, redeploy `pb_hooks/` and **restart** the PocketHost instance — received mail must use `onRecordAfterCreateSuccess` (not mail-after-`e.next()` in create request).
 
 HTML: `views/emails/` (`layout.html` + per-message body).

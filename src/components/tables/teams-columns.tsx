@@ -10,7 +10,6 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@/components/ui/popover";
-import { summarizeTeamAgeBracketCounts } from "@/lib/legacy/age";
 import { getTeamAvatarUrl } from "@/lib/legacy/avatar";
 import { getTeamStatusStyle } from "@/lib/legacy/team-status";
 import { RegisteredDateCell } from "@/components/ui/registered-date-cell";
@@ -109,42 +108,33 @@ export function getTeamsColumns(meta: TeamsTableMeta): ColumnDef<Team>[] {
 				const t = row.original;
 				const members = meta.getMembers(t.id);
 				const count = meta.getMemberCount(t.id);
-				const ageSummary = summarizeTeamAgeBracketCounts(members);
 				return (
 					<div className="flex min-w-0 max-w-full flex-nowrap items-center justify-start gap-1.5">
 						{members.length > 0 ? (
-							<>
-								<Popover>
-									<PopoverTrigger
-										aria-label="View team members"
-										render={
-											<Button
-												variant="ghost"
-												size="sm"
-												className="h-auto shrink-0 py-1 -ml-1"
-											>
-												{count} members
-												<ChevronDown className="ml-0.5 size-4 shrink-0" />
-											</Button>
-										}
-									/>
-									<PopoverContent
-										align="start"
-										className="w-[min(calc(100vw-2rem),22rem)] max-h-[min(70vh,24rem)] overflow-y-auto p-3"
-									>
-										<p className="mb-2 text-xs font-medium text-muted-foreground">
-											Team members
-										</p>
-										<TeamMembersByAgeGroup members={members} />
-									</PopoverContent>
-								</Popover>
-								<span
-									className="min-w-0 max-w-[min(12rem,calc(100%-7rem))] shrink truncate text-xs text-muted-foreground"
-									title={ageSummary}
+							<Popover>
+								<PopoverTrigger
+									aria-label="View team members"
+									render={
+										<Button
+											variant="ghost"
+											size="sm"
+											className="h-auto shrink-0 py-1 -ml-1"
+										>
+											{count} members
+											<ChevronDown className="ml-0.5 size-4 shrink-0" />
+										</Button>
+									}
+								/>
+								<PopoverContent
+									align="start"
+									className="w-[min(calc(100vw-2rem),22rem)] max-h-[min(70vh,24rem)] overflow-y-auto p-3"
 								>
-									{ageSummary}
-								</span>
-							</>
+									<p className="mb-2 text-xs font-medium text-muted-foreground">
+										Team members
+									</p>
+									<TeamMembersByAgeGroup members={members} />
+								</PopoverContent>
+							</Popover>
 						) : (
 							count
 						)}

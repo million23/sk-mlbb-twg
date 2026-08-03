@@ -49,3 +49,18 @@ routerAdd("GET", "/sk/registration/status", (e) => {
 
   return e.json(200, { found: true, receipt: receipt });
 });
+
+/** Public join-team list (hides pending create-team placeholders). */
+routerAdd("GET", "/sk/registration/listed-teams", (e) => {
+  const guard = require(`${__hooks}/registration_guard_lib.js`);
+  const q = e.request.url.query();
+  const tournamentId = String(q.get("tournament") || "").trim();
+
+  if (!tournamentId) {
+    throw new BadRequestError("tournament is required");
+  }
+
+  return e.json(200, {
+    items: guard.listedJoinableTeams(e.app, tournamentId),
+  });
+});

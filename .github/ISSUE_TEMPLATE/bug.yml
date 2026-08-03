@@ -1,0 +1,132 @@
+name: Bug report
+description: Something is broken or behaves incorrectly
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping QA. Describe what you saw as a user.
+        Do **not** paste real passwords, API keys, or unblurred personal IDs/documents.
+
+  - type: textarea
+    id: describe
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+      placeholder: e.g. Submitting registration with Phase 9 shows a blank error and the form does not submit.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: To Reproduce
+      description: Steps to reproduce the behavior.
+      value: |
+        1. Go to '...'
+        2. Click on '....'
+        3. Enter '....'
+        4. See error / wrong result
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: A clear and concise description of what you expected to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: Drag images here if helpful. Blur real personal data.
+      placeholder: Optional
+
+  - type: input
+    id: desktop-os
+    attributes:
+      label: Desktop — OS
+      placeholder: e.g. Windows 11
+
+  - type: input
+    id: desktop-browser
+    attributes:
+      label: Desktop — Browser
+      placeholder: e.g. Chrome, Edge, Safari
+
+  - type: input
+    id: desktop-version
+    attributes:
+      label: Desktop — Browser version
+      placeholder: e.g. 128
+
+  - type: input
+    id: mobile-device
+    attributes:
+      label: Smartphone — Device
+      placeholder: e.g. iPhone 14 / Samsung A54
+
+  - type: input
+    id: mobile-os
+    attributes:
+      label: Smartphone — OS
+      placeholder: e.g. iOS 17 / Android 14
+
+  - type: input
+    id: mobile-browser
+    attributes:
+      label: Smartphone — Browser
+      placeholder: e.g. Safari, Chrome
+
+  - type: input
+    id: mobile-version
+    attributes:
+      label: Smartphone — Browser version
+      placeholder: e.g. 17
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment (test URL)
+      description: Which site URL you used. Do not include passwords.
+      placeholder: https://...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: consistency
+    attributes:
+      label: Consistency
+      options:
+        - Always
+        - Sometimes
+        - Only once
+    validations:
+      required: true
+
+  - type: dropdown
+    id: role
+    attributes:
+      label: Role
+      options:
+        - Public registrant
+        - Admin
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: tournament
+    attributes:
+      label: Tournament name (if relevant)
+      placeholder: Optional
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional notes
+      placeholder: Optional

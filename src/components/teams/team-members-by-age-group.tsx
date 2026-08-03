@@ -1,6 +1,5 @@
 import { GeneratedAvatar } from "@/components/ui/avatar";
 import { getAvatarUrl } from "@/lib/legacy/avatar";
-import { groupParticipantsByTournamentAge } from "@/lib/legacy/age";
 import { formatParticipantNameDisplay } from "@/lib/legacy/participant-normalize";
 import { cn } from "@/lib/utils";
 
@@ -11,6 +10,7 @@ export type TeamMemberWithBirthdate = {
   birthdate?: string;
 };
 
+/** Flat roster list (age brackets are not used). */
 export function TeamMembersByAgeGroup({
   members,
   className,
@@ -18,35 +18,25 @@ export function TeamMembersByAgeGroup({
   members: TeamMemberWithBirthdate[];
   className?: string;
 }) {
-  const groups = groupParticipantsByTournamentAge(members);
-  if (groups.length === 0) return null;
+  if (members.length === 0) return null;
 
   return (
-    <div className={cn("flex flex-col gap-4", className)}>
-      {groups.map((g) => (
-        <div key={g.key} className="flex flex-col gap-1.5">
-          <p className="text-xs font-medium text-muted-foreground">{g.label}</p>
-          <ul className="flex flex-col gap-1.5">
-            {g.items.map((m) => (
-              <li
-                key={m.id}
-                className="flex items-center gap-2 rounded-md border px-2 py-1.5 text-sm"
-              >
-                <GeneratedAvatar
-                  size="sm"
-                  src={getAvatarUrl(m.id)}
-                  alt={
-                    formatParticipantNameDisplay(m.name) || m.gameID || ""
-                  }
-                />
-                <span className="truncate">
-                  {(formatParticipantNameDisplay(m.name) || m.gameID) ?? m.id}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
+    <ul className={cn("flex flex-col gap-1.5", className)}>
+      {members.map((m) => (
+        <li
+          key={m.id}
+          className="flex items-center gap-2 rounded-md border px-2 py-1.5 text-sm"
+        >
+          <GeneratedAvatar
+            size="sm"
+            src={getAvatarUrl(m.id)}
+            alt={formatParticipantNameDisplay(m.name) || m.gameID || ""}
+          />
+          <span className="truncate">
+            {(formatParticipantNameDisplay(m.name) || m.gameID) ?? m.id}
+          </span>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }

@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/responsive-modal";
 import { Input } from "@/components/ui/input";
 import type { ParticipantsRecord } from "@/hooks/orval/model/participantsRecord";
-import { groupParticipantsByTournamentAge } from "@/lib/legacy/age";
 import {
   matchesFuzzyQuery,
   participantSearchHaystack,
@@ -50,19 +49,17 @@ export function AddMembersDialog({
 
   const filtered = useMemo(() => {
     const q = search.trim();
-    const pool = !q
-      ? unassigned
-      : unassigned.filter((p) =>
-          matchesFuzzyQuery(
-            participantSearchHaystack({
-              name: p.name,
-              gameID: p.ign ?? p.user_id,
-              area: p.address_phase,
-            }),
-            q,
-          ),
-        );
-    return groupParticipantsByTournamentAge(pool);
+    if (!q) return unassigned;
+    return unassigned.filter((p) =>
+      matchesFuzzyQuery(
+        participantSearchHaystack({
+          name: p.name,
+          gameID: p.ign ?? p.user_id,
+          area: p.address_phase,
+        }),
+        q,
+      ),
+    );
   }, [unassigned, search]);
 
   const toggle = (id: string) => {
@@ -113,45 +110,38 @@ export function AddMembersDialog({
               No players match this search.
             </p>
           ) : (
-            filtered.map((group) => (
-              <div key={group.key} className="space-y-2">
-                <p className="font-mono text-[0.65rem] text-muted-foreground uppercase tracking-[0.18em]">
-                  {group.label}
-                </p>
-                <ul className="space-y-1.5">
-                  {group.items.map((p) => {
-                    if (!p.id) return null;
-                    const checked = selected.has(p.id);
-                    const roles = (p.preferred_roles?.length
-                      ? p.preferred_roles
-                      : p.preferred_lane
-                        ? [p.preferred_lane]
-                        : []) as PlayerRole[];
-                    return (
-                      <li key={p.id}>
-                        <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border/70 bg-background/60 px-3 py-2.5 hover:border-primary/30">
-                          <Checkbox
-                            checked={checked}
-                            onCheckedChange={() => toggle(p.id!)}
-                          />
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate font-medium text-sm">
-                              {formatParticipantNameDisplay(p.name)}
-                            </span>
-                            <span className="block truncate font-mono text-muted-foreground text-xs">
-                              {p.ign}
-                            </span>
-                          </span>
-                          {roles.length > 0 ? (
-                            <PreferredLaneIcons roles={roles} />
-                          ) : null}
-                        </label>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            ))
+            <ul className="space-y-1.5">
+              {filtered.map((p) => {
+                if (!p.id) return null;
+                const checked = selected.has(p.id);
+                const roles = (p.preferred_roles?.length
+                  ? p.preferred_roles
+                  : p.preferred_lane
+                    ? [p.preferred_lane]
+                    : []) as PlayerRole[];
+                return (
+                  <li key={p.id}>
+                    <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border/70 bg-background/60 px-3 py-2.5 hover:border-primary/30">
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={() => toggle(p.id!)}
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-medium text-sm">
+                          {formatParticipantNameDisplay(p.name)}
+                        </span>
+                        <span className="block truncate font-mono text-muted-foreground text-xs">
+                          {p.ign}
+                        </span>
+                      </span>
+                      {roles.length > 0 ? (
+                        <PreferredLaneIcons roles={roles} />
+                      ) : null}
+                    </label>
+                  </li>
+                );
+              })}
+            </ul>
           )}
         </div>
 

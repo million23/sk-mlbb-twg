@@ -8,6 +8,7 @@ import { useMatchMutations } from "@/hooks/legacy/use-match-mutations";
 import { useMatchesForTournament } from "@/hooks/legacy/use-matches";
 import { useTournaments } from "@/hooks/legacy/use-tournaments";
 import {
+  SK_BRACKET_COUNT,
   type AutoMatchPreview,
   autoMatchCreatePayload,
 } from "@/lib/admin/auto-matches";
@@ -67,6 +68,11 @@ function TournamentMatchesPage() {
     typeof tournament?.match_best_of === "number" && tournament.match_best_of > 0
       ? tournament.match_best_of
       : 3;
+
+  const bracketCount =
+    typeof tournament?.bracket_count === "number" && tournament.bracket_count > 1
+      ? tournament.bracket_count
+      : SK_BRACKET_COUNT;
 
   const isLoading =
     matchesQuery.isLoading ||
@@ -146,16 +152,21 @@ function TournamentMatchesPage() {
 
   const handleAutoGenerate = async (preview: AutoMatchPreview) => {
     const pairCount = preview.rows.length;
-    const leftOutTeam = preview.leftOut;
+    const leftOutNames = preview.leftOut.map((t) => t.name).join(", ");
     try {
       await mutations.createMany.mutateAsync({
         tournamentId,
         matches: autoMatchCreatePayload(preview),
       });
+      const isPlayoffs = preview.rows.some(
+        (r) => (r.bracket ?? "").toLowerCase() === "playoffs",
+      );
       toast.success(
-        leftOutTeam
-          ? `Created ${pairCount} matches. ${leftOutTeam.name} has no opponent this round.`
-          : `Created ${pairCount} matches.`,
+        leftOutNames
+          ? `Created ${pairCount} matches. Unpaired: ${leftOutNames}.`
+          : isPlayoffs
+            ? `Created ${pairCount} playoff quarterfinals.`
+            : `Created ${pairCount} matches across brackets.`,
       );
     } catch (err) {
       toast.error(matchMutationErrorMessage(err));
@@ -172,6 +183,7 @@ function TournamentMatchesPage() {
       autoMatchTeams={autoMatchTeams}
       participants={participantsQuery.data ?? []}
       defaultBestOf={defaultBestOf}
+      bracketCount={bracketCount}
       isLoading={isLoading}
       isError={isError}
       errorMessage={

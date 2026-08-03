@@ -10,19 +10,19 @@ export const LANDING_SUPPORT =
 
 export const LANDING_STEPS = [
   {
+    title: "Choose your team path",
+    blurb:
+      "Get matched with others, join a listed team, or start one with a name you pick.",
+  },
+  {
     title: "Agree to the rules",
     blurb:
-      "Read the SK terms first. Once you agree, you can continue with your registration.",
+      "Read the SK terms. Once you agree, you can continue with your registration.",
   },
   {
-    title: "Tell us about yourself",
+    title: "Share your info and documents",
     blurb:
-      "Share your name, birthday, home address in the barangay, in-game name, and the lane you play.",
-  },
-  {
-    title: "Upload your documents",
-    blurb:
-      "Send a photo of your school ID (front and back) and your purok endorsement. The committee will review everything after.",
+      "Enter your credentials, then upload your school ID and purok endorsement. The committee reviews everything after.",
   },
 ] as const;
 

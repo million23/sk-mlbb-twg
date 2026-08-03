@@ -10,6 +10,8 @@
 		"build": "vite build",
 		"preview": "vite preview",
 		"test": "vitest run",
+		"test:watch": "vitest",
+		"smoke:create-team": "bun run scripts/smoke-create-team-registration.ts",
 		"api:generate": "bun scripts/ensure-openapi.ts && orval --config orval.config.ts"
 	},
 	"dependencies": {

@@ -128,6 +128,7 @@ function TournamentTeamsPage() {
       quickPending={
         mutations.create.isPending || mutations.assignMembers.isPending
       }
+      autoOpenPending={mutations.autoOpenTeams.isPending}
       assignPending={mutations.assignMembers.isPending}
       archivePending={mutations.archive.isPending}
       removePending={mutations.removeMember.isPending}
@@ -180,6 +181,25 @@ function TournamentTeamsPage() {
             participantIds.length >= minReady
               ? `Team "${name}" created with ${participantIds.length} members (Ready).`
               : `Team "${name}" created with ${participantIds.length} member(s).`,
+          );
+        } catch (err) {
+          toast.error(teamMutationErrorMessage(err));
+          throw err;
+        }
+      }}
+      onAutoOpenTeams={async (plan) => {
+        try {
+          const created = await mutations.autoOpenTeams.mutateAsync({
+            teams: plan.teams,
+            minReady,
+          });
+          toast.success(
+            created.length === 1
+              ? `Created "${created[0]?.name}" with ${created[0]?.memberCount} members.`
+              : `Created ${created.length} open-matching teams.` +
+                  (plan.leftoverIds.length
+                    ? ` ${plan.leftoverIds.length} leftover.`
+                    : ""),
           );
         } catch (err) {
           toast.error(teamMutationErrorMessage(err));

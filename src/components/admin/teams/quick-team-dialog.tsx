@@ -20,7 +20,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { ParticipantsRecord } from "@/hooks/orval/model/participantsRecord";
-import { groupParticipantsByTournamentAge } from "@/lib/legacy/age";
 import {
   matchesFuzzyQuery,
   participantSearchHaystack,
@@ -127,21 +126,19 @@ export function QuickTeamDialog({
       .filter((p): p is ParticipantsRecord => p != null);
   }, [suggestedLaneIds, unassigned]);
 
-  const filteredByAge = useMemo(() => {
+  const filteredRoster = useMemo(() => {
     const q = search.trim();
-    const pool = !q
-      ? rosterList
-      : rosterList.filter((p) =>
-          matchesFuzzyQuery(
-            participantSearchHaystack({
-              name: p.name,
-              gameID: p.ign ?? p.user_id,
-              area: p.address_phase,
-            }),
-            q,
-          ),
-        );
-    return groupParticipantsByTournamentAge(pool);
+    if (!q) return rosterList;
+    return rosterList.filter((p) =>
+      matchesFuzzyQuery(
+        participantSearchHaystack({
+          name: p.name,
+          gameID: p.ign ?? p.user_id,
+          area: p.address_phase,
+        }),
+        q,
+      ),
+    );
   }, [rosterList, search]);
 
   const selectedList = useMemo(
@@ -268,43 +265,36 @@ export function QuickTeamDialog({
             ) : null}
 
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
-              {filteredByAge.length === 0 ? (
+              {filteredRoster.length === 0 ? (
                 <p className="text-muted-foreground text-sm">
                   No unassigned players to show.
                 </p>
               ) : (
-                filteredByAge.map((group) => (
-                  <div key={group.key} className="space-y-2">
-                    <p className="font-mono text-[0.65rem] text-muted-foreground uppercase tracking-[0.18em]">
-                      {group.label}
-                    </p>
-                    <ul className="space-y-1.5">
-                      {group.items.map((p) => {
-                        if (!p.id) return null;
-                        const checked = selected.has(p.id);
-                        return (
-                          <li key={p.id}>
-                            <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border/70 bg-background/60 px-3 py-2.5 hover:border-primary/30">
-                              <Checkbox
-                                checked={checked}
-                                onCheckedChange={() => toggle(p.id!)}
-                              />
-                              <span className="min-w-0 flex-1">
-                                <span className="block truncate font-medium text-sm">
-                                  {formatParticipantNameDisplay(p.name)}
-                                </span>
-                                <span className="block truncate font-mono text-muted-foreground text-xs">
-                                  {p.ign}
-                                </span>
-                              </span>
-                              <PreferredLaneIcons roles={laneRoles(p)} />
-                            </label>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
-                ))
+                <ul className="space-y-1.5">
+                  {filteredRoster.map((p) => {
+                    if (!p.id) return null;
+                    const checked = selected.has(p.id);
+                    return (
+                      <li key={p.id}>
+                        <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border/70 bg-background/60 px-3 py-2.5 hover:border-primary/30">
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={() => toggle(p.id!)}
+                          />
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate font-medium text-sm">
+                              {formatParticipantNameDisplay(p.name)}
+                            </span>
+                            <span className="block truncate font-mono text-muted-foreground text-xs">
+                              {p.ign}
+                            </span>
+                          </span>
+                          <PreferredLaneIcons roles={laneRoles(p)} />
+                        </label>
+                      </li>
+                    );
+                  })}
+                </ul>
               )}
             </div>
           </div>

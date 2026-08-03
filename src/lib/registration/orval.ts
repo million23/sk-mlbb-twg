@@ -6,9 +6,12 @@ import { ApiError, customInstance } from "@/lib/api/mutator/custom-instance";
 import { resolveRegistrationAppOrigin } from "@/lib/registration/app-origin";
 import {
 	CONSENT_VERSION,
+	draftForRegistrant,
+	isCreateTeamBatch,
 	type EligiblePhase,
 	type ListedTeam,
 	type RegistrationDraft,
+	type SubmittedRegistrant,
 } from "@/lib/registration/flow";
 
 /** Orval response wrappers don't match PocketBase JSON; unwrap list bodies. */
@@ -87,10 +90,17 @@ export function mapTeamRecord(team: TeamsRecord): ListedTeam | null {
 
 export type SubmitRegistrationInput = {
 	draft: RegistrationDraft;
-	/** Cloudflare Turnstile token from the uploads step. */
+	/** Cloudflare Turnstile token from the documents step. */
 	turnstileToken?: string | null;
 	/** Honeypot — must stay empty. */
 	website?: string;
+};
+
+export type BatchSubmitResult = {
+	submitted: SubmittedRegistrant[];
+	/** Set when a later player failed after earlier successes. */
+	failedIndex?: number;
+	error?: unknown;
 };
 
 const UPLOAD_FIELD_NAMES = [
@@ -208,6 +218,47 @@ export async function createParticipantRecord(
 		...record,
 		registration_status_code: record.registration_status_code || statusCode,
 	};
+}
+
+/**
+ * Submit one or many registrants. Skips indexes already in
+ * `draft.submitted_registrants` (retry after partial failure).
+ */
+export async function createParticipantRecords(
+	input: SubmitRegistrationInput,
+): Promise<BatchSubmitResult> {
+	const { draft, turnstileToken, website } = input;
+	const already = new Map(
+		draft.submitted_registrants.map((s) => [s.index, s] as const),
+	);
+	const count = isCreateTeamBatch(draft) ? draft.member_count : 1;
+	const submitted: SubmittedRegistrant[] = [...draft.submitted_registrants];
+
+	for (let i = 0; i < count; i++) {
+		if (already.has(i)) continue;
+		try {
+			const slice = draftForRegistrant(draft, i);
+			const record = await createParticipantRecord({
+				draft: slice,
+				turnstileToken,
+				website,
+			});
+			const statusCode =
+				record.registration_status_code?.trim() ||
+				generateRegistrationStatusCode();
+			const row: SubmittedRegistrant = {
+				index: i,
+				email: slice.credentials.email.trim(),
+				statusCode,
+			};
+			submitted.push(row);
+			already.set(i, row);
+		} catch (error) {
+			return { submitted, failedIndex: i, error };
+		}
+	}
+
+	return { submitted };
 }
 
 export function registrationApiErrorMessage(error: unknown): string {

@@ -20,6 +20,7 @@ import {
 	DrawerTitle,
 } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
 	Select,
 	SelectContent,
@@ -30,14 +31,25 @@ import {
 } from "@/components/ui/select";
 import skConsentMarkdown from "@/content/sk-consent.md?raw";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { TEAM_INTENT_LABELS } from "@/lib/admin/participant-approval";
 import { LANE_ROLE_LABELS } from "@/lib/legacy/lane-role-icons";
 import { sanitizePhilippineMobileInput } from "@/lib/legacy/philippine-mobile";
 import {
 	ELIGIBLE_PHASES,
-	LANES,
+	NAME_MAX_LENGTH,
+	SERVER_ID_MAX_LENGTH,
+	USER_ID_MAX_LENGTH,
 	ageOnTournamentDay,
+	getCredentialFieldErrors,
+	isCreateTeamBatch,
+	memberCountBounds,
+	PACKAGE_MAX_LENGTH,
+	sanitizeAddressPackage,
+	sanitizeDigits,
+	sanitizePersonName,
 	validateUploadFile,
 	type Action,
+	type CredentialField,
 	type Credentials,
 	type FlowStep,
 	type Lane,
@@ -49,6 +61,7 @@ import { cn } from "@/lib/utils";
 import type { PlayerRole } from "@/types/__pocketbase-types";
 import { Link } from "@tanstack/react-router";
 import {
+	ArrowLeft,
 	CircleCheck,
 	CircleX,
 	Clock3,
@@ -65,10 +78,6 @@ import {
 } from "react";
 import ReactMarkdown from "react-markdown";
 
-function digitsOnly(raw: string, max: number): string {
-	return raw.replace(/\D/g, "").slice(0, max);
-}
-
 const PHASE_LABELS: Record<(typeof ELIGIBLE_PHASES)[number], string> = {
 	"4": "Phase 4",
 	"9": "Phase 9",
@@ -76,11 +85,12 @@ const PHASE_LABELS: Record<(typeof ELIGIBLE_PHASES)[number], string> = {
 };
 
 export const FLOW_STEPS: FlowStep[] = [
-	"consent",
-	"credentials",
 	"team_intent",
 	"team_details",
-	"uploads",
+	"consent",
+	"credentials",
+	"documents",
+	"review",
 	"pending",
 	"approved",
 	"rejected",
@@ -89,14 +99,58 @@ export const FLOW_STEPS: FlowStep[] = [
 export const STEP_LABELS: Record<FlowStep, string> = {
 	closed: "Closed",
 	consent: "Consent",
-	credentials: "Credentials",
 	team_intent: "Team",
+	credentials: "Credentials",
 	team_details: "Squad",
-	uploads: "Uploads",
-	pending: "Pending",
+	documents: "Documents",
+	review: "Review",
+	pending: "Receipt",
 	approved: "Approved",
 	rejected: "Rejected",
 };
+
+export function stepLabelFor(
+	step: FlowStep,
+	intent: TeamIntent | null,
+): string {
+	if (step === "team_details") {
+		return intent === "create_team" ? "Name" : "Select";
+	}
+	return STEP_LABELS[step];
+}
+
+function PlayerChrome({ state }: { state: RegistrationDraft }) {
+	if (!isCreateTeamBatch(state)) return null;
+	const isCaptain = state.active_registrant_index === 0;
+	return (
+		<div
+			className={cn(
+				"flex flex-wrap items-center gap-2 rounded-2xl border px-3 py-2",
+				isCaptain
+					? "border-primary/40 bg-primary/10"
+					: "border-border/70 bg-muted/30",
+			)}
+		>
+			<p
+				className={cn(
+					"font-mono text-[0.7rem] uppercase tracking-wider",
+					isCaptain ? "text-primary" : "text-muted-foreground",
+				)}
+			>
+				Player {state.active_registrant_index + 1} of {state.member_count}
+			</p>
+			{isCaptain ? (
+				<span className="rounded-full border border-primary/35 bg-primary/15 px-2 py-0.5 font-mono text-[0.6rem] text-primary uppercase tracking-[0.14em]">
+					Team captain
+				</span>
+			) : (
+				<span className="font-mono text-[0.6rem] text-muted-foreground uppercase tracking-[0.14em]">
+					Teammate
+				</span>
+			)}
+		</div>
+	);
+}
 
 type Props = {
 	state: RegistrationDraft;
@@ -107,15 +161,27 @@ function Field({
 	label,
 	children,
 	className,
+	error,
 }: {
 	label: string;
 	children: ReactNode;
 	className?: string;
+	error?: string;
 }) {
 	return (
 		<div className={cn("flex flex-col gap-1.5", className)}>
-			<span className="text-muted-foreground text-xs font-medium">{label}</span>
+			<span
+				className={cn(
+					"text-xs font-medium",
+					error ? "text-destructive" : "text-muted-foreground",
+				)}
+			>
+				{label}
+			</span>
 			{children}
+			{error ? (
+				<p className="text-destructive text-xs leading-snug">{error}</p>
+			) : null}
 		</div>
 	);
 }
@@ -227,9 +293,17 @@ export function ConsentStep({ state, dispatch }: Props) {
 				<li>Age 15+ on {state.tournament_day}</li>
 				<li>One pending/approved registration per email</li>
 			</ul>
+			<p className="flex flex-col gap-0.5 rounded-2xl border border-primary/35 bg-primary/10 px-3 py-2.5 text-sm leading-relaxed">
+				<span className="font-medium text-primary">
+					All information you submit must be correct.
+				</span>
+				<span className="text-muted-foreground">
+					Even small errors may cause your registration to be rejected.
+				</span>
+			</p>
 			{state.consent_accepted ? (
-				<p className="inline-flex items-center gap-1.5 text-sm text-success">
-					<CircleCheck className="size-4 shrink-0" aria-hidden />
+				<p className="flex items-center gap-2.5 rounded-2xl border border-success/40 bg-success/15 px-3.5 py-3 text-base font-medium text-success">
+					<CircleCheck className="size-5 shrink-0" aria-hidden />
 					Terms accepted
 				</p>
 			) : (
@@ -313,8 +387,22 @@ export function CredentialsStep({ state, dispatch }: Props) {
 			? "—"
 			: String(age);
 
+	const fieldErrors: Partial<Record<CredentialField, string>> = state.last_error
+		? getCredentialFieldErrors(c, state.tournament_day)
+		: {};
+	if (
+		state.last_error &&
+		/already has a pending|different registration email/i.test(
+			state.last_error,
+		)
+	) {
+		fieldErrors.email = state.last_error;
+	}
+	const err = (key: CredentialField) => fieldErrors[key];
+
 	return (
 		<div className="flex flex-col gap-4">
+			<PlayerChrome state={state} />
 			{!state.tournament_day ? (
 				<p className="rounded-2xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-destructive text-sm">
 					Tournament date is missing. In PocketBase, set{" "}
@@ -331,63 +419,91 @@ export function CredentialsStep({ state, dispatch }: Props) {
 				</p>
 			)}
 			<div className="grid gap-3 sm:grid-cols-2">
-				<Field label="Name">
+				<Field label="Name" error={err("name")}>
 					<Input
 						value={c.name}
-						onChange={(e) => set({ name: e.target.value })}
+						onChange={(e) => set({ name: sanitizePersonName(e.target.value) })}
 						autoComplete="name"
 						placeholder="Full name"
+						maxLength={NAME_MAX_LENGTH}
+						inputMode="text"
+						aria-invalid={Boolean(err("name")) || undefined}
 					/>
 				</Field>
-				<Field label="Email">
+				<Field label="Email" error={err("email")}>
 					<Input
 						type="email"
 						value={c.email}
 						onChange={(e) => set({ email: e.target.value })}
 						autoComplete="email"
 						placeholder="you@example.com"
+						maxLength={254}
+						aria-invalid={Boolean(err("email")) || undefined}
 					/>
 				</Field>
-				<Field label="IGN">
+				<Field label="IGN" error={err("ign")}>
 					<Input
 						value={c.ign}
 						onChange={(e) => set({ ign: e.target.value })}
 						placeholder="In-game name"
+						aria-invalid={Boolean(err("ign")) || undefined}
 					/>
 				</Field>
-				<Field label={`Birthdate (age on day: ${ageLabel})`}>
+				<Field
+					label={`Birthdate (age on day: ${ageLabel})`}
+					error={err("birthdate")}
+				>
 					<BirthdayPicker
 						value={c.birthdate}
 						onChange={(v) => set({ birthdate: v })}
+						aria-invalid={Boolean(err("birthdate"))}
 					/>
 				</Field>
-				<Field label="User ID">
+				<Field label="User ID (8–10 digits)" error={err("user_id")}>
 					<Input
 						value={c.user_id}
-						onChange={(e) => set({ user_id: digitsOnly(e.target.value, 16) })}
+						onChange={(e) =>
+							set({
+								user_id: sanitizeDigits(e.target.value, USER_ID_MAX_LENGTH),
+							})
+						}
 						inputMode="numeric"
 						autoComplete="off"
 						placeholder="123456789"
+						maxLength={USER_ID_MAX_LENGTH}
 						className="tabular-nums"
+						aria-invalid={Boolean(err("user_id")) || undefined}
 					/>
 				</Field>
-				<Field label="Server ID">
+				<Field label="Server ID (4–5 digits)" error={err("server_id")}>
 					<Input
 						value={c.server_id}
-						onChange={(e) => set({ server_id: digitsOnly(e.target.value, 8) })}
+						onChange={(e) =>
+							set({
+								server_id: sanitizeDigits(
+									e.target.value,
+									SERVER_ID_MAX_LENGTH,
+								),
+							})
+						}
 						inputMode="numeric"
 						autoComplete="off"
 						placeholder="2001"
+						maxLength={SERVER_ID_MAX_LENGTH}
 						className="tabular-nums"
+						aria-invalid={Boolean(err("server_id")) || undefined}
 					/>
 				</Field>
-				<div className="col-span-full grid grid-cols-4 gap-2 sm:gap-3">
-					<Field label="Phase" className="min-w-0">
+				<div className="col-span-full grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+					<Field label="Phase" className="min-w-0" error={err("address_phase")}>
 						<Select
 							value={c.address_phase || null}
 							onValueChange={(v) => set({ address_phase: v ?? "" })}
 						>
-							<SelectTrigger className="w-full px-2 sm:px-3">
+							<SelectTrigger
+								className="w-full"
+								aria-invalid={Boolean(err("address_phase")) || undefined}
+							>
 								<SelectValue placeholder="Phase">
 									{(value: string | null) =>
 										value && value in PHASE_LABELS
@@ -407,82 +523,111 @@ export function CredentialsStep({ state, dispatch }: Props) {
 							</SelectContent>
 						</Select>
 					</Field>
-					<Field label="Package" className="min-w-0">
+					<Field
+						label="Package"
+						className="min-w-0"
+						error={err("address_package")}
+					>
 						<Input
 							value={c.address_package}
 							onChange={(e) =>
-								set({ address_package: digitsOnly(e.target.value, 4) })
+								set({
+									address_package: sanitizeAddressPackage(e.target.value),
+								})
 							}
 							inputMode="numeric"
-							placeholder="Pkg"
-							className="tabular-nums px-2 sm:px-3"
+							autoComplete="off"
+							placeholder="12"
+							maxLength={PACKAGE_MAX_LENGTH}
+							className="tabular-nums"
+							aria-invalid={Boolean(err("address_package")) || undefined}
 						/>
 					</Field>
-					<Field label="Block" className="min-w-0">
+					<Field label="Block" className="min-w-0" error={err("address_block")}>
 						<Input
 							value={c.address_block}
 							onChange={(e) =>
-								set({ address_block: digitsOnly(e.target.value, 4) })
+								set({ address_block: sanitizeDigits(e.target.value, 4) })
 							}
 							inputMode="numeric"
 							placeholder="Blk"
-							className="tabular-nums px-2 sm:px-3"
+							className="tabular-nums"
+							aria-invalid={Boolean(err("address_block")) || undefined}
 						/>
 					</Field>
-					<Field label="Lot" className="min-w-0">
+					<Field label="Lot" className="min-w-0" error={err("address_lot")}>
 						<Input
 							value={c.address_lot}
 							onChange={(e) =>
-								set({ address_lot: digitsOnly(e.target.value, 4) })
+								set({ address_lot: sanitizeDigits(e.target.value, 4) })
 							}
 							inputMode="numeric"
 							placeholder="Lot"
-							className="tabular-nums px-2 sm:px-3"
+							className="tabular-nums"
+							aria-invalid={Boolean(err("address_lot")) || undefined}
 						/>
 					</Field>
 				</div>
-				<Field label="Preferred lane">
-					<Select
-						value={c.preferred_lane || null}
+				<Field
+					label="Preferred lane"
+					className="col-span-full"
+					error={err("preferred_lane")}
+				>
+					<RadioGroup
+						value={c.preferred_lane}
 						onValueChange={(v) =>
 							set({ preferred_lane: (v ?? "") as Lane | "" })
 						}
+						className="grid grid-cols-2 gap-2 sm:gap-3"
+						aria-invalid={Boolean(err("preferred_lane")) || undefined}
 					>
-						<SelectTrigger className="w-full gap-2">
-							<SelectValue placeholder="Select lane">
-								{(value: string | null) =>
-									value ? (
-										<span className="flex min-w-0 items-center gap-2">
-											<LaneRoleIcon
-												role={value as PlayerRole}
-												className="size-5 shrink-0"
-											/>
-											<span className="truncate">
-												{LANE_ROLE_LABELS[value as PlayerRole] ?? value}
-											</span>
-										</span>
-									) : null
-								}
-							</SelectValue>
-						</SelectTrigger>
-						<SelectContent>
-							<SelectGroup>
-								{LANES.map((l) => (
-									<SelectItem key={l} value={l}>
-										<span className="flex items-center gap-2">
-											<LaneRoleIcon
-												role={l as PlayerRole}
-												className="size-5 shrink-0"
-											/>
-											<span>{LANE_ROLE_LABELS[l as PlayerRole]}</span>
-										</span>
-									</SelectItem>
-								))}
-							</SelectGroup>
-						</SelectContent>
-					</Select>
+						{(
+							[
+								{ lane: "exp", label: "Experience Lane", className: "" },
+								{ lane: "jungle", label: "Jungle", className: "" },
+								{
+									lane: "mid",
+									label: "Mid Lane",
+									className: "col-span-2",
+								},
+								{ lane: "gold", label: "Gold Lane", className: "" },
+								{ lane: "support", label: "Support", className: "" },
+							] as const
+						).map(({ lane: l, label, className: cellClass }) => {
+							const on = c.preferred_lane === l;
+							const inputId = `preferred-lane-${l}`;
+							return (
+								<label
+									key={l}
+									htmlFor={inputId}
+									className={cn(
+										"relative flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-2xl border px-3 py-3 transition-colors has-focus-visible:ring-2 has-focus-visible:ring-primary/50",
+										cellClass,
+										err("preferred_lane") && !on
+											? "border-destructive/50"
+											: on
+												? "border-primary bg-primary/10"
+												: "border-border hover:bg-muted/60",
+									)}
+								>
+									<RadioGroupItem
+										id={inputId}
+										value={l}
+										className="sr-only"
+									/>
+									<LaneRoleIcon
+										role={l as PlayerRole}
+										className="size-5 shrink-0"
+									/>
+									<span className="whitespace-nowrap text-sm font-medium">
+										{label}
+									</span>
+								</label>
+							);
+						})}
+					</RadioGroup>
 				</Field>
-				<Field label="Contact (optional)">
+				<Field label="Contact (optional)" className="col-span-full">
 					<Input
 						type="tel"
 						inputMode="tel"
@@ -503,6 +648,14 @@ export function CredentialsStep({ state, dispatch }: Props) {
 }
 
 export function TeamIntentStep({ state, dispatch }: Props) {
+	const { min, max } = memberCountBounds(
+		state.min_team_size,
+		state.max_team_size,
+	);
+	const sizeOptions = Array.from(
+		{ length: max - min + 1 },
+		(_, i) => min + i,
+	);
 	const intents: { id: TeamIntent; title: string; blurb: string }[] = [
 		{
 			id: "open_matching",
@@ -512,38 +665,84 @@ export function TeamIntentStep({ state, dispatch }: Props) {
 		{
 			id: "join_team",
 			title: "Join a listed team",
-			blurb: "Next: pick a team. Phase-9 rule applies.",
+			blurb: "Next: enter your details, then pick a listed team.",
 		},
 		{
 			id: "create_team",
 			title: "Create / name a team",
-			blurb: "Next: name your squad. You must be Phase 9.",
+			blurb: `You are the team captain. Register yourself plus ${min - 1}–${max - 1} teammates, then name the squad.`,
 		},
 	];
 
 	return (
-		<div className="grid gap-2">
-			{intents.map((intent) => {
-				const on = state.team_intent === intent.id;
-				return (
-					<button
-						key={intent.id}
-						type="button"
-						onClick={() =>
-							dispatch({ type: "SET_TEAM_INTENT", intent: intent.id })
-						}
-						className={cn(
-							"rounded-2xl border px-4 py-3 text-left transition-colors",
-							on
-								? "border-primary bg-primary/10"
-								: "border-border hover:bg-muted/60",
-						)}
-					>
-						<p className="font-medium text-sm">{intent.title}</p>
-						<p className="text-muted-foreground text-xs">{intent.blurb}</p>
-					</button>
-				);
-			})}
+		<div className="flex flex-col gap-4">
+			<p className="text-muted-foreground text-sm leading-relaxed">
+				Choose how you want to enter. The committee may still prefer teams with
+				a Phase 9 resident — that rule is not enforced in this form right now.
+			</p>
+			<div className="grid gap-2">
+				{intents.map((intent) => {
+					const on = state.team_intent === intent.id;
+					return (
+						<button
+							key={intent.id}
+							type="button"
+							onClick={() =>
+								dispatch({ type: "SET_TEAM_INTENT", intent: intent.id })
+							}
+							className={cn(
+								"rounded-2xl border px-4 py-3 text-left transition-colors",
+								on
+									? "border-primary bg-primary/10"
+									: "border-border hover:bg-muted/60",
+							)}
+						>
+							<p className="font-medium text-sm">{intent.title}</p>
+							<p className="text-muted-foreground text-xs">{intent.blurb}</p>
+						</button>
+					);
+				})}
+			</div>
+			{state.team_intent === "create_team" ? (
+				<div className="flex flex-col gap-3">
+					<p className="rounded-2xl border border-primary/35 bg-primary/10 px-3 py-2 text-sm leading-relaxed">
+						<span className="font-medium text-primary">You are the team captain.</span>{" "}
+						<span className="text-muted-foreground">
+							Player 1 is always the captain (lobby invite goes to them). Enter
+							your details first, then each teammate.
+						</span>
+					</p>
+					<Field label="Squad size (including you as captain)">
+						<Select
+							value={String(state.member_count)}
+							onValueChange={(v) => {
+								const n = Number(v);
+								if (!Number.isFinite(n)) return;
+								dispatch({ type: "SET_MEMBER_COUNT", count: n });
+							}}
+						>
+							<SelectTrigger className="w-full">
+								<SelectValue>
+									{(selected) =>
+										selected
+											? `${selected} players (1 captain + ${Number(selected) - 1} teammates)`
+											: "Choose count"
+									}
+								</SelectValue>
+							</SelectTrigger>
+							<SelectContent>
+								<SelectGroup>
+									{sizeOptions.map((n) => (
+										<SelectItem key={n} value={String(n)}>
+											{n} players
+										</SelectItem>
+									))}
+								</SelectGroup>
+							</SelectContent>
+						</Select>
+					</Field>
+				</div>
+			) : null}
 		</div>
 	);
 }
@@ -564,8 +763,8 @@ function JoinTeamPicker({ state, dispatch }: Props) {
 	return (
 		<div className="flex flex-col gap-3">
 			<p className="text-muted-foreground text-sm leading-relaxed">
-				Search and pick a listed team. Phase-9 rule: the team or you must
-				include a Phase 9 resident.
+				Search and pick a listed team. This is a preference — the committee
+				assigns the final roster.
 			</p>
 			<Field label="Search teams">
 				<Input
@@ -575,7 +774,10 @@ function JoinTeamPicker({ state, dispatch }: Props) {
 					autoComplete="off"
 				/>
 			</Field>
-			<ul className="flex flex-col gap-2" aria-label="Listed teams">
+			<ul
+				className="flex max-h-90 flex-col gap-2 overflow-y-auto overscroll-contain pr-1"
+				aria-label="Listed teams"
+			>
 				{teams.length === 0 ? (
 					<li className="rounded-2xl border border-dashed border-border/70 px-4 py-6 text-center text-muted-foreground text-sm">
 						No teams match your search.
@@ -623,8 +825,9 @@ export function TeamDetailsStep({ state, dispatch }: Props) {
 		return (
 			<div className="flex flex-col gap-3">
 				<p className="text-muted-foreground text-sm leading-relaxed">
-					Name the team you want to create. Only Phase 9 residents can start a
-					team alone.
+					Name the squad for all {state.member_count} registrants. You (Player
+					1) are the team captain — the committee creates the official team
+					after review.
 				</p>
 				<Field label="Preferred team name">
 					<Input
@@ -655,7 +858,7 @@ function formatFileSize(bytes: number): string {
 	return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function UploadsStep({ state, dispatch }: Props) {
+export function DocumentsStep({ state, dispatch }: Props) {
 	const files: { key: keyof Uploads; label: string }[] = [
 		{ key: "school_id_front", label: "School ID — front" },
 		{ key: "school_id_back", label: "School ID — back" },
@@ -664,6 +867,7 @@ export function UploadsStep({ state, dispatch }: Props) {
 
 	return (
 		<div className="flex flex-col gap-3">
+			<PlayerChrome state={state} />
 			<p className="text-muted-foreground text-sm">
 				Attach all three documents (JPG, PNG, WebP, HEIC, or PDF — max 5 MiB
 				each). They upload with your registration for committee review.
@@ -752,6 +956,124 @@ export function UploadsStep({ state, dispatch }: Props) {
 	);
 }
 
+function ReviewRow({ label, value }: { label: string; value: string }) {
+	return (
+		<p className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-x-3 text-sm sm:grid-cols-[7.5rem_minmax(0,1fr)]">
+			<span className="font-mono text-[0.65rem] text-muted-foreground uppercase tracking-[0.14em]">
+				{label}
+			</span>
+			<span className="min-w-0 text-pretty text-foreground/90">{value}</span>
+		</p>
+	);
+}
+
+function reviewUploadsLabel(uploads: Uploads): string {
+	const parts = (
+		[
+			["School ID front", uploads.school_id_front],
+			["School ID back", uploads.school_id_back],
+			["Purok endorsement", uploads.purok_endorsement],
+		] as const
+	).map(([label, file]) =>
+		file ? `${label}: ${file.name}` : `${label}: missing`,
+	);
+	return parts.join(" · ");
+}
+
+export function ReviewStep({ state }: Props) {
+	const batch = isCreateTeamBatch(state);
+	const count = batch ? state.member_count : 1;
+	const registrants = state.registrants.slice(0, count);
+	const intent = state.team_intent;
+	const intentLabel =
+		intent && intent in TEAM_INTENT_LABELS
+			? TEAM_INTENT_LABELS[intent]
+			: "—";
+	const teamValue =
+		intent === "join_team"
+			? (state.listed_teams.find((t) => t.id === state.preferred_team)?.name ??
+				"—")
+			: intent === "create_team"
+				? state.preferred_team_name.trim() || "—"
+				: "Open matching";
+
+	return (
+		<div className="flex flex-col gap-4">
+			<p className="text-muted-foreground text-sm leading-relaxed">
+				Check everything below, then submit. Nothing is sent until you confirm.
+			</p>
+
+			<section className="flex flex-col gap-2 rounded-2xl border border-border/70 px-4 py-3">
+				<p className="font-mono text-[0.65rem] text-primary uppercase tracking-[0.18em]">
+					Team
+				</p>
+				<ReviewRow label="Intent" value={intentLabel} />
+				<ReviewRow
+					label={intent === "create_team" ? "Team name" : "Team"}
+					value={teamValue}
+				/>
+				{batch ? (
+					<ReviewRow
+						label="Squad size"
+						value={`${count} players (you are captain)`}
+					/>
+				) : null}
+				<ReviewRow
+					label="Consent"
+					value={
+						state.consent_accepted
+							? state.consent_version ?? "Accepted"
+							: "Not accepted"
+					}
+				/>
+			</section>
+
+			{registrants.map((reg, index) => {
+				const c = reg.credentials;
+				const lane =
+					c.preferred_lane && c.preferred_lane in LANE_ROLE_LABELS
+						? LANE_ROLE_LABELS[c.preferred_lane as PlayerRole]
+						: c.preferred_lane || "—";
+				const key = c.email.trim().toLowerCase() || `player-${c.user_id}-${c.ign}`;
+				return (
+					<section
+						key={key}
+						className="flex flex-col gap-2 rounded-2xl border border-border/70 px-4 py-3"
+					>
+						<p className="font-mono text-[0.65rem] text-primary uppercase tracking-[0.18em]">
+							{batch
+								? index === 0
+									? `Player ${index + 1} · Team captain`
+									: `Player ${index + 1} · Teammate`
+								: "Player"}
+						</p>
+						<ReviewRow label="Name" value={c.name.trim() || "—"} />
+						<ReviewRow label="Email" value={c.email.trim() || "—"} />
+						<ReviewRow label="IGN" value={c.ign.trim() || "—"} />
+						<ReviewRow label="Birthdate" value={c.birthdate || "—"} />
+						<ReviewRow
+							label="User / Server"
+							value={`${c.user_id.trim() || "—"} / ${c.server_id.trim() || "—"}`}
+						/>
+						<ReviewRow
+							label="Address"
+							value={`Phase ${c.address_phase} · Pkg ${c.address_package} · Blk ${c.address_block} · Lot ${c.address_lot}`}
+						/>
+						<ReviewRow label="Lane" value={lane} />
+						{c.contact_number.trim() ? (
+							<ReviewRow label="Contact" value={c.contact_number.trim()} />
+						) : null}
+						<ReviewRow
+							label="Documents"
+							value={reviewUploadsLabel(reg.uploads)}
+						/>
+					</section>
+				);
+			})}
+		</div>
+	);
+}
+
 function OutcomeShell({
 	tone,
 	icon,
@@ -834,18 +1156,54 @@ function OutcomeShell({
 
 export function OutcomeStep({ state }: Props) {
 	if (state.step === "pending") {
-		const email = state.credentials.email.trim();
-		const code = state.registration_status_code?.trim() || "";
+		const batch =
+			state.submitted_registrants.length > 0
+				? state.submitted_registrants
+				: state.registration_status_codes.map((statusCode, index) => ({
+						index,
+						email:
+							state.registrants[index]?.credentials.email.trim() ||
+							state.credentials.email.trim(),
+						statusCode,
+					}));
+		const multi = batch.length > 1;
+		const code = batch[0]?.statusCode?.trim() || "";
+		const email = batch[0]?.email?.trim() || state.credentials.email.trim();
 		return (
 			<OutcomeShell
 				tone="pending"
 				icon={<Clock3 className="size-6" />}
 				eyebrow="Registration received"
-				title="You’re in the review queue"
-				body="The SK committee will check your credentials and documents. Save your status code — the same one is emailed to you for tracking approval."
+				title={
+					multi
+						? "Your team is in the review queue"
+						: "You’re in the review queue"
+				}
+				body={
+					multi
+						? "Each teammate got their own status code by email. Save every code below for tracking."
+						: "The SK committee will check your credentials and documents. Save your status code — the same one is emailed to you for tracking approval."
+				}
 				details={
 					<div className="flex flex-col gap-3">
-						{code ? (
+						{multi ? (
+							<ul className="flex flex-col gap-2">
+								{batch.map((row) => (
+									<li
+										key={`${row.index}-${row.statusCode}`}
+										className="rounded-2xl border border-primary/30 bg-primary/5 px-4 py-3"
+									>
+										<p className="font-mono text-[0.65rem] text-muted-foreground uppercase tracking-[0.18em]">
+											Player {row.index + 1}
+											{row.email ? ` · ${row.email}` : ""}
+										</p>
+										<p className="mt-1 font-mono text-2xl tracking-[0.22em] text-foreground">
+											{row.statusCode}
+										</p>
+									</li>
+								))}
+							</ul>
+						) : code ? (
 							<div className="rounded-2xl border border-primary/30 bg-primary/5 px-4 py-4 text-center">
 								<p className="font-mono text-[0.65rem] text-muted-foreground uppercase tracking-[0.18em]">
 									Your status code
@@ -855,7 +1213,7 @@ export function OutcomeStep({ state }: Props) {
 								</p>
 							</div>
 						) : null}
-						{email ? (
+						{!multi && email ? (
 							<div className="flex items-start gap-3 rounded-2xl border border-border/70 bg-muted/30 px-4 py-3 text-left">
 								<Mail
 									className="mt-0.5 size-4 shrink-0 text-primary"
@@ -872,8 +1230,10 @@ export function OutcomeStep({ state }: Props) {
 					</div>
 				}
 				next={[
-					"Check your inbox (and spam) for the registration-received email with this code.",
-					"Open Verify registration and enter this code to check pending / approved / rejected.",
+					multi
+						? "Each player should check inbox (and spam) for their own registration-received email."
+						: "Check your inbox (and spam) for the registration-received email with this code.",
+					"Open Verify registration and enter a status code to check pending / approved / rejected.",
 					"No walk-in encoding needed unless the committee asks.",
 				]}
 				actions={
@@ -882,11 +1242,9 @@ export function OutcomeStep({ state }: Props) {
 							size="lg"
 							variant="outline"
 							className="w-full sm:w-auto"
-							render={
-								<Link to="/verify" search={{ code }} />
-							}
+							render={<Link to="/verify" search={{ code }} />}
 						>
-							Verify this code
+							Verify {multi ? "first code" : "this code"}
 						</Button>
 					) : (
 						<Button
@@ -941,8 +1299,10 @@ export function StepBody(props: Props) {
 			return <TeamIntentStep {...props} />;
 		case "team_details":
 			return <TeamDetailsStep {...props} />;
-		case "uploads":
-			return <UploadsStep {...props} />;
+		case "documents":
+			return <DocumentsStep {...props} />;
+		case "review":
+			return <ReviewStep {...props} />;
 		case "pending":
 		case "approved":
 		case "rejected":
@@ -954,6 +1314,24 @@ export function StepBody(props: Props) {
 
 export function ErrorBanner({ state }: { state: RegistrationDraft }) {
 	if (!state.last_error) return null;
+
+	// Credential validation (and email-taken API errors) render on the fields.
+	if (state.step === "credentials") {
+		const fieldErrors = getCredentialFieldErrors(
+			state.credentials,
+			state.tournament_day,
+		);
+		const fieldMsgs = Object.values(fieldErrors);
+		if (fieldMsgs.includes(state.last_error)) return null;
+		if (
+			/already has a pending|different registration email/i.test(
+				state.last_error,
+			)
+		) {
+			return null;
+		}
+	}
+
 	return (
 		<div
 			role="alert"
@@ -986,23 +1364,37 @@ export function NavRow({
 		state.step === "credentials" ||
 		state.step === "team_intent" ||
 		state.step === "team_details" ||
-		state.step === "uploads";
+		state.step === "documents" ||
+		state.step === "review";
 
 	if (!fillable) return null;
 
+	const onLastDocumentPlayer =
+		state.step === "documents" &&
+		(!isCreateTeamBatch(state) ||
+			state.active_registrant_index >= state.member_count - 1);
+
+	const showSubmitButton = Boolean(showSubmit) || state.step === "review";
+
 	return (
-		<div className="flex flex-wrap items-center gap-2">
+		<div className="flex w-full flex-row items-stretch gap-2">
 			<Button
 				type="button"
 				variant="outline"
+				size="lg"
+				className="min-h-12 w-12 shrink-0 px-0 sm:w-auto sm:flex-1 sm:px-4"
 				onClick={() => dispatch({ type: "BACK" })}
-				disabled={state.step === "consent" || submitting}
+				disabled={state.step === "team_intent" || submitting}
+				aria-label="Back"
 			>
-				Back
+				<ArrowLeft className="size-5 sm:hidden" aria-hidden />
+				<span className="hidden sm:inline">Back</span>
 			</Button>
-			{state.step === "uploads" || showSubmit ? (
+			{showSubmitButton ? (
 				<Button
 					type="button"
+					size="lg"
+					className="min-h-12 flex-[1.4]"
 					onClick={() => onSubmit?.()}
 					disabled={submitting || !onSubmit || submitDisabled}
 				>
@@ -1010,18 +1402,28 @@ export function NavRow({
 						? "Submitting…"
 						: submitDisabled
 							? "Complete verification…"
-							: "Submit registration"}
+							: isCreateTeamBatch(state)
+								? "Submit team registration"
+								: "Submit registration"}
 				</Button>
 			) : (
 				<Button
 					type="button"
+					size="lg"
+					className="min-h-12 flex-[1.4]"
 					onClick={() => {
 						if (onContinue) void onContinue();
 						else dispatch({ type: "NEXT" });
 					}}
 					disabled={submitting}
 				>
-					{submitting ? "Checking…" : "Continue"}
+					{submitting
+						? "Checking…"
+						: state.step === "documents" || state.step === "credentials"
+							? isCreateTeamBatch(state) && !onLastDocumentPlayer
+								? "Next player"
+								: "Continue"
+							: "Continue"}
 				</Button>
 			)}
 		</div>

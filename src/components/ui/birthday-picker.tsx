@@ -34,6 +34,7 @@ function getDaysInMonth(year: number, month: number): number {
 const currentYear = new Date().getFullYear();
 const MIN_YEAR = 1950;
 const MAX_YEAR = currentYear;
+const YEAR_MAX_LENGTH = 4;
 
 export interface BirthdayPickerProps {
   value?: string;
@@ -41,6 +42,7 @@ export interface BirthdayPickerProps {
   id?: string;
   className?: string;
   disabled?: boolean;
+  "aria-invalid"?: boolean;
 }
 
 function toYYYYMMDD(year: number, month: number, day: number): string {
@@ -58,42 +60,56 @@ function parseNum(raw: string | null | undefined): number | null {
   return Number.isNaN(n) ? null : n;
 }
 
+function parseValue(value: string | undefined): {
+  year: string;
+  month: string;
+  day: string;
+} {
+  if (!value?.trim()) return { year: "", month: "", day: "" };
+  // Parse YYYY-MM-DD without Date() timezone shifts.
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+  if (m?.[1] && m[2] && m[3]) {
+    return {
+      year: m[1],
+      month: String(Number(m[2])),
+      day: String(Number(m[3])),
+    };
+  }
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return { year: "", month: "", day: "" };
+  return {
+    year: d.getFullYear().toString(),
+    month: (d.getMonth() + 1).toString(),
+    day: d.getDate().toString(),
+  };
+}
+
 export function BirthdayPicker({
   value,
   onChange,
   id,
   className,
   disabled,
+  "aria-invalid": ariaInvalid,
 }: BirthdayPickerProps) {
-  const parsed = React.useMemo(() => {
-    if (!value?.trim()) return { year: "", month: "", day: "" };
-    // Parse YYYY-MM-DD without Date() timezone shifts.
-    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
-    if (m) {
-      return {
-        year: m[1]!,
-        month: String(Number(m[2])),
-        day: String(Number(m[3])),
-      };
-    }
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return { year: "", month: "", day: "" };
-    return {
-      year: d.getFullYear().toString(),
-      month: (d.getMonth() + 1).toString(),
-      day: d.getDate().toString(),
-    };
-  }, [value]);
+  const parsed = React.useMemo(() => parseValue(value), [value]);
 
   const [month, setMonth] = React.useState(parsed.month);
   const [day, setDay] = React.useState(parsed.day);
   const [year, setYear] = React.useState(parsed.year);
 
+  /** Last value we pushed via onChange — distinguishes our clears from external resets. */
+  const lastCommittedRef = React.useRef(value?.trim() ?? "");
+
   React.useEffect(() => {
-    setMonth(parsed.month);
-    setDay(parsed.day);
-    setYear(parsed.year);
-  }, [parsed.month, parsed.day, parsed.year]);
+    const next = value?.trim() ?? "";
+    if (next === lastCommittedRef.current) return;
+    lastCommittedRef.current = next;
+    const p = parseValue(next);
+    setMonth(p.month);
+    setDay(p.day);
+    setYear(p.year);
+  }, [value]);
 
   const daysInMonth = React.useMemo(() => {
     const y = parseNum(year) ?? currentYear;
@@ -103,7 +119,7 @@ export function BirthdayPicker({
 
   const days = React.useMemo(
     () => Array.from({ length: daysInMonth }, (_, i) => i + 1),
-    [daysInMonth]
+    [daysInMonth],
   );
 
   const commit = React.useCallback(
@@ -111,24 +127,34 @@ export function BirthdayPicker({
       const mn = parseNum(m);
       const dn = parseNum(d);
       const yn = parseNum(y);
-      if (mn === null || dn === null || yn === null) {
-        onChange?.("");
+      const yearComplete = y.trim().length === YEAR_MAX_LENGTH;
+
+      const valid =
+        mn !== null &&
+        dn !== null &&
+        yn !== null &&
+        yearComplete &&
+        mn >= 1 &&
+        mn <= 12 &&
+        dn >= 1 &&
+        dn <= getDaysInMonth(yn, mn) &&
+        yn >= MIN_YEAR &&
+        yn <= MAX_YEAR;
+
+      if (!valid) {
+        if (lastCommittedRef.current) {
+          lastCommittedRef.current = "";
+          onChange?.("");
+        }
         return;
       }
-      if (
-        mn < 1 ||
-        mn > 12 ||
-        dn < 1 ||
-        dn > getDaysInMonth(yn, mn) ||
-        yn < MIN_YEAR ||
-        yn > MAX_YEAR
-      ) {
-        onChange?.("");
-        return;
-      }
-      onChange?.(toYYYYMMDD(yn, mn, dn));
+
+      const next = toYYYYMMDD(yn, mn, dn);
+      if (next === lastCommittedRef.current) return;
+      lastCommittedRef.current = next;
+      onChange?.(next);
     },
-    [onChange]
+    [onChange],
   );
 
   const handleMonthChange = (v: string | null) => {
@@ -137,7 +163,7 @@ export function BirthdayPicker({
     const dn = parseNum(day);
     const yn = parseNum(year);
     const mn = parseNum(next);
-    if (mn !== null && dn !== null && yn !== null) {
+    if (mn !== null && dn !== null && yn !== null && year.length === YEAR_MAX_LENGTH) {
       const clampedDay = Math.min(dn, getDaysInMonth(yn, mn));
       setDay(clampedDay.toString());
       commit(next, clampedDay.toString(), year);
@@ -153,12 +179,17 @@ export function BirthdayPicker({
   };
 
   const handleYearChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const v = e.target.value.replace(/\D/g, "");
+    const v = e.target.value.replace(/\D/g, "").slice(0, YEAR_MAX_LENGTH);
     setYear(v);
     const dn = parseNum(day);
     const yn = parseNum(v);
     const mn = parseNum(month);
-    if (yn !== null && dn !== null && mn !== null) {
+    if (
+      yn !== null &&
+      dn !== null &&
+      mn !== null &&
+      v.length === YEAR_MAX_LENGTH
+    ) {
       const clampedDay = Math.min(dn, getDaysInMonth(yn, mn));
       setDay(clampedDay.toString());
       commit(month, clampedDay.toString(), v);
@@ -170,16 +201,23 @@ export function BirthdayPicker({
   return (
     <fieldset
       id={id}
-      className={cn("m-0 flex min-w-0 gap-2 border-0 p-0", className)}
+      className={cn(
+        "m-0 grid min-w-0 grid-cols-2 gap-2 border-0 p-0 sm:grid-cols-[minmax(0,1fr)_5.5rem_6.5rem]",
+        className,
+      )}
       aria-label="Birthday"
       disabled={disabled}
     >
       <Select value={month} onValueChange={handleMonthChange}>
-        <SelectTrigger className="flex-1 min-w-0">
+        <SelectTrigger
+          className="col-span-2 min-w-0 w-full sm:col-span-1"
+          aria-invalid={ariaInvalid || undefined}
+        >
           <SelectValue placeholder="Month">
-            {(value) =>
-              value != null && value !== ""
-                ? (MONTHS.find((m) => m.value === value)?.label ?? String(value))
+            {(selected) =>
+              selected != null && selected !== ""
+                ? (MONTHS.find((m) => m.value === selected)?.label ??
+                  String(selected))
                 : null
             }
           </SelectValue>
@@ -195,9 +233,14 @@ export function BirthdayPicker({
         </SelectContent>
       </Select>
       <Select value={day} onValueChange={handleDayChange}>
-        <SelectTrigger className="w-20 shrink-0">
+        <SelectTrigger
+          className="min-w-0 w-full"
+          aria-invalid={ariaInvalid || undefined}
+        >
           <SelectValue placeholder="Day">
-            {(value) => (value != null && value !== "" ? String(value) : null)}
+            {(selected) =>
+              selected != null && selected !== "" ? String(selected) : null
+            }
           </SelectValue>
         </SelectTrigger>
         <SelectContent>
@@ -217,7 +260,10 @@ export function BirthdayPicker({
         value={year}
         onChange={handleYearChange}
         placeholder="Year"
-        className="w-24 shrink-0"
+        maxLength={YEAR_MAX_LENGTH}
+        className="min-w-0 w-full tabular-nums"
+        autoComplete="bday-year"
+        aria-invalid={ariaInvalid || undefined}
       />
     </fieldset>
   );

@@ -76,83 +76,90 @@ export function HomePage() {
           </ol>
         </section>
 
-        {/* Eligibility — editorial checklist, not a card grid */}
-        <section className="relative z-10 mx-auto w-full max-w-7xl px-5 py-16 sm:px-8 sm:py-24 lg:px-12 lg:py-28">
-          <div className="grid gap-12 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-16 lg:items-start">
-            <div className="flex max-w-md flex-col gap-3 lg:sticky lg:top-28">
-              <p className="font-mono text-[0.65rem] text-primary uppercase tracking-[0.24em]">
-                {LANDING_WHO_EYEBROW}
-              </p>
-              <h2 className="text-balance font-serif text-3xl tracking-tight sm:text-4xl lg:text-5xl">
-                {LANDING_WHO_HEADLINE}
-              </h2>
-              <p className="text-pretty text-muted-foreground text-sm leading-relaxed sm:text-base">
-                {LANDING_WHO_SUPPORT}
-              </p>
-            </div>
+        {/* Eligibility — stacked manifesto chapters */}
+        <section className="relative z-10 mx-auto w-full max-w-7xl px-5 py-16 sm:px-8 sm:py-24 lg:px-12">
+          <header className="mx-auto flex max-w-2xl flex-col items-center gap-3 text-center">
+            <p className="font-mono text-[0.65rem] text-primary uppercase tracking-[0.24em]">
+              {LANDING_WHO_EYEBROW}
+            </p>
+            <h2 className="text-balance font-serif text-3xl tracking-tight sm:text-5xl">
+              {LANDING_WHO_HEADLINE}
+            </h2>
+            <p className="text-pretty text-muted-foreground text-sm sm:text-base">
+              {LANDING_WHO_SUPPORT}
+            </p>
+          </header>
 
-            <ul className="flex flex-col">
-              {LANDING_WHO.map((item, i) => (
-                <li
-                  key={item.title}
-                  className={cn(
-                    "group border-border/40 py-8 sm:py-10",
-                    i === 0 ? "border-t border-b" : "border-b",
-                  )}
+          <ol className="mt-14 flex flex-col sm:mt-20">
+            {LANDING_WHO.map((item, i) => (
+              <li
+                key={item.title}
+                className="relative overflow-hidden border-t border-border/40 py-12 last:border-b sm:py-16"
+              >
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute -right-2 top-6 select-none font-mono text-[clamp(4rem,14vw,9rem)] font-bold leading-none text-primary/10 tabular-nums"
                 >
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-[17rem_minmax(0,1fr)] sm:items-baseline sm:gap-x-8">
-                    <span className="whitespace-nowrap font-mono text-2xl font-medium leading-none tracking-tight text-primary transition-transform duration-500 ease-out group-hover:translate-x-1 sm:text-3xl">
-                      {item.mark}
-                    </span>
-                    <h3 className="font-heading text-lg font-medium tracking-tight sm:text-xl">
-                      {item.title}
-                    </h3>
-                    <p className="max-w-md text-pretty text-muted-foreground text-sm leading-relaxed sm:col-start-2 sm:text-base">
-                      {item.blurb}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <div className="relative flex max-w-3xl flex-col gap-4">
+                  <p className="font-mono text-[0.65rem] text-muted-foreground uppercase tracking-[0.2em]">
+                    {item.title}
+                  </p>
+                  <p className="font-serif text-3xl tracking-tight text-foreground sm:text-5xl">
+                    {item.mark}
+                  </p>
+                  <p className="max-w-xl text-pretty text-muted-foreground text-sm leading-relaxed sm:text-base">
+                    {item.blurb}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ol>
         </section>
 
-        {/* Closing CTA — one job, one action */}
-        <section className="relative z-10 px-5 pb-28 pt-8 sm:px-8 sm:pb-36 sm:pt-12 lg:px-12">
-          <div className="relative mx-auto flex w-full max-w-7xl flex-col items-start gap-8 border-t border-border/50 pt-14 sm:gap-10 sm:pt-20">
-            <p className="font-mono text-[0.65rem] text-primary uppercase tracking-[0.24em]">
-              Open registration
-            </p>
-            <h2 className="max-w-4xl text-balance font-serif text-[clamp(2.25rem,6vw,4.5rem)] leading-[1.02] tracking-tight">
-              {LANDING_CTA_HEADLINE}
-            </h2>
-            <p className="max-w-xl text-pretty text-muted-foreground text-sm leading-relaxed sm:text-base lg:text-lg">
-              {LANDING_CTA_SUPPORT}
-            </p>
-            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
-              <Button
-                size="lg"
-                className="w-full sm:w-auto"
-                render={<Link to="/register" />}
-              >
-                Start registration
-                <ArrowRight data-icon="inline-end" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="lg"
-                className="w-full text-muted-foreground sm:w-auto"
-                render={<Link to="/verify" />}
-              >
-                Already registered? Check status
-              </Button>
+        {/* Closing CTA — coral slab */}
+        <section className="relative z-10 px-5 pb-28 sm:px-8 sm:pb-36 lg:px-12">
+          <div className="relative mx-auto w-full max-w-7xl overflow-hidden border border-primary/30 bg-primary/10 px-6 py-14 sm:px-12 sm:py-20">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute -bottom-16 -left-10 select-none font-serif text-[clamp(6rem,22vw,14rem)] leading-none text-primary/15"
+            >
+              Join
+            </div>
+            <div className="relative flex max-w-2xl flex-col gap-6">
+              <p className="font-mono text-[0.65rem] text-primary uppercase tracking-[0.24em]">
+                Open registration
+              </p>
+              <h2 className="text-balance font-serif text-4xl tracking-tight sm:text-6xl">
+                {LANDING_CTA_HEADLINE}
+              </h2>
+              <p className="text-pretty text-foreground/80 text-sm leading-relaxed sm:text-base">
+                {LANDING_CTA_SUPPORT}
+              </p>
+              <div className="flex flex-col gap-4 pt-2">
+                <Button
+                  size="lg"
+                  className="w-full sm:w-fit"
+                  render={<Link to="/register" />}
+                >
+                  Start registration
+                  <ArrowRight data-icon="inline-end" />
+                </Button>
+                <Link
+                  to="/verify"
+                  className="font-mono text-[0.65rem] text-muted-foreground uppercase tracking-[0.16em] transition-colors hover:text-foreground"
+                >
+                  Already registered? Check status
+                </Link>
+              </div>
             </div>
           </div>
         </section>
 
         {/* Soft handoff into the footer */}
         <div
-          className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-28 bg-linear-to-t from-background to-transparent"
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-1 h-28 bg-linear-to-t from-background to-transparent"
           aria-hidden
         />
       </div>

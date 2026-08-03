@@ -12,6 +12,7 @@ import {
   patchCollectionsTeamsRecordsId,
   postCollectionsTeamsRecords,
 } from "@/hooks/orval/teams-collection/teams-collection";
+import type { PlannedOpenTeam } from "@/lib/admin/auto-open-teams";
 import {
   assertPermission,
   canManageTeams,
@@ -198,13 +199,16 @@ export function useTeamMutations(tournamentId: string) {
       status?: TeamsRecordStatus;
     }) => {
       assertCanManageTeams();
+      // Omit empty optional relations — PocketBase rejects `captain: ""` on create
+      // ("Cannot be blank" / values should not be empty) even when the field is optional.
+      const captain = values.captain?.trim();
       const res = await postCollectionsTeamsRecords(
         withAuditCreate({
           tournament: tournamentId,
           name: values.name.trim(),
           status: values.status ?? "forming",
           archived: false,
-          captain: values.captain?.trim() || "",
+          ...(captain ? { captain } : {}),
         }) as unknown as TeamsRecord,
       );
       return unwrapOrvalRecord<TeamsRecord>(res);
@@ -368,6 +372,56 @@ export function useTeamMutations(tournamentId: string) {
     },
   });
 
+  /** Create planned open-matching teams and assign members. */
+  const autoOpenTeams = useMutation({
+    mutationFn: async ({
+      teams,
+      minReady = 5,
+    }: {
+      teams: PlannedOpenTeam[];
+      minReady?: number;
+    }) => {
+      assertCanManageTeams();
+      const created: { teamId: string; name: string; memberCount: number }[] =
+        [];
+      for (const planned of teams) {
+        const captain = planned.captainId?.trim() || planned.memberIds[0];
+        const res = await postCollectionsTeamsRecords(
+          withAuditCreate({
+            tournament: tournamentId,
+            name: planned.name.trim(),
+            status: "forming",
+            archived: false,
+            ...(captain ? { captain } : {}),
+          }) as unknown as TeamsRecord,
+        );
+        const team = unwrapOrvalRecord<TeamsRecord>(res);
+        if (!team.id) throw new Error("Team was created without an id");
+        for (const pid of planned.memberIds) {
+          await patchParticipant(pid, {
+            team: team.id,
+            status: "assigned",
+          });
+        }
+        await syncTeamRosterMeta({
+          teamId: team.id,
+          memberCount: planned.memberIds.length,
+          currentStatus: "forming",
+          captainId: captain,
+          memberIds: planned.memberIds,
+          minReady,
+        });
+        created.push({
+          teamId: team.id,
+          name: planned.name,
+          memberCount: planned.memberIds.length,
+        });
+      }
+      return created;
+    },
+    onSuccess: invalidate,
+  });
+
   return {
     create,
     update,
@@ -376,11 +430,30 @@ export function useTeamMutations(tournamentId: string) {
     assignMembers,
     removeMember,
     syncStatuses,
+    autoOpenTeams,
   };
 }
 
 export function teamMutationErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) return registrationApiErrorMessage(error);
+  if (error instanceof ApiError) {
+    const data = error.data;
+    if (data && typeof data === "object") {
+      const envelope = data as {
+        message?: string;
+        data?: Record<string, { message?: string; code?: string }>;
+      };
+      if (envelope.data && typeof envelope.data === "object") {
+        const entry = Object.entries(envelope.data).find(
+          ([, v]) => v?.message,
+        );
+        if (entry) {
+          const [field, detail] = entry;
+          return `${field}: ${detail?.message}`;
+        }
+      }
+    }
+    return registrationApiErrorMessage(error);
+  }
   if (error instanceof Error) return error.message;
   return "Request failed";
 }

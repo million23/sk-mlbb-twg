@@ -31,7 +31,7 @@ import { ageOnTournamentDay, type ListedTeam } from "@/lib/registration/flow";
 import { LANE_ROLE_LABELS } from "@/lib/legacy/lane-role-icons";
 import { formatParticipantNameDisplay } from "@/lib/legacy/participant-normalize";
 import type { TeamIntent } from "@/lib/registration/flow";
-import { Check, Pencil, Trash2, X } from "lucide-react";
+import { Check, Pencil, Trash2, UsersRound, X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
 function DetailRow({ label, value }: { label: string; value: ReactNode }) {
@@ -55,8 +55,10 @@ export function ParticipantDetailSheet({
   approvePending,
   rejectPending,
   archivePending,
+  formTeamPending,
   onApprove,
   onReject,
+  onFormCreateTeam,
   onEdit,
   onArchive,
 }: {
@@ -71,8 +73,10 @@ export function ParticipantDetailSheet({
   approvePending?: boolean;
   rejectPending?: boolean;
   archivePending?: boolean;
+  formTeamPending?: boolean;
   onApprove: () => void;
   onReject: (reason: string) => void;
+  onFormCreateTeam?: () => void;
   onEdit: () => void;
   onArchive: () => void;
 }) {
@@ -89,6 +93,21 @@ export function ParticipantDetailSheet({
   const view = cached;
 
   const isPending = view.registration_status === "pending";
+  const intent = (view.team_intent ?? "open_matching") as TeamIntent;
+  const canFormCreateTeam =
+    canManage &&
+    intent === "create_team" &&
+    view.registration_status === "approved" &&
+    Boolean(view.preferred_team_name?.trim()) &&
+    !view.team &&
+    Boolean(onFormCreateTeam);
+  const canAssignJoinTeam =
+    canManage &&
+    intent === "join_team" &&
+    view.registration_status === "approved" &&
+    Boolean(view.preferred_team?.trim()) &&
+    !view.team &&
+    Boolean(onFormCreateTeam);
   const blockReason = isPending
     ? committeeApproveBlockReason(
         view,
@@ -98,7 +117,6 @@ export function ParticipantDetailSheet({
       )
     : null;
   const age = ageOnTournamentDay(view.birthdate, tournamentDay);
-  const intent = (view.team_intent ?? "open_matching") as TeamIntent;
   const preferredTeamLabel =
     intent === "join_team"
       ? (teamNameById.get(view.preferred_team ?? "") ??
@@ -163,14 +181,19 @@ export function ParticipantDetailSheet({
                 label="Team intent"
                 value={TEAM_INTENT_LABELS[intent]}
               />
-              {intent !== "open_matching" ? (
+              {intent === "open_matching" ? (
+                <DetailRow
+                  label="Matching"
+                  value="Unassigned until Auto teams on the Teams page"
+                />
+              ) : (
                 <DetailRow
                   label={
                     intent === "join_team" ? "Preferred team" : "Team name"
                   }
                   value={preferredTeamLabel}
                 />
-              ) : null}
+              )}
               {view.registration_status_code ? (
                 <DetailRow
                   label="Status code"
@@ -224,6 +247,30 @@ export function ParticipantDetailSheet({
                     Reject
                   </Button>
                 </div>
+              ) : null}
+              {canAssignJoinTeam ? (
+                <Button
+                  type="button"
+                  disabled={formTeamPending}
+                  onClick={onFormCreateTeam}
+                >
+                  <UsersRound className="size-4" />
+                  {formTeamPending
+                    ? "Assigning…"
+                    : "Assign to preferred team"}
+                </Button>
+              ) : null}
+              {canFormCreateTeam ? (
+                <Button
+                  type="button"
+                  disabled={formTeamPending}
+                  onClick={onFormCreateTeam}
+                >
+                  <UsersRound className="size-4" />
+                  {formTeamPending
+                    ? "Forming team…"
+                    : "Form team from preferred name"}
+                </Button>
               ) : null}
               <div className="flex w-full gap-2">
                 <Button
