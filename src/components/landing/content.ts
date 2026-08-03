@@ -64,12 +64,19 @@ export type AboutOrganizer = {
   role: string;
   /** Public path under `/public` when a photo is ready. */
   image?: string;
+  /**
+   * Optional second photo revealed with a glitch on card hover
+   * (Gerald-only easter egg).
+   */
+  glitchImage?: string;
 };
 
 export const ABOUT_ORGANIZERS: readonly AboutOrganizer[] = [
   {
     name: "Gerald Chavez",
     role: "Software Engineer",
+    // Distinct seed until real photos land under /public
+    glitchImage: "https://i.pravatar.cc/480?u=Gerald%20Chavez%20alt",
   },
   {
     name: 'Rafael "Paeng" Mahinay',

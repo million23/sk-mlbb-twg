@@ -1,6 +1,11 @@
 import { LandingShell } from "@/components/landing/shell";
 import { motion, useReducedMotion } from "motion/react";
-import type { ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 
 import {
   ABOUT_LEADERS,
@@ -9,7 +14,10 @@ import {
   ABOUT_PAGE_EYEBROW,
   ABOUT_PAGE_HEADLINE,
   ABOUT_PAGE_SUPPORT,
+  type AboutOrganizer,
 } from "./content";
+
+const GLITCH_OUT_MS = 700;
 
 function SectionLabel({ children }: { children: string }) {
   return (
@@ -26,14 +34,61 @@ function placeholderSrc(name: string, px: number) {
 function PersonPhoto({
   name,
   image,
+  glitchImage,
   size = "featured",
 }: {
   name: string;
   image?: string;
+  glitchImage?: string;
   size?: "featured" | "member";
 }) {
   const px = size === "featured" ? 480 : 320;
   const src = image ?? placeholderSrc(name, px);
+
+  if (glitchImage) {
+    return (
+      <div className="person-glitch relative aspect-square w-full overflow-hidden border border-border/50 bg-muted/40">
+        <img
+          src={src}
+          alt={name}
+          className="person-glitch-base size-full object-cover grayscale"
+          loading="lazy"
+        />
+        <img
+          src={glitchImage}
+          alt=""
+          aria-hidden
+          data-layer="r"
+          className="person-glitch-alt"
+          loading="lazy"
+        />
+        <img
+          src={glitchImage}
+          alt=""
+          aria-hidden
+          data-layer="g"
+          className="person-glitch-alt"
+          loading="lazy"
+        />
+        <img
+          src={glitchImage}
+          alt=""
+          aria-hidden
+          data-layer="b"
+          className="person-glitch-alt"
+          loading="lazy"
+        />
+        <img
+          src={glitchImage}
+          alt=""
+          aria-hidden
+          data-layer="main"
+          className="person-glitch-alt"
+          loading="lazy"
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="relative aspect-square w-full overflow-hidden border border-border/50 bg-muted/40">
@@ -60,6 +115,81 @@ function FoilName({
     <Tag className={className}>
       <span className="foil-text">{children}</span>
     </Tag>
+  );
+}
+
+type GlitchPhase = "idle" | "on" | "out";
+
+function OrganizerCard({
+  person,
+  index,
+}: {
+  person: AboutOrganizer;
+  index: number;
+}) {
+  const reduceMotion = useReducedMotion();
+  const [glitch, setGlitch] = useState<GlitchPhase>("idle");
+  const glitchRef = useRef<GlitchPhase>("idle");
+  const outTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasGlitch = Boolean(person.glitchImage);
+
+  useEffect(() => {
+    glitchRef.current = glitch;
+  }, [glitch]);
+
+  useEffect(() => {
+    return () => {
+      if (outTimer.current) clearTimeout(outTimer.current);
+    };
+  }, []);
+
+  const onEnter = () => {
+    if (!hasGlitch) return;
+    if (outTimer.current) clearTimeout(outTimer.current);
+    setGlitch("on");
+  };
+
+  const onLeave = () => {
+    if (!hasGlitch) return;
+    if (reduceMotion) {
+      setGlitch("idle");
+      return;
+    }
+    if (glitchRef.current !== "on") return;
+    setGlitch("out");
+    if (outTimer.current) clearTimeout(outTimer.current);
+    outTimer.current = setTimeout(() => setGlitch("idle"), GLITCH_OUT_MS);
+  };
+
+  return (
+    <li
+      className="group/person min-w-0"
+      data-glitch={hasGlitch ? glitch : undefined}
+      onMouseEnter={onEnter}
+      onMouseLeave={onLeave}
+    >
+      <div className="flex flex-col gap-5">
+        <PersonPhoto
+          name={person.name}
+          image={person.image}
+          glitchImage={person.glitchImage}
+        />
+        <div className="flex flex-col gap-2">
+          <p className="font-mono text-[0.65rem] text-muted-foreground uppercase tracking-[0.18em] tabular-nums">
+            {String(index + 1).padStart(2, "0")}
+          </p>
+          <FoilName
+            as="h2"
+            className="font-serif text-xl tracking-tight sm:text-2xl"
+          >
+            {person.name}
+          </FoilName>
+          <p className="text-pretty text-muted-foreground text-sm leading-relaxed">
+            {person.role}
+          </p>
+        </div>
+      </div>
+    </li>
   );
 }
 
@@ -135,25 +265,7 @@ export function AboutPage() {
           <section className="mt-14 sm:mt-20" aria-label="Meet the organizers">
             <ul className="grid grid-cols-1 gap-10 border-t border-border/40 pt-8 sm:grid-cols-3 sm:gap-8 sm:pt-10 lg:gap-10">
               {ABOUT_ORGANIZERS.map((person, i) => (
-                <li key={person.name} className="group/person min-w-0">
-                  <div className="flex flex-col gap-5">
-                    <PersonPhoto name={person.name} image={person.image} />
-                    <div className="flex flex-col gap-2">
-                      <p className="font-mono text-[0.65rem] text-muted-foreground uppercase tracking-[0.18em] tabular-nums">
-                        {String(i + 1).padStart(2, "0")}
-                      </p>
-                      <FoilName
-                        as="h2"
-                        className="font-serif text-xl tracking-tight sm:text-2xl"
-                      >
-                        {person.name}
-                      </FoilName>
-                      <p className="text-pretty text-muted-foreground text-sm leading-relaxed">
-                        {person.role}
-                      </p>
-                    </div>
-                  </div>
-                </li>
+                <OrganizerCard key={person.name} person={person} index={i} />
               ))}
             </ul>
           </section>
