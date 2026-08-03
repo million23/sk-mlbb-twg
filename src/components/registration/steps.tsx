@@ -112,10 +112,34 @@ export function stepLabelFor(
 
 function PlayerChrome({ state }: { state: RegistrationDraft }) {
 	if (!isCreateTeamBatch(state)) return null;
+	const isCaptain = state.active_registrant_index === 0;
 	return (
-		<p className="rounded-2xl border border-border/70 bg-muted/30 px-3 py-2 font-mono text-[0.7rem] uppercase tracking-wider text-muted-foreground">
-			Player {state.active_registrant_index + 1} of {state.member_count}
-		</p>
+		<div
+			className={cn(
+				"flex flex-wrap items-center gap-2 rounded-2xl border px-3 py-2",
+				isCaptain
+					? "border-primary/40 bg-primary/10"
+					: "border-border/70 bg-muted/30",
+			)}
+		>
+			<p
+				className={cn(
+					"font-mono text-[0.7rem] uppercase tracking-wider",
+					isCaptain ? "text-primary" : "text-muted-foreground",
+				)}
+			>
+				Player {state.active_registrant_index + 1} of {state.member_count}
+			</p>
+			{isCaptain ? (
+				<span className="rounded-full border border-primary/35 bg-primary/15 px-2 py-0.5 font-mono text-[0.6rem] text-primary uppercase tracking-[0.14em]">
+					Team captain
+				</span>
+			) : (
+				<span className="font-mono text-[0.6rem] text-muted-foreground uppercase tracking-[0.14em]">
+					Teammate
+				</span>
+			)}
+		</div>
 	);
 }
 
@@ -547,7 +571,7 @@ export function TeamIntentStep({ state, dispatch }: Props) {
 		{
 			id: "create_team",
 			title: "Create / name a team",
-			blurb: `Register ${min}–${max} teammates in one go, then name the squad.`,
+			blurb: `You are the team captain. Register yourself plus ${min - 1}–${max - 1} teammates, then name the squad.`,
 		},
 	];
 
@@ -581,33 +605,44 @@ export function TeamIntentStep({ state, dispatch }: Props) {
 				})}
 			</div>
 			{state.team_intent === "create_team" ? (
-				<Field label="How many teammates are registering now?">
-					<Select
-						value={String(state.member_count)}
-						onValueChange={(v) => {
-							const n = Number(v);
-							if (!Number.isFinite(n)) return;
-							dispatch({ type: "SET_MEMBER_COUNT", count: n });
-						}}
-					>
-						<SelectTrigger className="w-full">
-							<SelectValue>
-								{(selected) =>
-									selected ? `${selected} players` : "Choose count"
-								}
-							</SelectValue>
-						</SelectTrigger>
-						<SelectContent>
-							<SelectGroup>
-								{sizeOptions.map((n) => (
-									<SelectItem key={n} value={String(n)}>
-										{n} players
-									</SelectItem>
-								))}
-							</SelectGroup>
-						</SelectContent>
-					</Select>
-				</Field>
+				<div className="flex flex-col gap-3">
+					<p className="rounded-2xl border border-primary/35 bg-primary/10 px-3 py-2 text-sm leading-relaxed">
+						<span className="font-medium text-primary">You are the team captain.</span>{" "}
+						<span className="text-muted-foreground">
+							Player 1 is always the captain (lobby invite goes to them). Enter
+							your details first, then each teammate.
+						</span>
+					</p>
+					<Field label="Squad size (including you as captain)">
+						<Select
+							value={String(state.member_count)}
+							onValueChange={(v) => {
+								const n = Number(v);
+								if (!Number.isFinite(n)) return;
+								dispatch({ type: "SET_MEMBER_COUNT", count: n });
+							}}
+						>
+							<SelectTrigger className="w-full">
+								<SelectValue>
+									{(selected) =>
+										selected
+											? `${selected} players (1 captain + ${Number(selected) - 1} teammates)`
+											: "Choose count"
+									}
+								</SelectValue>
+							</SelectTrigger>
+							<SelectContent>
+								<SelectGroup>
+									{sizeOptions.map((n) => (
+										<SelectItem key={n} value={String(n)}>
+											{n} players
+										</SelectItem>
+									))}
+								</SelectGroup>
+							</SelectContent>
+						</Select>
+					</Field>
+				</div>
 			) : null}
 		</div>
 	);
@@ -688,8 +723,9 @@ export function TeamDetailsStep({ state, dispatch }: Props) {
 		return (
 			<div className="flex flex-col gap-3">
 				<p className="text-muted-foreground text-sm leading-relaxed">
-					Name the team for all {state.member_count} registrants in this
-					session. The committee will create the official team after review.
+					Name the squad for all {state.member_count} registrants. You (Player
+					1) are the team captain — the committee creates the official team
+					after review.
 				</p>
 				<Field label="Preferred team name">
 					<Input
