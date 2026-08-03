@@ -1,7 +1,7 @@
 /**
  * Public registration flow state machine:
- * window → consent → team intent → credentials (×N for create) →
- * (team select | team name) → documents (×N for create) → pending.
+ * window → team intent → (team select | team name) → consent →
+ * credentials (×N for create) → documents (×N for create) → pending.
  * Phase-9 team rule is deferred (informational copy only).
  */
 
@@ -204,9 +204,9 @@ function persistActive(state: RegistrationDraft): RegistrationDraft {
 
 /** Stepper steps for the current draft. */
 export function wizardStepsFor(state: RegistrationDraft): FlowStep[] {
-	const steps: FlowStep[] = ["consent", "team_intent", "credentials"];
+	const steps: FlowStep[] = ["team_intent"];
 	if (needsTeamDetails(state.team_intent)) steps.push("team_details");
-	steps.push("documents", "pending");
+	steps.push("consent", "credentials", "documents", "pending");
 	return steps;
 }
 
@@ -253,7 +253,7 @@ export function createInitialState(
 ): RegistrationDraft {
 	const first = emptyRegistrant();
 	const base: RegistrationDraft = {
-		step: "consent",
+		step: "team_intent",
 		tournament_id: "",
 		tournament_day: "",
 		registration_open: false,
@@ -567,15 +567,15 @@ const PRESETS: Record<CredentialPreset, Partial<Credentials>> = {
 
 function nextMajorStep(state: RegistrationDraft): FlowStep | null {
 	switch (state.step) {
-		case "consent":
-			return "team_intent";
 		case "team_intent":
-			return "credentials";
-		case "credentials":
 			return needsTeamDetails(state.team_intent)
 				? "team_details"
-				: "documents";
+				: "consent";
 		case "team_details":
+			return "consent";
+		case "consent":
+			return "credentials";
+		case "credentials":
 			return "documents";
 		default:
 			return null;
@@ -584,16 +584,16 @@ function nextMajorStep(state: RegistrationDraft): FlowStep | null {
 
 function prevMajorStep(state: RegistrationDraft): FlowStep | null {
 	switch (state.step) {
-		case "team_intent":
-			return "consent";
-		case "credentials":
-			return "team_intent";
 		case "team_details":
-			return "credentials";
-		case "documents":
+			return "team_intent";
+		case "consent":
 			return needsTeamDetails(state.team_intent)
 				? "team_details"
-				: "credentials";
+				: "team_intent";
+		case "credentials":
+			return "consent";
+		case "documents":
+			return "credentials";
 		default:
 			return null;
 	}
@@ -616,7 +616,7 @@ export function reduce(
 				registration_open: open,
 				step: open
 					? state.step === "closed"
-						? "consent"
+						? "team_intent"
 						: state.step
 					: "closed",
 				last_error: open ? null : "Registration window closed",

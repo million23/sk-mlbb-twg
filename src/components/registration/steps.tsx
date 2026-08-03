@@ -78,10 +78,10 @@ const PHASE_LABELS: Record<(typeof ELIGIBLE_PHASES)[number], string> = {
 };
 
 export const FLOW_STEPS: FlowStep[] = [
-	"consent",
 	"team_intent",
-	"credentials",
 	"team_details",
+	"consent",
+	"credentials",
 	"documents",
 	"pending",
 	"approved",
@@ -1105,7 +1105,7 @@ export function NavRow({
 				type="button"
 				variant="outline"
 				onClick={() => dispatch({ type: "BACK" })}
-				disabled={state.step === "consent" || submitting}
+				disabled={state.step === "team_intent" || submitting}
 			>
 				Back
 			</Button>

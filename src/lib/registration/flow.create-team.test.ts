@@ -25,10 +25,18 @@ function openState(
 	});
 }
 
-function acceptConsent(state: RegistrationDraft): RegistrationDraft {
-	return reduce(reduce(state, { type: "ACCEPT_CONSENT" }), {
-		type: "NEXT",
-	});
+/** From team_intent with create_team already set: walk through team name → consent. */
+function throughConsent(state: RegistrationDraft): RegistrationDraft {
+	let next = reduce(state, { type: "NEXT" });
+	if (next.step === "team_details") {
+		next = reduce(next, {
+			type: "SET_PREFERRED_TEAM_NAME",
+			name: next.preferred_team_name.trim() || "Night Owls",
+		});
+		next = reduce(next, { type: "NEXT" });
+	}
+	next = reduce(next, { type: "ACCEPT_CONSENT" });
+	return reduce(next, { type: "NEXT" });
 }
 
 function fillCredentials(
@@ -91,20 +99,20 @@ describe("memberCountBounds", () => {
 });
 
 describe("create-team registration wizard", () => {
-	it("orders steps: consent → team → credentials → team name → documents → pending", () => {
+	it("orders steps: team → team name → consent → credentials → documents → pending", () => {
 		const state = openState({ team_intent: "create_team", member_count: 2 });
 		expect(wizardStepsFor(state)).toEqual([
-			"consent",
 			"team_intent",
-			"credentials",
 			"team_details",
+			"consent",
+			"credentials",
 			"documents",
 			"pending",
 		]);
 	});
 
 	it("walks N=2 players through credentials and documents without Phase-9 block", () => {
-		let state = acceptConsent(openState());
+		let state = openState();
 		expect(state.step).toBe("team_intent");
 
 		state = reduce(state, { type: "SET_TEAM_INTENT", intent: "create_team" });
@@ -113,6 +121,19 @@ describe("create-team registration wizard", () => {
 		expect(state.registrants).toHaveLength(2);
 		expect(canAdvance(state)).toBeNull();
 
+		state = reduce(state, { type: "NEXT" });
+		expect(state.step).toBe("team_details");
+
+		// Phase-9 deferred: team name only
+		state = reduce(state, {
+			type: "SET_PREFERRED_TEAM_NAME",
+			name: "Night Owls",
+		});
+		expect(validateTeamDetails(state)).toBeNull();
+		state = reduce(state, { type: "NEXT" });
+		expect(state.step).toBe("consent");
+
+		state = reduce(state, { type: "ACCEPT_CONSENT" });
 		state = reduce(state, { type: "NEXT" });
 		expect(state.step).toBe("credentials");
 		expect(state.active_registrant_index).toBe(0);
@@ -125,15 +146,6 @@ describe("create-team registration wizard", () => {
 		expect(state.active_registrant_index).toBe(1);
 
 		state = fillCredentials(state, validPlayer(1, "10"));
-		state = reduce(state, { type: "NEXT" });
-		expect(state.step).toBe("team_details");
-
-		// Phase-9 deferred: team name only
-		state = reduce(state, {
-			type: "SET_PREFERRED_TEAM_NAME",
-			name: "Night Owls",
-		});
-		expect(validateTeamDetails(state)).toBeNull();
 		state = reduce(state, { type: "NEXT" });
 		expect(state.step).toBe("documents");
 		expect(state.active_registrant_index).toBe(0);
@@ -149,10 +161,11 @@ describe("create-team registration wizard", () => {
 	});
 
 	it("rejects duplicate emails inside the same create-team batch", () => {
-		let state = acceptConsent(openState());
+		let state = openState();
 		state = reduce(state, { type: "SET_TEAM_INTENT", intent: "create_team" });
 		state = reduce(state, { type: "SET_MEMBER_COUNT", count: 2 });
-		state = reduce(state, { type: "NEXT" });
+		state = throughConsent(state);
+		expect(state.step).toBe("credentials");
 
 		state = fillCredentials(state, validPlayer(0));
 		state = reduce(state, { type: "NEXT" });

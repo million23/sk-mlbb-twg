@@ -144,7 +144,7 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
     state.step === "approved" || state.step === "rejected"
       ? "pending"
       : state.step === "closed"
-        ? "consent"
+        ? "team_intent"
         : state.step;
   const activeIdx = wizard.indexOf(focusStep);
 
