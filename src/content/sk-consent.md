@@ -15,11 +15,12 @@ I confirm that my participation in this tournament is voluntary, and I am fully 
 To be eligible to participate, every player must satisfy all of the following requirements:
 
 1. Must be a **resident of Phase 4, Phase 9, or Phase 10** of Barangay 176.
-2. Must be **seventeen (17) years old or above** on **August 29, 2026**, the official opening day of the tournament.
+2. Must be **fifteen (15) years old or above** on **August 29, 2026**, the official opening day of the tournament.
 3. Professional Mobile Legends players are **not eligible** to participate.
 4. The tournament is intended exclusively for **amateur and community-based players**.
 5. Players must register using their **own Mobile Legends account**. Account sharing or piloting is strictly prohibited.
 6. Tournament Officials reserve the right to require proof of age and residency at any time before or during the tournament.
+7. Players are required to provide their own device and internet connection.
 
 ## 3. Team Eligibility
 
@@ -28,8 +29,10 @@ Each participating team shall comply with the following requirements:
 1. A team shall consist of **five (5) main players** and may register up to **one (1) substitute player**.
 2. All registered players must be residents of **Phase 4, Phase 9, or Phase 10**.
 3. Every team must have **at least one (1) player who is a resident of Phase 9 (Barangay 176-E).**
-4. All players must be **15 years old or older** on the first day of the tournament.
-5. Once registration has officially closed, no additional players may be added or replaced except with approval of Tournament Officials.
+4. Each team must designate a Team Captain who is a resident of Phase 9.
+5. All players must be **15 years old or older** on the first day of the tournament.
+6. Once registration has officially closed, no additional players may be added or replaced except with approval of Tournament Officials.
+7. Players are required to provide their own device and internet connection.
 
 ## 4. Tournament Structure
 
@@ -108,7 +111,8 @@ I agree to abide by all the rules, guidelines, and decisions set by the tourname
 3. Chat shall only be used for necessary team communication.
 4. Excessive trash talking, hate speech, discriminatory language, or abusive communication is prohibited.
 5. If a player disconnects during the match, gameplay shall continue unless Tournament Officials approve a Technical Pause.
-6. Each team is allowed **one (1) Technical Pause** per match with a maximum duration of **five (5) minutes**.
+6. Each team is allowed **two (2) Technical Pauses** per match with a maximum duration of **five (5) minutes**.
+   1. The Tournament Committee may pause the game for unforeseen circumstances beyond the team's technical pauses.
 7. Failure to reconnect within the allotted pause period shall require the affected team to continue the match.
 
 ## 8. Code of Conduct

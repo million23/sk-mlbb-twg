@@ -19,14 +19,8 @@ function SectionLabel({ children }: { children: string }) {
   );
 }
 
-function organizerInitials(name: string) {
-  return name
-    .replace(/[“”"']/g, "")
-    .split(/\s+/)
-    .filter((part) => !/^paeng$/i.test(part))
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("");
+function placeholderSrc(name: string, px: number) {
+  return `https://i.pravatar.cc/${px}?u=${encodeURIComponent(name)}`;
 }
 
 function PersonPhoto({
@@ -38,43 +32,17 @@ function PersonPhoto({
   image?: string;
   size?: "featured" | "member";
 }) {
-  const initials = organizerInitials(name);
-  const isFeatured = size === "featured";
+  const px = size === "featured" ? 480 : 320;
+  const src = image ?? placeholderSrc(name, px);
 
   return (
-    <div className="relative aspect-square w-full overflow-hidden border border-border/50 bg-muted/40">
-      {image ? (
-        <img
-          src={image}
-          alt={name}
-          className="size-full object-cover"
-          loading="lazy"
-        />
-      ) : (
-        <div
-          className="flex size-full flex-col items-center justify-center bg-linear-to-b from-primary/10 via-transparent to-muted/30"
-          aria-hidden
-        >
-          <span
-            className={
-              isFeatured
-                ? "font-serif text-4xl tracking-tight text-primary/45 sm:text-5xl"
-                : "font-serif text-2xl tracking-tight text-primary/45 sm:text-3xl"
-            }
-          >
-            {initials}
-          </span>
-          <span
-            className={
-              isFeatured
-                ? "mt-3 font-mono text-[0.6rem] text-muted-foreground/70 uppercase tracking-[0.2em]"
-                : "mt-2 font-mono text-[0.55rem] text-muted-foreground/70 uppercase tracking-[0.18em]"
-            }
-          >
-            Photo soon
-          </span>
-        </div>
-      )}
+    <div className="group relative aspect-square w-full overflow-hidden border border-border/50 bg-muted/40">
+      <img
+        src={src}
+        alt={name}
+        className="size-full object-cover grayscale transition-[filter,transform] duration-500 ease-out group-hover:scale-[1.03] group-hover:grayscale-0"
+        loading="lazy"
+      />
     </div>
   );
 }
