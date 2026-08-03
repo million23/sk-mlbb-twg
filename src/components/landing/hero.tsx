@@ -58,27 +58,27 @@ export function LandingHero() {
 						<img
 							alt="Meme"
 							src="/icons/lanes/explane-icon.svg"
-							className="h-12 w-12 object-cover object-center"
+							className="h-12 w-12 object-cover object-center invert opacity-90 dark:invert-0 dark:opacity-100"
 						/>
 						<img
 							alt="Meme"
 							src="/icons/lanes/jungler-icon.svg"
-							className="h-12 w-12 object-cover object-center"
+							className="h-12 w-12 object-cover object-center invert opacity-90 dark:invert-0 dark:opacity-100"
 						/>
 						<img
 							alt="Meme"
 							src="/icons/lanes/midlane-icon.svg"
-							className="h-12 w-12 object-cover object-center"
+							className="h-12 w-12 object-cover object-center invert opacity-90 dark:invert-0 dark:opacity-100"
 						/>
 						<img
 							alt="Meme"
 							src="/icons/lanes/goldlane-icon.svg"
-							className="h-12 w-12 object-cover object-center"
+							className="h-12 w-12 object-cover object-center invert opacity-90 dark:invert-0 dark:opacity-100"
 						/>
 						<img
 							alt="Meme"
 							src="/icons/lanes/roamer-icon.svg"
-							className="h-12 w-12 object-cover object-center"
+							className="h-12 w-12 object-cover object-center invert opacity-90 dark:invert-0 dark:opacity-100"
 						/>
 					</div>
 				</Stagger>
