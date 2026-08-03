@@ -36,14 +36,30 @@ function PersonPhoto({
   const src = image ?? placeholderSrc(name, px);
 
   return (
-    <div className="group relative aspect-square w-full overflow-hidden border border-border/50 bg-muted/40">
+    <div className="relative aspect-square w-full overflow-hidden border border-border/50 bg-muted/40">
       <img
         src={src}
         alt={name}
-        className="size-full object-cover grayscale transition-[filter,transform] duration-500 ease-out group-hover:scale-[1.03] group-hover:grayscale-0"
+        className="size-full object-cover grayscale transition-[filter,transform] duration-500 ease-out group-hover/person:scale-[1.03] group-hover/person:grayscale-0"
         loading="lazy"
       />
     </div>
+  );
+}
+
+function FoilName({
+  children,
+  className,
+  as: Tag = "p",
+}: {
+  children: string;
+  className?: string;
+  as?: "p" | "h2";
+}) {
+  return (
+    <Tag className={className}>
+      <span className="foil-text">{children}</span>
+    </Tag>
   );
 }
 
@@ -57,16 +73,16 @@ function PersonGrid({
   return (
     <ul className="mt-8 grid grid-cols-1 gap-8 sm:mt-10 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3 lg:gap-10">
       {people.map((person) => (
-        <li key={person.name} className="min-w-0">
+        <li key={person.name} className="group/person min-w-0">
           <div className="flex flex-col gap-4">
             <PersonPhoto
               name={person.name}
               image={person.image}
               size={size}
             />
-            <p className="font-serif text-lg tracking-tight text-foreground/90 sm:text-xl">
+            <FoilName className="font-serif text-lg tracking-tight text-foreground/90 sm:text-xl">
               {person.name}
-            </p>
+            </FoilName>
           </div>
         </li>
       ))}
@@ -119,16 +135,19 @@ export function AboutPage() {
           <section className="mt-14 sm:mt-20" aria-label="Meet the organizers">
             <ul className="grid grid-cols-1 gap-10 border-t border-border/40 pt-8 sm:grid-cols-3 sm:gap-8 sm:pt-10 lg:gap-10">
               {ABOUT_ORGANIZERS.map((person, i) => (
-                <li key={person.name} className="min-w-0">
+                <li key={person.name} className="group/person min-w-0">
                   <div className="flex flex-col gap-5">
                     <PersonPhoto name={person.name} image={person.image} />
                     <div className="flex flex-col gap-2">
                       <p className="font-mono text-[0.65rem] text-muted-foreground uppercase tracking-[0.18em] tabular-nums">
                         {String(i + 1).padStart(2, "0")}
                       </p>
-                      <h2 className="font-serif text-xl tracking-tight sm:text-2xl">
+                      <FoilName
+                        as="h2"
+                        className="font-serif text-xl tracking-tight sm:text-2xl"
+                      >
                         {person.name}
-                      </h2>
+                      </FoilName>
                       <p className="text-pretty text-muted-foreground text-sm leading-relaxed">
                         {person.role}
                       </p>

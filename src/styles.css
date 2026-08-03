@@ -573,6 +573,178 @@
   animation: landing-hero-pulse 3.2s ease-in-out infinite;
 }
 
+/* TCG foil / holographic sheen */
+@keyframes foil-shift {
+  0%,
+  100% {
+    background-position: 0% 40%;
+  }
+  50% {
+    background-position: 100% 60%;
+  }
+}
+
+@keyframes foil-sweep {
+  0% {
+    background-position: 140% 0%;
+    opacity: 0.35;
+  }
+  40% {
+    opacity: 0.95;
+  }
+  100% {
+    background-position: -40% 0%;
+    opacity: 0.35;
+  }
+}
+
+.foil {
+  position: relative;
+  isolation: isolate;
+}
+
+.foil::before,
+.foil::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* Rainbow holographic base */
+.foil::before {
+  z-index: 2;
+  background: linear-gradient(
+    125deg,
+    #ff3d9a 0%,
+    #ffd60a 18%,
+    #39ff14 36%,
+    #00e5ff 54%,
+    #7b5cff 72%,
+    #ff3d9a 100%
+  );
+  background-size: 300% 300%;
+  mix-blend-mode: soft-light;
+  opacity: 0.7;
+  animation: foil-shift 5.5s ease-in-out infinite;
+  animation-delay: var(--foil-delay, 0s);
+}
+
+/* Specular shimmer sweep */
+.foil::after {
+  z-index: 3;
+  background: linear-gradient(
+    105deg,
+    transparent 32%,
+    rgb(255 255 255 / 0.15) 42%,
+    rgb(255 255 255 / 0.9) 50%,
+    rgb(255 220 180 / 0.35) 54%,
+    transparent 68%
+  );
+  background-size: 220% 100%;
+  mix-blend-mode: overlay;
+  animation: foil-sweep 3.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  animation-delay: var(--foil-delay, 0s);
+}
+
+.dark .foil::before {
+  mix-blend-mode: color-dodge;
+  opacity: 0.55;
+}
+
+.dark .foil::after {
+  mix-blend-mode: soft-light;
+}
+
+/* Lane icons — mask foil to SVG silhouette */
+.lane-foil {
+  display: inline-block;
+}
+
+.lane-foil::before,
+.lane-foil::after {
+  -webkit-mask-image: var(--foil-mask);
+  mask-image: var(--foil-mask);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
+.lane-foil:nth-child(2) {
+  --foil-delay: 0.45s;
+}
+
+.lane-foil:nth-child(3) {
+  --foil-delay: 0.9s;
+}
+
+.lane-foil:nth-child(4) {
+  --foil-delay: 1.35s;
+}
+
+.lane-foil:nth-child(5) {
+  --foil-delay: 1.8s;
+}
+
+/* Foil text — holographic gradient sweeping through glyphs */
+@keyframes foil-text-shimmer {
+  0% {
+    background-position: 0% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+.foil-text {
+  display: inline-block;
+  color: inherit;
+  background-image: none;
+  background-size: 200% auto;
+  background-clip: border-box;
+  -webkit-background-clip: border-box;
+  -webkit-text-fill-color: currentColor;
+  transition: color 200ms ease;
+}
+
+/* Foil only while hovering the person card */
+@media (hover: hover) and (pointer: fine) {
+  .group\/person:hover .foil-text {
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    background-image: linear-gradient(
+      90deg,
+      #9a1f5a 0%,
+      #b45309 18%,
+      #ca8a04 32%,
+      #0f766e 48%,
+      #0369a1 64%,
+      #6d28d9 80%,
+      #9a1f5a 100%
+    );
+    background-clip: text;
+    -webkit-background-clip: text;
+    animation: foil-text-shimmer 2.2s linear infinite;
+  }
+
+  .dark .group\/person:hover .foil-text {
+    background-image: linear-gradient(
+      90deg,
+      #ff4da6 0%,
+      #ffd60a 18%,
+      #f8fafc 32%,
+      #5cffb0 48%,
+      #3dd6ff 64%,
+      #c4b5fd 80%,
+      #ff4da6 100%
+    );
+  }
+}
+
 /* HIG: respect Reduce Motion (avoid animating layout / scroll; keep essential status motion) */
 @media (prefers-reduced-motion: reduce) {
   html {
@@ -599,8 +771,24 @@
   .landing-hero-wash-delay,
   .landing-hero-line,
   .landing-hero-enter,
-  .landing-hero-pulse {
+  .landing-hero-pulse,
+  .foil::before,
+  .foil::after {
     animation: none !important;
+  }
+
+  .foil::before {
+    background-position: 50% 50%;
+    opacity: 0.45;
+  }
+
+  .foil::after {
+    opacity: 0;
+  }
+
+  .group\/person:hover .foil-text {
+    animation: none !important;
+    background-position: 40% center;
   }
 
   .landing-hero-line {
