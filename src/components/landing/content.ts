@@ -65,18 +65,18 @@ export type AboutOrganizer = {
   /** Public path under `/public` when a photo is ready. */
   image?: string;
   /**
-   * Optional second photo revealed with a glitch on card hover
-   * (Gerald-only easter egg).
+   * Gerald-only: glitch-reveal an encoded portrait painted to canvas
+   * (never exposed as an <img src>).
    */
-  glitchImage?: string;
+  glitchReveal?: boolean;
 };
 
 export const ABOUT_ORGANIZERS: readonly AboutOrganizer[] = [
   {
     name: "Gerald Chavez",
     role: "Software Engineer",
-    // Distinct seed until real photos land under /public
-    glitchImage: "https://i.pravatar.cc/480?u=Gerald%20Chavez%20alt",
+    image: "/gov-profiles/rald-logo.png",
+    glitchReveal: true,
   },
   {
     name: 'Rafael "Paeng" Mahinay',

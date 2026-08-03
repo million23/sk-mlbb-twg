@@ -8,6 +8,12 @@ import {
 } from "react";
 
 import {
+  loadGeraldPortraitBitmap,
+  paintCover,
+  wipeCanvas,
+} from "@/components/landing/gerald-portrait";
+
+import {
   ABOUT_LEADERS,
   ABOUT_ORGANIZERS,
   ABOUT_OTHERS,
@@ -17,7 +23,8 @@ import {
   type AboutOrganizer,
 } from "./content";
 
-const GLITCH_OUT_MS = 700;
+const GLITCH_OUT_MS = 850;
+const GLITCH_LAYERS = ["r", "g", "b", "main"] as const;
 
 function SectionLabel({ children }: { children: string }) {
   return (
@@ -31,64 +38,81 @@ function placeholderSrc(name: string, px: number) {
   return `https://i.pravatar.cc/${px}?u=${encodeURIComponent(name)}`;
 }
 
+function GlitchPersonPhoto({
+  name,
+  image,
+  active,
+}: {
+  name: string;
+  image?: string;
+  /** Paint portrait while true; wipe canvases when false. */
+  active: boolean;
+}) {
+  const src = image ?? placeholderSrc(name, 480);
+  const layerRefs = useRef<(HTMLCanvasElement | null)[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!active) {
+      for (const canvas of layerRefs.current) {
+        if (canvas) wipeCanvas(canvas);
+      }
+      return;
+    }
+
+    void (async () => {
+      const bmp = await loadGeraldPortraitBitmap();
+      if (cancelled) return;
+      for (const canvas of layerRefs.current) {
+        if (canvas) paintCover(canvas, bmp);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [active]);
+
+  return (
+    <div
+      className="person-glitch relative aspect-square w-full overflow-hidden border border-border/50 bg-muted/40"
+      onContextMenu={(e) => e.preventDefault()}
+    >
+      <img
+        src={src}
+        alt={name}
+        className="person-glitch-base size-full object-cover grayscale"
+        loading="lazy"
+        draggable={false}
+      />
+      {GLITCH_LAYERS.map((layer, i) => (
+        <canvas
+          key={layer}
+          ref={(el) => {
+            layerRefs.current[i] = el;
+          }}
+          aria-hidden
+          data-layer={layer}
+          className="person-glitch-alt"
+        />
+      ))}
+      <div className="person-glitch-noise" aria-hidden />
+    </div>
+  );
+}
+
 function PersonPhoto({
   name,
   image,
-  glitchImage,
   size = "featured",
 }: {
   name: string;
   image?: string;
-  glitchImage?: string;
   size?: "featured" | "member";
 }) {
   const px = size === "featured" ? 480 : 320;
   const src = image ?? placeholderSrc(name, px);
-
-  if (glitchImage) {
-    return (
-      <div className="person-glitch relative aspect-square w-full overflow-hidden border border-border/50 bg-muted/40">
-        <img
-          src={src}
-          alt={name}
-          className="person-glitch-base size-full object-cover grayscale"
-          loading="lazy"
-        />
-        <img
-          src={glitchImage}
-          alt=""
-          aria-hidden
-          data-layer="r"
-          className="person-glitch-alt"
-          loading="lazy"
-        />
-        <img
-          src={glitchImage}
-          alt=""
-          aria-hidden
-          data-layer="g"
-          className="person-glitch-alt"
-          loading="lazy"
-        />
-        <img
-          src={glitchImage}
-          alt=""
-          aria-hidden
-          data-layer="b"
-          className="person-glitch-alt"
-          loading="lazy"
-        />
-        <img
-          src={glitchImage}
-          alt=""
-          aria-hidden
-          data-layer="main"
-          className="person-glitch-alt"
-          loading="lazy"
-        />
-      </div>
-    );
-  }
 
   return (
     <div className="relative aspect-square w-full overflow-hidden border border-border/50 bg-muted/40">
@@ -131,7 +155,7 @@ function OrganizerCard({
   const [glitch, setGlitch] = useState<GlitchPhase>("idle");
   const glitchRef = useRef<GlitchPhase>("idle");
   const outTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const hasGlitch = Boolean(person.glitchImage);
+  const hasGlitch = Boolean(person.glitchReveal);
 
   useEffect(() => {
     glitchRef.current = glitch;
@@ -169,11 +193,15 @@ function OrganizerCard({
       onMouseLeave={onLeave}
     >
       <div className="flex flex-col gap-5">
-        <PersonPhoto
-          name={person.name}
-          image={person.image}
-          glitchImage={person.glitchImage}
-        />
+        {hasGlitch ? (
+          <GlitchPersonPhoto
+            name={person.name}
+            image={person.image}
+            active={glitch === "on" || glitch === "out"}
+          />
+        ) : (
+          <PersonPhoto name={person.name} image={person.image} />
+        )}
         <div className="flex flex-col gap-2">
           <p className="font-mono text-[0.65rem] text-muted-foreground uppercase tracking-[0.18em] tabular-nums">
             {String(index + 1).padStart(2, "0")}
