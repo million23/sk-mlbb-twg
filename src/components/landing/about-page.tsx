@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
   type ReactNode,
+  type RefObject,
 } from "react";
 
 import {
@@ -25,6 +26,46 @@ import {
 
 const GLITCH_OUT_MS = 850;
 const GLITCH_LAYERS = ["r", "g", "b", "main"] as const;
+
+function isFinePointer() {
+  return (
+    typeof window !== "undefined" &&
+    window.matchMedia("(hover: hover) and (pointer: fine)").matches
+  );
+}
+
+/** Hover on desktop; tap to toggle on phone. Tap outside dismisses. */
+function useCardActive() {
+  const [active, setActive] = useState(false);
+  const rootRef = useRef<HTMLLIElement>(null);
+
+  useEffect(() => {
+    if (!active || isFinePointer()) return;
+    const onDocPointer = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setActive(false);
+      }
+    };
+    document.addEventListener("pointerdown", onDocPointer);
+    return () => document.removeEventListener("pointerdown", onDocPointer);
+  }, [active]);
+
+  return {
+    rootRef,
+    active,
+    setActive,
+    onPointerEnter: () => {
+      if (isFinePointer()) setActive(true);
+    },
+    onPointerLeave: () => {
+      if (isFinePointer()) setActive(false);
+    },
+    onClick: () => {
+      if (isFinePointer()) return;
+      setActive((v) => !v);
+    },
+  };
+}
 
 function SectionLabel({ children }: { children: string }) {
   return (
@@ -119,7 +160,7 @@ function PersonPhoto({
       <img
         src={src}
         alt={name}
-        className="size-full object-cover grayscale transition-[filter,transform] duration-500 ease-out group-hover/person:scale-[1.03] group-hover/person:grayscale-0"
+        className="size-full object-cover grayscale transition-[filter,transform] duration-500 ease-out group-data-[active=true]/person:scale-[1.03] group-data-[active=true]/person:grayscale-0"
         loading="lazy"
       />
     </div>
@@ -144,6 +185,42 @@ function FoilName({
 
 type GlitchPhase = "idle" | "on" | "out";
 
+function PersonCardShell({
+  rootRef,
+  active,
+  onPointerEnter,
+  onPointerLeave,
+  onClick,
+  className,
+  children,
+  glitch,
+}: {
+  rootRef: RefObject<HTMLLIElement | null>;
+  active: boolean;
+  onPointerEnter: () => void;
+  onPointerLeave: () => void;
+  onClick: () => void;
+  className?: string;
+  children: ReactNode;
+  glitch?: GlitchPhase;
+}) {
+  return (
+    <li
+      ref={rootRef}
+      className={
+        className ? `group/person min-w-0 ${className}` : "group/person min-w-0"
+      }
+      data-active={active ? "true" : undefined}
+      data-glitch={glitch}
+      onPointerEnter={onPointerEnter}
+      onPointerLeave={onPointerLeave}
+      onClick={onClick}
+    >
+      {children}
+    </li>
+  );
+}
+
 function OrganizerCard({
   person,
   index,
@@ -152,6 +229,13 @@ function OrganizerCard({
   index: number;
 }) {
   const reduceMotion = useReducedMotion();
+  const {
+    rootRef,
+    active,
+    onPointerEnter,
+    onPointerLeave,
+    onClick: onCardClick,
+  } = useCardActive();
   const [glitch, setGlitch] = useState<GlitchPhase>("idle");
   const glitchRef = useRef<GlitchPhase>("idle");
   const outTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -167,30 +251,39 @@ function OrganizerCard({
     };
   }, []);
 
-  const onEnter = () => {
+  // Sync glitch phase with card active state
+  useEffect(() => {
     if (!hasGlitch) return;
-    if (outTimer.current) clearTimeout(outTimer.current);
-    setGlitch("on");
-  };
 
-  const onLeave = () => {
-    if (!hasGlitch) return;
+    if (active) {
+      if (outTimer.current) clearTimeout(outTimer.current);
+      setGlitch("on");
+      return;
+    }
+
+    if (glitchRef.current !== "on") {
+      setGlitch("idle");
+      return;
+    }
+
     if (reduceMotion) {
       setGlitch("idle");
       return;
     }
-    if (glitchRef.current !== "on") return;
+
     setGlitch("out");
     if (outTimer.current) clearTimeout(outTimer.current);
     outTimer.current = setTimeout(() => setGlitch("idle"), GLITCH_OUT_MS);
-  };
+  }, [active, hasGlitch, reduceMotion]);
 
   return (
-    <li
-      className="group/person min-w-0"
-      data-glitch={hasGlitch ? glitch : undefined}
-      onMouseEnter={onEnter}
-      onMouseLeave={onLeave}
+    <PersonCardShell
+      rootRef={rootRef}
+      active={active}
+      onPointerEnter={onPointerEnter}
+      onPointerLeave={onPointerLeave}
+      onClick={onCardClick}
+      glitch={hasGlitch ? glitch : undefined}
     >
       <div className="flex flex-col gap-5">
         {hasGlitch ? (
@@ -217,7 +310,40 @@ function OrganizerCard({
           </p>
         </div>
       </div>
-    </li>
+    </PersonCardShell>
+  );
+}
+
+function GridPersonCard({
+  person,
+  size = "member",
+}: {
+  person: { name: string; image?: string };
+  size?: "featured" | "member";
+}) {
+  const {
+    rootRef,
+    active,
+    onPointerEnter,
+    onPointerLeave,
+    onClick,
+  } = useCardActive();
+
+  return (
+    <PersonCardShell
+      rootRef={rootRef}
+      active={active}
+      onPointerEnter={onPointerEnter}
+      onPointerLeave={onPointerLeave}
+      onClick={onClick}
+    >
+      <div className="flex flex-col gap-4">
+        <PersonPhoto name={person.name} image={person.image} size={size} />
+        <FoilName className="font-serif text-lg tracking-tight text-foreground/90 sm:text-xl">
+          {person.name}
+        </FoilName>
+      </div>
+    </PersonCardShell>
   );
 }
 
@@ -231,18 +357,7 @@ function PersonGrid({
   return (
     <ul className="mt-8 grid grid-cols-1 gap-8 sm:mt-10 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3 lg:gap-10">
       {people.map((person) => (
-        <li key={person.name} className="group/person min-w-0">
-          <div className="flex flex-col gap-4">
-            <PersonPhoto
-              name={person.name}
-              image={person.image}
-              size={size}
-            />
-            <FoilName className="font-serif text-lg tracking-tight text-foreground/90 sm:text-xl">
-              {person.name}
-            </FoilName>
-          </div>
-        </li>
+        <GridPersonCard key={person.name} person={person} size={size} />
       ))}
     </ul>
   );
