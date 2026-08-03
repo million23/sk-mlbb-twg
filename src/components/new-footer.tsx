@@ -34,6 +34,12 @@ const NewFooter = () => {
 							Tournaments
 						</Link>
 						<Link
+							to="/about"
+							className="text-muted-foreground transition-colors hover:text-foreground"
+						>
+							About
+						</Link>
+						<Link
 							to="/register"
 							className="text-muted-foreground transition-colors hover:text-foreground"
 						>

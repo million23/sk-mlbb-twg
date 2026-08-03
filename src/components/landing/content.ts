@@ -53,3 +53,54 @@ export const LANDING_WHO = [
 export const LANDING_CTA_HEADLINE = "Ready to join?";
 export const LANDING_CTA_SUPPORT =
   "When a tournament is open, register in a few minutes. After you submit, you can check your status anytime.";
+
+export const ABOUT_PAGE_EYEBROW = "The people behind it";
+export const ABOUT_PAGE_HEADLINE = "Meet the organizers.";
+export const ABOUT_PAGE_SUPPORT =
+  "SK 176‑E, PINTIG, and volunteers who keep the barangay Mobile Legends tournament running.";
+
+export type AboutOrganizer = {
+  name: string;
+  role: string;
+  /** Public path under `/public` when a photo is ready. */
+  image?: string;
+};
+
+export const ABOUT_ORGANIZERS: readonly AboutOrganizer[] = [
+  {
+    name: "Gerald Chavez",
+    role: "Software Engineer",
+  },
+  {
+    name: 'Rafael "Paeng" Mahinay',
+    role: "176‑E SK Kagawad, Committee on Good Governance",
+  },
+  {
+    name: "Rogen Rabago",
+    role: "176‑E SK Kagawad, Chairman, Committee on Education",
+  },
+];
+
+export type AboutPerson = {
+  name: string;
+  /** Public path under `/public` when a photo is ready. */
+  image?: string;
+};
+
+export const ABOUT_LEADERS: readonly AboutPerson[] = [
+  { name: "Allyssa Costibolo" },
+  { name: "Cholo Edusma" },
+  { name: "Shanea Senin" },
+  { name: "Lawrence Dullo" },
+  { name: "Joshua Agapito" },
+  { name: "Gian Dela cruz" },
+  { name: "Tanya Adduro" },
+];
+
+export const ABOUT_OTHERS: readonly AboutPerson[] = [
+  { name: "Jead Jylle Vincent Empas" },
+  { name: "Let Ranido" },
+  { name: "Arcel Zamora" },
+  { name: "Jony Bulan" },
+  { name: "Jairo Mirafuentes" },
+];

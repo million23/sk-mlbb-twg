@@ -64,6 +64,12 @@ export function LandingShell({
 							Tournaments
 						</Link>
 						<Link
+							to="/about"
+							className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
+						>
+							About
+						</Link>
+						<Link
 							to="/verify"
 							className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
 						>
@@ -129,6 +135,13 @@ export function LandingShell({
 							onClick={() => setMenuOpen(false)}
 						>
 							Tournaments
+						</Link>
+						<Link
+							to="/about"
+							className={navLinkClass}
+							onClick={() => setMenuOpen(false)}
+						>
+							About
 						</Link>
 						<Link
 							to="/verify"
