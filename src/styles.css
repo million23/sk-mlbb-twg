@@ -573,6 +573,744 @@
   animation: landing-hero-pulse 3.2s ease-in-out infinite;
 }
 
+/* TCG foil / holographic sheen */
+@keyframes foil-shift {
+  0%,
+  100% {
+    background-position: 0% 40%;
+  }
+  50% {
+    background-position: 100% 60%;
+  }
+}
+
+@keyframes foil-sweep {
+  0% {
+    background-position: 140% 0%;
+    opacity: 0.35;
+  }
+  40% {
+    opacity: 0.95;
+  }
+  100% {
+    background-position: -40% 0%;
+    opacity: 0.35;
+  }
+}
+
+.foil {
+  position: relative;
+  isolation: isolate;
+}
+
+.foil::before,
+.foil::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* Rainbow holographic base */
+.foil::before {
+  z-index: 2;
+  background: linear-gradient(
+    125deg,
+    #ff3d9a 0%,
+    #ffd60a 18%,
+    #39ff14 36%,
+    #00e5ff 54%,
+    #7b5cff 72%,
+    #ff3d9a 100%
+  );
+  background-size: 300% 300%;
+  mix-blend-mode: soft-light;
+  opacity: 0.7;
+  animation: foil-shift 5.5s ease-in-out infinite;
+  animation-delay: var(--foil-delay, 0s);
+}
+
+/* Specular shimmer sweep */
+.foil::after {
+  z-index: 3;
+  background: linear-gradient(
+    105deg,
+    transparent 32%,
+    rgb(255 255 255 / 0.15) 42%,
+    rgb(255 255 255 / 0.9) 50%,
+    rgb(255 220 180 / 0.35) 54%,
+    transparent 68%
+  );
+  background-size: 220% 100%;
+  mix-blend-mode: overlay;
+  animation: foil-sweep 3.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  animation-delay: var(--foil-delay, 0s);
+}
+
+.dark .foil::before {
+  mix-blend-mode: color-dodge;
+  opacity: 0.55;
+}
+
+.dark .foil::after {
+  mix-blend-mode: soft-light;
+}
+
+/* Lane icons — mask foil to SVG silhouette */
+.lane-foil {
+  display: inline-block;
+}
+
+.lane-foil::before,
+.lane-foil::after {
+  -webkit-mask-image: var(--foil-mask);
+  mask-image: var(--foil-mask);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
+.lane-foil:nth-child(2) {
+  --foil-delay: 0.45s;
+}
+
+.lane-foil:nth-child(3) {
+  --foil-delay: 0.9s;
+}
+
+.lane-foil:nth-child(4) {
+  --foil-delay: 1.35s;
+}
+
+.lane-foil:nth-child(5) {
+  --foil-delay: 1.8s;
+}
+
+/* Foil text — TCG silver/chrome sheen (not rainbow) */
+@keyframes foil-text-shimmer {
+  0% {
+    background-position: 200% center;
+  }
+  100% {
+    background-position: -200% center;
+  }
+}
+
+.foil-text {
+  display: inline-block;
+  color: inherit;
+  background-image: none;
+  background-size: 220% auto;
+  background-clip: border-box;
+  -webkit-background-clip: border-box;
+  -webkit-text-fill-color: currentColor;
+  transition: color 200ms ease;
+}
+
+/* Foil only while hovering the person card */
+@media (hover: hover) and (pointer: fine) {
+  .group\/person:hover .foil-text {
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    /* Brushed silver + tight specular glint; faint cool/warm edges only */
+    background-image: linear-gradient(
+      105deg,
+      #6b7280 0%,
+      #9ca3af 22%,
+      #d1d5db 38%,
+      #e5e7eb 44%,
+      #ffffff 50%,
+      #cbd5e1 54%,
+      #94a3b8 62%,
+      #64748b 78%,
+      #6b7280 100%
+    );
+    background-clip: text;
+    -webkit-background-clip: text;
+    animation: foil-text-shimmer 1.8s linear infinite;
+  }
+
+  .dark .group\/person:hover .foil-text {
+    background-image: linear-gradient(
+      105deg,
+      #94a3b8 0%,
+      #cbd5e1 22%,
+      #e2e8f0 38%,
+      #f8fafc 44%,
+      #ffffff 50%,
+      #e2e8f0 54%,
+      #94a3b8 62%,
+      #64748b 78%,
+      #94a3b8 100%
+    );
+  }
+}
+
+/* Gerald — glitch reveal; mid-phase shreds the face into noise */
+@keyframes person-glitch-in {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) skewX(0deg) scaleX(1);
+    clip-path: inset(0 0 100% 0);
+    filter: blur(0) contrast(1);
+  }
+  6% {
+    opacity: 1;
+    transform: translate3d(-14%, 2%, 0) skewX(-18deg) scaleX(1.8);
+    clip-path: inset(0 0 78% 0);
+    filter: blur(2px) hue-rotate(180deg) saturate(4) contrast(2.4);
+  }
+  12% {
+    transform: translate3d(18%, -3%, 0) skewX(22deg) scaleX(0.35);
+    clip-path: inset(55% 0 5% 0);
+    filter: blur(6px) invert(1) contrast(3) brightness(1.6);
+  }
+  20% {
+    transform: translate3d(-20%, 0, 0) skewX(-25deg) scaleX(2.4);
+    clip-path: inset(28% 0 40% 0);
+    filter: blur(10px) saturate(0) contrast(4) brightness(2);
+  }
+  28% {
+    transform: translate3d(16%, 4%, 0) skewX(20deg) scaleX(0.25);
+    clip-path: inset(8% 0 62% 0);
+    filter: blur(14px) hue-rotate(90deg) invert(0.5) contrast(5);
+  }
+  36% {
+    transform: translate3d(-22%, -2%, 0) skewX(-28deg) scaleX(2.8);
+    clip-path: inset(42% 0 18% 0);
+    filter: blur(12px) saturate(8) contrast(3) brightness(0.4);
+  }
+  44% {
+    transform: translate3d(12%, 3%, 0) skewX(16deg) scaleX(0.4);
+    clip-path: inset(0 0 48% 0);
+    filter: blur(8px) invert(1) hue-rotate(220deg) contrast(4);
+  }
+  52% {
+    transform: translate3d(-10%, 0, 0) skewX(-12deg) scaleX(1.6);
+    clip-path: inset(60% 0 0 0);
+    filter: blur(5px) saturate(0.1) contrast(3.5);
+  }
+  62% {
+    transform: translate3d(6%, -1%, 0) skewX(8deg) scaleX(0.7);
+    clip-path: inset(15% 0 20% 0);
+    filter: blur(3px) contrast(2) brightness(1.3);
+  }
+  74% {
+    transform: translate3d(-3%, 0, 0) skewX(-3deg) scaleX(1.1);
+    clip-path: inset(2% 0 2% 0);
+    filter: blur(10px) contrast(2) saturate(0.3) brightness(1.1);
+  }
+  88% {
+    transform: translate3d(1%, 0, 0) scaleX(1.02);
+    clip-path: inset(0 0 0 0);
+    filter: blur(12px) contrast(2.2) saturate(0.2) brightness(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) skewX(0deg) scaleX(1);
+    clip-path: inset(0 0 0 0);
+    /* Stay crushed — never resolve to a clean portrait */
+    filter: blur(14px) contrast(2.4) saturate(0.15) brightness(1.05);
+  }
+}
+
+@keyframes person-glitch-out {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) skewX(0deg) scaleX(1);
+    clip-path: inset(0 0 0 0);
+    filter: none;
+  }
+  8% {
+    transform: translate3d(12%, -2%, 0) skewX(16deg) scaleX(0.4);
+    clip-path: inset(10% 0 50% 0);
+    filter: blur(4px) hue-rotate(-120deg) contrast(2.5);
+  }
+  18% {
+    transform: translate3d(-18%, 3%, 0) skewX(-22deg) scaleX(2.2);
+    clip-path: inset(48% 0 8% 0);
+    filter: blur(9px) invert(1) contrast(3.5) brightness(1.5);
+  }
+  28% {
+    transform: translate3d(20%, 0, 0) skewX(26deg) scaleX(0.3);
+    clip-path: inset(22% 0 38% 0);
+    filter: blur(14px) saturate(0) contrast(5) brightness(2.2);
+  }
+  40% {
+    transform: translate3d(-16%, 4%, 0) skewX(-20deg) scaleX(2.6);
+    clip-path: inset(0 0 55% 0);
+    filter: blur(12px) invert(0.6) hue-rotate(160deg) contrast(4);
+  }
+  52% {
+    opacity: 1;
+    transform: translate3d(14%, -2%, 0) skewX(18deg) scaleX(0.35);
+    clip-path: inset(58% 0 5% 0);
+    filter: blur(10px) saturate(6) contrast(3) brightness(0.5);
+  }
+  64% {
+    opacity: 0.9;
+    transform: translate3d(-8%, 0, 0) skewX(-10deg) scaleX(1.5);
+    clip-path: inset(30% 0 30% 0);
+    filter: blur(6px) invert(1) contrast(3);
+  }
+  78% {
+    opacity: 0.55;
+    transform: translate3d(5%, 0, 0) skewX(6deg) scaleX(0.8);
+    clip-path: inset(0 0 65% 0);
+    filter: blur(3px) contrast(2);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) skewX(0deg) scaleX(1);
+    clip-path: inset(0 0 100% 0);
+    filter: none;
+  }
+}
+
+@keyframes person-glitch-hold {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) skewX(0deg);
+    filter: blur(14px) contrast(2.4) saturate(0.15) brightness(1.05);
+  }
+  4% {
+    transform: translate3d(-6%, 0, 0) skewX(-4deg) scaleX(1.15);
+    filter: blur(18px) contrast(3) saturate(0) brightness(1.3);
+  }
+  7% {
+    transform: translate3d(5%, 1%, 0) skewX(3deg) scaleX(0.9);
+    filter: blur(14px) contrast(2.6) saturate(0.1) invert(0.08);
+  }
+  10% {
+    transform: translate3d(0, 0, 0);
+    filter: blur(14px) contrast(2.4) saturate(0.15);
+  }
+  38% {
+    transform: translate3d(0, 0, 0);
+    filter: blur(14px) contrast(2.4) saturate(0.15);
+  }
+  41% {
+    transform: translate3d(-8%, 0, 0) skewX(5deg) scaleX(1.25);
+    filter: blur(20px) contrast(3.5) saturate(0) brightness(1.4);
+  }
+  45% {
+    transform: translate3d(4%, -1%, 0);
+    filter: blur(16px) contrast(2.8) saturate(0.05) hue-rotate(40deg);
+  }
+  48% {
+    transform: translate3d(0, 0, 0);
+    filter: blur(14px) contrast(2.4) saturate(0.15);
+  }
+  72% {
+    transform: translate3d(0, 0, 0);
+    filter: blur(14px) contrast(2.4) saturate(0.15);
+  }
+  75% {
+    transform: translate3d(7%, 0, 0) skewX(-3deg);
+    filter: blur(18px) contrast(3) invert(0.12) saturate(0);
+  }
+  79% {
+    transform: translate3d(0, 0, 0);
+    filter: blur(14px) contrast(2.4) saturate(0.15) brightness(1.05);
+  }
+}
+
+/* RGB shred layers — huge offsets, thin bands, stay loud through mid-glitch */
+@keyframes person-glitch-slice {
+  0%,
+  100% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) skewX(0deg) scaleX(1);
+    filter: inherit;
+  }
+  5% {
+    opacity: 1;
+    transform: translate3d(22%, 0, 0) skewX(12deg) scaleX(1.6);
+  }
+  10% {
+    opacity: 0.3;
+    transform: translate3d(-18%, 2%, 0) skewX(-14deg) scaleX(0.5);
+  }
+  16% {
+    opacity: 1;
+    transform: translate3d(28%, -3%, 0) skewX(18deg) scaleX(2);
+  }
+  22% {
+    opacity: 0.2;
+    transform: translate3d(-24%, 0, 0) scaleX(0.4);
+  }
+  30% {
+    opacity: 1;
+    transform: translate3d(20%, 4%, 0) skewX(-16deg) scaleX(1.8);
+  }
+  38% {
+    opacity: 0.35;
+    transform: translate3d(-26%, 0, 0) skewX(10deg);
+  }
+  46% {
+    opacity: 1;
+    transform: translate3d(18%, -2%, 0) skewX(-12deg) scaleX(0.45);
+  }
+  54% {
+    opacity: 0.25;
+  }
+  62% {
+    opacity: 0.95;
+    transform: translate3d(-15%, 1%, 0) skewX(8deg) scaleX(1.5);
+  }
+  70% {
+    opacity: 0.15;
+  }
+  78% {
+    opacity: 0.7;
+    transform: translate3d(10%, 0, 0) scaleX(0.7);
+  }
+  88% {
+    opacity: 0.2;
+  }
+  94% {
+    opacity: 0;
+  }
+}
+
+@keyframes person-glitch-base-shake {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scaleX(1);
+    filter: grayscale(1);
+  }
+  8% {
+    transform: translate3d(-8%, 0, 0) skewX(-8deg) scaleX(1.4);
+    filter: grayscale(1) contrast(2.5) brightness(1.5);
+  }
+  16% {
+    transform: translate3d(12%, 2%, 0) skewX(12deg) scaleX(0.5);
+    filter: grayscale(1) invert(0.4) blur(4px) contrast(3);
+  }
+  28% {
+    transform: translate3d(-14%, -1%, 0) skewX(-14deg) scaleX(1.9);
+    filter: grayscale(1) blur(8px) contrast(4) brightness(2);
+  }
+  40% {
+    transform: translate3d(10%, 3%, 0) skewX(10deg) scaleX(0.4);
+    filter: grayscale(1) invert(0.7) blur(6px);
+  }
+  55% {
+    transform: translate3d(-6%, 0, 0) scaleX(1.3);
+    filter: grayscale(1) blur(3px) contrast(2);
+  }
+  70% {
+    transform: translate3d(4%, 0, 0) scaleX(0.85);
+    filter: grayscale(1) contrast(1.5);
+  }
+  85% {
+    transform: translate3d(-2%, 0, 0);
+    filter: grayscale(1);
+  }
+}
+
+@keyframes person-glitch-scan {
+  0% {
+    transform: translate3d(0, -120%, 0);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  45% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0.7;
+  }
+}
+
+@keyframes person-glitch-bars {
+  0% {
+    opacity: 0;
+  }
+  6% {
+    opacity: 1;
+  }
+  14% {
+    opacity: 0.15;
+  }
+  22% {
+    opacity: 1;
+  }
+  30% {
+    opacity: 0.2;
+  }
+  40% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.1;
+  }
+  60% {
+    opacity: 0.95;
+  }
+  72% {
+    opacity: 0.25;
+  }
+  84% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes person-glitch-noise {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0);
+  }
+  8% {
+    opacity: 0.85;
+    transform: translate3d(-2%, 1%, 0);
+  }
+  16% {
+    opacity: 0.55;
+    transform: translate3d(3%, -2%, 0);
+  }
+  24% {
+    opacity: 1;
+    transform: translate3d(-4%, 0, 0);
+  }
+  36% {
+    opacity: 0.7;
+    transform: translate3d(5%, 2%, 0);
+  }
+  48% {
+    opacity: 1;
+    transform: translate3d(-3%, -1%, 0);
+  }
+  60% {
+    opacity: 0.75;
+    transform: translate3d(2%, 0, 0);
+  }
+  72% {
+    opacity: 0.95;
+    transform: translate3d(-1%, 1%, 0);
+  }
+  100% {
+    opacity: 0.92;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.person-glitch {
+  isolation: isolate;
+}
+
+.person-glitch::before,
+.person-glitch::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0;
+}
+
+/* Dense tear bars + block corruption */
+.person-glitch::before {
+  background:
+    linear-gradient(rgb(255 255 255 / 0.75), rgb(255 255 255 / 0.75)) 0 8% /
+      100% 8px no-repeat,
+    linear-gradient(rgb(0 0 0 / 0.9), rgb(0 0 0 / 0.9)) 0 22% / 100% 14px
+      no-repeat,
+    linear-gradient(rgb(255 0 80 / 0.55), rgb(255 0 80 / 0.55)) 0 38% / 100%
+      5px no-repeat,
+    linear-gradient(rgb(0 255 255 / 0.5), rgb(0 255 255 / 0.5)) 0 52% / 100%
+      11px no-repeat,
+    linear-gradient(rgb(0 0 0 / 0.85), rgb(0 0 0 / 0.85)) 0 68% / 100% 18px
+      no-repeat,
+    linear-gradient(rgb(255 255 255 / 0.6), rgb(255 255 255 / 0.6)) 0 86% /
+      100% 6px no-repeat;
+  mix-blend-mode: difference;
+}
+
+/* Heavy scanlines + bright sweep band */
+.person-glitch::after {
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgb(0 0 0 / 0) 0 1px,
+      rgb(0 0 0 / 0.55) 1px 2px
+    ),
+    linear-gradient(
+      to bottom,
+      transparent 0%,
+      rgb(255 255 255 / 0.55) 46%,
+      transparent 54%
+    ),
+    /* coarse “pixel” grid to obscure form */
+    repeating-linear-gradient(
+      90deg,
+      rgb(0 0 0 / 0.15) 0 3px,
+      transparent 3px 6px
+    );
+  background-size:
+    100% 100%,
+    100% 40%,
+    100% 100%;
+  mix-blend-mode: hard-light;
+}
+
+.person-glitch-noise {
+  position: absolute;
+  inset: -10%;
+  z-index: 4;
+  pointer-events: none;
+  opacity: 0;
+  background-image:
+    repeating-conic-gradient(
+      rgb(255 255 255 / 0.18) 0% 25%,
+      rgb(0 0 0 / 0.28) 0% 50%
+    ),
+    /* Extra censor slabs over eyes / mid / mouth */
+    linear-gradient(rgb(0 0 0 / 0.92), rgb(0 0 0 / 0.92)) 50% 38% / 92% 14%
+      no-repeat,
+    linear-gradient(rgb(0 0 0 / 0.55), rgb(0 0 0 / 0.55)) 50% 58% / 70% 8%
+      no-repeat,
+    linear-gradient(rgb(0 0 0 / 0.4), rgb(0 0 0 / 0.4)) 50% 72% / 55% 6%
+      no-repeat;
+  background-size:
+    5px 5px,
+    92% 14%,
+    70% 8%,
+    55% 6%;
+  background-position:
+    0 0,
+    50% 38%,
+    50% 58%,
+    50% 72%;
+  background-repeat: repeat, no-repeat, no-repeat, no-repeat;
+  mix-blend-mode: normal;
+  will-change: opacity, transform;
+}
+
+.person-glitch-alt {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform, clip-path, filter, opacity;
+}
+
+.person-glitch-alt[data-layer="main"] {
+  z-index: 2;
+}
+
+.person-glitch-alt[data-layer="r"],
+.person-glitch-alt[data-layer="g"],
+.person-glitch-alt[data-layer="b"] {
+  z-index: 3;
+  mix-blend-mode: screen;
+}
+
+.person-glitch-alt[data-layer="r"] {
+  clip-path: inset(0 0 70% 0);
+  filter: brightness(1.5) contrast(2) sepia(1) hue-rotate(-55deg) saturate(8)
+    blur(1px);
+}
+
+.person-glitch-alt[data-layer="g"] {
+  clip-path: inset(30% 0 30% 0);
+  filter: brightness(1.4) contrast(2) sepia(1) hue-rotate(70deg) saturate(7)
+    blur(1px);
+}
+
+.person-glitch-alt[data-layer="b"] {
+  clip-path: inset(65% 0 0 0);
+  filter: brightness(1.5) contrast(2) sepia(1) hue-rotate(170deg) saturate(8)
+    blur(1px);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  /* Glitch in + hold */
+  [data-glitch="on"] .person-glitch-base {
+    animation: person-glitch-base-shake 0.85s steps(2, end) forwards;
+  }
+
+  [data-glitch="on"] .person-glitch-alt[data-layer="main"] {
+    animation:
+      person-glitch-in 0.85s steps(2, end) forwards,
+      person-glitch-hold 1.6s steps(2, end) 0.85s infinite;
+  }
+
+  [data-glitch="on"] .person-glitch-alt[data-layer="r"] {
+    animation: person-glitch-slice 0.85s steps(2, end) forwards;
+  }
+
+  [data-glitch="on"] .person-glitch-alt[data-layer="g"] {
+    animation: person-glitch-slice 0.85s steps(2, end) 0.02s forwards;
+  }
+
+  [data-glitch="on"] .person-glitch-alt[data-layer="b"] {
+    animation: person-glitch-slice 0.85s steps(2, end) 0.04s forwards;
+  }
+
+  [data-glitch="on"] .person-glitch::before {
+    animation: person-glitch-bars 0.85s steps(2, end) forwards;
+  }
+
+  [data-glitch="on"] .person-glitch::after {
+    animation: person-glitch-scan 0.85s linear forwards;
+  }
+
+  [data-glitch="on"] .person-glitch-noise {
+    animation: person-glitch-noise 0.85s steps(2, end) forwards;
+  }
+
+  /* Glitch out on unhover */
+  [data-glitch="out"] .person-glitch-base {
+    animation: person-glitch-base-shake 0.85s steps(2, end) reverse forwards;
+  }
+
+  [data-glitch="out"] .person-glitch-alt[data-layer="main"] {
+    opacity: 1;
+    animation: person-glitch-out 0.85s steps(2, end) forwards;
+  }
+
+  [data-glitch="out"] .person-glitch-alt[data-layer="r"] {
+    animation: person-glitch-slice 0.85s steps(2, end) reverse forwards;
+  }
+
+  [data-glitch="out"] .person-glitch-alt[data-layer="g"] {
+    animation: person-glitch-slice 0.85s steps(2, end) 0.02s reverse forwards;
+  }
+
+  [data-glitch="out"] .person-glitch-alt[data-layer="b"] {
+    animation: person-glitch-slice 0.85s steps(2, end) 0.04s reverse forwards;
+  }
+
+  [data-glitch="out"] .person-glitch::before {
+    animation: person-glitch-bars 0.85s steps(2, end) reverse forwards;
+  }
+
+  [data-glitch="out"] .person-glitch::after {
+    opacity: 1;
+    animation: person-glitch-scan 0.85s linear reverse forwards;
+  }
+
+  [data-glitch="out"] .person-glitch-noise {
+    animation: person-glitch-noise 0.85s steps(2, end) reverse forwards;
+  }
+}
+
 /* HIG: respect Reduce Motion (avoid animating layout / scroll; keep essential status motion) */
 @media (prefers-reduced-motion: reduce) {
   html {
@@ -599,8 +1337,62 @@
   .landing-hero-wash-delay,
   .landing-hero-line,
   .landing-hero-enter,
-  .landing-hero-pulse {
+  .landing-hero-pulse,
+  .foil::before,
+  .foil::after {
     animation: none !important;
+  }
+
+  .foil::before {
+    background-position: 50% 50%;
+    opacity: 0.45;
+  }
+
+  .foil::after {
+    opacity: 0;
+  }
+
+  .group\/person:hover .foil-text {
+    animation: none !important;
+    background-position: 40% center;
+  }
+
+  [data-glitch="on"] .person-glitch-base,
+  [data-glitch="out"] .person-glitch-base {
+    animation: none !important;
+  }
+
+  [data-glitch="on"] .person-glitch-alt[data-layer="main"] {
+    animation: none !important;
+    opacity: 1;
+    clip-path: none;
+    transform: none;
+    filter: blur(14px) contrast(2.4) saturate(0.15);
+  }
+
+  [data-glitch="out"] .person-glitch-alt[data-layer="main"] {
+    animation: none !important;
+    opacity: 0;
+  }
+
+  [data-glitch="on"] .person-glitch-alt[data-layer="r"],
+  [data-glitch="on"] .person-glitch-alt[data-layer="g"],
+  [data-glitch="on"] .person-glitch-alt[data-layer="b"],
+  [data-glitch="out"] .person-glitch-alt[data-layer="r"],
+  [data-glitch="out"] .person-glitch-alt[data-layer="g"],
+  [data-glitch="out"] .person-glitch-alt[data-layer="b"] {
+    animation: none !important;
+    opacity: 0;
+  }
+
+  [data-glitch="on"] .person-glitch::before,
+  [data-glitch="on"] .person-glitch::after,
+  [data-glitch="out"] .person-glitch::before,
+  [data-glitch="out"] .person-glitch::after,
+  [data-glitch="on"] .person-glitch-noise,
+  [data-glitch="out"] .person-glitch-noise {
+    animation: none !important;
+    opacity: 0;
   }
 
   .landing-hero-line {

@@ -3,13 +3,36 @@ import { Button } from "@/components/ui/button";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 import {
 	LANDING_HEADLINE,
 	LANDING_SITE_TITLE,
 	LANDING_SUPPORT,
 } from "./content";
+
+const LANE_ICONS = [
+	{ alt: "Experience Lane", src: "/icons/lanes/explane-icon.svg" },
+	{ alt: "Jungle", src: "/icons/lanes/jungler-icon.svg" },
+	{ alt: "Middle Lane", src: "/icons/lanes/midlane-icon.svg" },
+	{ alt: "Gold Lane", src: "/icons/lanes/goldlane-icon.svg" },
+	{ alt: "Roamer Support", src: "/icons/lanes/roamer-icon.svg" },
+] as const;
+
+function FoilLaneIcon({ alt, src }: { alt: string; src: string }) {
+	return (
+		<span
+			className="foil lane-foil"
+			style={{ "--foil-mask": `url(${src})` } as CSSProperties}
+		>
+			<img
+				alt={alt}
+				src={src}
+				className="h-12 w-12 object-cover object-center invert opacity-90 dark:invert-0 dark:opacity-100"
+			/>
+		</span>
+	);
+}
 
 function Stagger({
 	children,
@@ -55,31 +78,9 @@ export function LandingHero() {
 
 				<Stagger delay={0.12}>
 					<div className="flex gap-2">
-						<img
-							alt="Experience Lane"
-							src="/icons/lanes/explane-icon.svg"
-							className="h-12 w-12 object-cover object-center invert opacity-90 dark:invert-0 dark:opacity-100"
-						/>
-						<img
-							alt="Jungle"
-							src="/icons/lanes/jungler-icon.svg"
-							className="h-12 w-12 object-cover object-center invert opacity-90 dark:invert-0 dark:opacity-100"
-						/>
-						<img
-							alt="Middle Lane"
-							src="/icons/lanes/midlane-icon.svg"
-							className="h-12 w-12 object-cover object-center invert opacity-90 dark:invert-0 dark:opacity-100"
-						/>
-						<img
-							alt="Gold Lane"
-							src="/icons/lanes/goldlane-icon.svg"
-							className="h-12 w-12 object-cover object-center invert opacity-90 dark:invert-0 dark:opacity-100"
-						/>
-						<img
-							alt="Roamer Support"
-							src="/icons/lanes/roamer-icon.svg"
-							className="h-12 w-12 object-cover object-center invert opacity-90 dark:invert-0 dark:opacity-100"
-						/>
+						{LANE_ICONS.map((icon) => (
+							<FoilLaneIcon key={icon.src} alt={icon.alt} src={icon.src} />
+						))}
 					</div>
 				</Stagger>
 
