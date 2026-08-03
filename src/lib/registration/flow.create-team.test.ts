@@ -46,16 +46,18 @@ function fillCredentials(
 	return reduce(state, { type: "SET_CREDENTIALS", patch });
 }
 
+const PLAYER_NAMES = ["Ana Reyes", "Ben Santos", "Cara Lim", "Diego Cruz"] as const;
+
 function validPlayer(i: number, phase: string = "4"): Partial<Credentials> {
 	return {
-		name: `Player ${i + 1}`,
+		name: PLAYER_NAMES[i] ?? `Player ${String.fromCharCode(65 + i)}`,
 		email: `player${i + 1}@example.com`,
 		ign: `IGN${i + 1}`,
 		birthdate: "2008-01-15",
-		user_id: `uid${1000 + i}`,
+		user_id: `${12345678 + i}`,
 		server_id: "2001",
 		address_phase: phase,
-		address_package: "1",
+		address_package: "12A",
 		address_block: "2",
 		address_lot: "3",
 		preferred_lane: "mid",

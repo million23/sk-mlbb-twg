@@ -305,21 +305,101 @@ export function ageOnTournamentDay(
 	return age;
 }
 
+/** Full name: letters / spaces / common punctuation only, max length. */
+export const NAME_MAX_LENGTH = 60;
+const NAME_PATTERN = /^[\p{L}\s.'’-]+$/u;
+
+/** Practical email shape checked before leaving credentials. */
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMAIL_MAX_LENGTH = 254;
+
+export const USER_ID_MIN_LENGTH = 8;
+export const USER_ID_MAX_LENGTH = 10;
+export const SERVER_ID_MIN_LENGTH = 4;
+export const SERVER_ID_MAX_LENGTH = 5;
+
+/** Package: 2 digits + 1 letter (e.g. 12A). */
+const PACKAGE_PATTERN = /^\d{2}[A-Za-z]$/;
+
+export function sanitizePersonName(raw: string): string {
+	return raw.replace(/[0-9]/g, "").slice(0, NAME_MAX_LENGTH);
+}
+
+export function sanitizeDigits(raw: string, max: number): string {
+	return raw.replace(/\D/g, "").slice(0, max);
+}
+
+/** Progressive package input: up to 2 digits then 1 letter. */
+export function sanitizeAddressPackage(raw: string): string {
+	const cleaned = raw.toUpperCase().replace(/[^0-9A-Z]/g, "");
+	let digits = "";
+	let letter = "";
+	for (const ch of cleaned) {
+		if (digits.length < 2 && /\d/.test(ch)) {
+			digits += ch;
+			continue;
+		}
+		if (digits.length === 2 && !letter && /[A-Z]/.test(ch)) {
+			letter = ch;
+			break;
+		}
+	}
+	return `${digits}${letter}`;
+}
+
 export function validateCredentialsFields(
 	c: Credentials,
 	tournamentDay: string,
 ): string | null {
-	if (!c.name.trim()) return "Name is required";
-	if (!c.email.trim() || !c.email.includes("@")) return "Valid email is required";
+	const name = c.name.trim();
+	if (!name) return "Name is required";
+	if (name.length > NAME_MAX_LENGTH) {
+		return `Name must be ${NAME_MAX_LENGTH} characters or fewer`;
+	}
+	if (/\d/.test(name) || !NAME_PATTERN.test(name)) {
+		return "Name cannot include numbers or special symbols";
+	}
+
+	const email = c.email.trim();
+	if (!email) return "Valid email is required";
+	if (email.length > EMAIL_MAX_LENGTH || !EMAIL_PATTERN.test(email)) {
+		return "Enter a valid email address (e.g. you@example.com)";
+	}
+
 	if (!c.ign.trim()) return "IGN is required";
 	if (!c.birthdate) return "Birthdate is required";
-	if (!c.user_id.trim()) return "User ID is required";
-	if (!c.server_id.trim()) return "Server ID is required";
+
+	const userId = c.user_id.trim();
+	if (!userId) return "User ID is required";
+	if (!/^\d+$/.test(userId)) return "User ID must be digits only";
+	if (
+		userId.length < USER_ID_MIN_LENGTH ||
+		userId.length > USER_ID_MAX_LENGTH
+	) {
+		return `User ID must be ${USER_ID_MIN_LENGTH}–${USER_ID_MAX_LENGTH} digits`;
+	}
+
+	const serverId = c.server_id.trim();
+	if (!serverId) return "Server ID is required";
+	if (!/^\d+$/.test(serverId)) return "Server ID must be digits only";
+	if (
+		serverId.length < SERVER_ID_MIN_LENGTH ||
+		serverId.length > SERVER_ID_MAX_LENGTH
+	) {
+		return `Server ID must be ${SERVER_ID_MIN_LENGTH}–${SERVER_ID_MAX_LENGTH} digits`;
+	}
+
 	if (!c.address_phase) return "Phase is required";
 	if (!(ELIGIBLE_PHASES as readonly string[]).includes(c.address_phase)) {
 		return "Phase must be 4, 9, or 10";
 	}
-	if (!c.address_package.trim()) return "Package is required";
+
+	const pkg = c.address_package.trim();
+	if (!pkg) return "Package is required";
+	if (!PACKAGE_PATTERN.test(pkg)) {
+		return "Package must be 2 digits and 1 letter (e.g. 12A)";
+	}
+
 	if (!c.address_block.trim()) return "Block is required";
 	if (!c.address_lot.trim()) return "Lot is required";
 	if (!c.preferred_lane) return "Preferred lane is required";
@@ -504,7 +584,7 @@ const PRESETS: Record<CredentialPreset, Partial<Credentials>> = {
 		user_id: "123456789",
 		server_id: "2001",
 		address_phase: "9",
-		address_package: "2",
+		address_package: "02A",
 		address_block: "14",
 		address_lot: "3",
 		preferred_lane: "jungle",
@@ -518,7 +598,7 @@ const PRESETS: Record<CredentialPreset, Partial<Credentials>> = {
 		user_id: "987654321",
 		server_id: "2001",
 		address_phase: "4",
-		address_package: "1",
+		address_package: "01B",
 		address_block: "5",
 		address_lot: "8",
 		preferred_lane: "gold",
@@ -529,10 +609,10 @@ const PRESETS: Record<CredentialPreset, Partial<Credentials>> = {
 		email: "young@example.com",
 		ign: "TooYoung",
 		birthdate: "2013-01-01",
-		user_id: "111",
+		user_id: "12345678",
 		server_id: "2001",
 		address_phase: "9",
-		address_package: "1",
+		address_package: "01A",
 		address_block: "1",
 		address_lot: "1",
 		preferred_lane: "mid",
@@ -542,10 +622,10 @@ const PRESETS: Record<CredentialPreset, Partial<Credentials>> = {
 		email: "outside@example.com",
 		ign: "Outsider",
 		birthdate: "2006-03-03",
-		user_id: "222",
+		user_id: "23456789",
 		server_id: "2001",
 		address_phase: "" as EligiblePhase | "",
-		address_package: "1",
+		address_package: "01A",
 		address_block: "1",
 		address_lot: "1",
 		preferred_lane: "exp",
@@ -555,10 +635,10 @@ const PRESETS: Record<CredentialPreset, Partial<Credentials>> = {
 		email: "taken@example.com",
 		ign: "TakenIGN",
 		birthdate: "2005-06-06",
-		user_id: "333",
+		user_id: "34567890",
 		server_id: "2001",
 		address_phase: "10",
-		address_package: "3",
+		address_package: "03C",
 		address_block: "7",
 		address_lot: "2",
 		preferred_lane: "support",

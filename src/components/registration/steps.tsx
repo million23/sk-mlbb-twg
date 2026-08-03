@@ -35,9 +35,15 @@ import { sanitizePhilippineMobileInput } from "@/lib/legacy/philippine-mobile";
 import {
 	ELIGIBLE_PHASES,
 	LANES,
+	NAME_MAX_LENGTH,
+	SERVER_ID_MAX_LENGTH,
+	USER_ID_MAX_LENGTH,
 	ageOnTournamentDay,
 	isCreateTeamBatch,
 	memberCountBounds,
+	sanitizeAddressPackage,
+	sanitizeDigits,
+	sanitizePersonName,
 	validateUploadFile,
 	type Action,
 	type Credentials,
@@ -66,10 +72,6 @@ import {
 	type UIEvent,
 } from "react";
 import ReactMarkdown from "react-markdown";
-
-function digitsOnly(raw: string, max: number): string {
-	return raw.replace(/\D/g, "").slice(0, max);
-}
 
 const PHASE_LABELS: Record<(typeof ELIGIBLE_PHASES)[number], string> = {
 	"4": "Phase 4",
@@ -380,9 +382,11 @@ export function CredentialsStep({ state, dispatch }: Props) {
 				<Field label="Name">
 					<Input
 						value={c.name}
-						onChange={(e) => set({ name: e.target.value })}
+						onChange={(e) => set({ name: sanitizePersonName(e.target.value) })}
 						autoComplete="name"
 						placeholder="Full name"
+						maxLength={NAME_MAX_LENGTH}
+						inputMode="text"
 					/>
 				</Field>
 				<Field label="Email">
@@ -392,6 +396,7 @@ export function CredentialsStep({ state, dispatch }: Props) {
 						onChange={(e) => set({ email: e.target.value })}
 						autoComplete="email"
 						placeholder="you@example.com"
+						maxLength={254}
 					/>
 				</Field>
 				<Field label="IGN">
@@ -407,23 +412,36 @@ export function CredentialsStep({ state, dispatch }: Props) {
 						onChange={(v) => set({ birthdate: v })}
 					/>
 				</Field>
-				<Field label="User ID">
+				<Field label="User ID (8–10 digits)">
 					<Input
 						value={c.user_id}
-						onChange={(e) => set({ user_id: digitsOnly(e.target.value, 16) })}
+						onChange={(e) =>
+							set({
+								user_id: sanitizeDigits(e.target.value, USER_ID_MAX_LENGTH),
+							})
+						}
 						inputMode="numeric"
 						autoComplete="off"
 						placeholder="123456789"
+						maxLength={USER_ID_MAX_LENGTH}
 						className="tabular-nums"
 					/>
 				</Field>
-				<Field label="Server ID">
+				<Field label="Server ID (4–5 digits)">
 					<Input
 						value={c.server_id}
-						onChange={(e) => set({ server_id: digitsOnly(e.target.value, 8) })}
+						onChange={(e) =>
+							set({
+								server_id: sanitizeDigits(
+									e.target.value,
+									SERVER_ID_MAX_LENGTH,
+								),
+							})
+						}
 						inputMode="numeric"
 						autoComplete="off"
 						placeholder="2001"
+						maxLength={SERVER_ID_MAX_LENGTH}
 						className="tabular-nums"
 					/>
 				</Field>
@@ -457,18 +475,21 @@ export function CredentialsStep({ state, dispatch }: Props) {
 						<Input
 							value={c.address_package}
 							onChange={(e) =>
-								set({ address_package: digitsOnly(e.target.value, 4) })
+								set({
+									address_package: sanitizeAddressPackage(e.target.value),
+								})
 							}
-							inputMode="numeric"
-							placeholder="Pkg"
-							className="tabular-nums px-2 sm:px-3"
+							autoComplete="off"
+							placeholder="12A"
+							maxLength={3}
+							className="px-2 uppercase sm:px-3"
 						/>
 					</Field>
 					<Field label="Block" className="min-w-0">
 						<Input
 							value={c.address_block}
 							onChange={(e) =>
-								set({ address_block: digitsOnly(e.target.value, 4) })
+								set({ address_block: sanitizeDigits(e.target.value, 4) })
 							}
 							inputMode="numeric"
 							placeholder="Blk"
@@ -479,7 +500,7 @@ export function CredentialsStep({ state, dispatch }: Props) {
 						<Input
 							value={c.address_lot}
 							onChange={(e) =>
-								set({ address_lot: digitsOnly(e.target.value, 4) })
+								set({ address_lot: sanitizeDigits(e.target.value, 4) })
 							}
 							inputMode="numeric"
 							placeholder="Lot"
