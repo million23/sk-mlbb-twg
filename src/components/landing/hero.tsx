@@ -56,27 +56,27 @@ export function LandingHero() {
 				<Stagger delay={0.12}>
 					<div className="flex gap-2">
 						<img
-							alt="Meme"
+							alt="Experience Lane"
 							src="/icons/lanes/explane-icon.svg"
 							className="h-12 w-12 object-cover object-center invert opacity-90 dark:invert-0 dark:opacity-100"
 						/>
 						<img
-							alt="Meme"
+							alt="Jungle"
 							src="/icons/lanes/jungler-icon.svg"
 							className="h-12 w-12 object-cover object-center invert opacity-90 dark:invert-0 dark:opacity-100"
 						/>
 						<img
-							alt="Meme"
+							alt="Middle Lane"
 							src="/icons/lanes/midlane-icon.svg"
 							className="h-12 w-12 object-cover object-center invert opacity-90 dark:invert-0 dark:opacity-100"
 						/>
 						<img
-							alt="Meme"
+							alt="Gold Lane"
 							src="/icons/lanes/goldlane-icon.svg"
 							className="h-12 w-12 object-cover object-center invert opacity-90 dark:invert-0 dark:opacity-100"
 						/>
 						<img
-							alt="Meme"
+							alt="Roamer Support"
 							src="/icons/lanes/roamer-icon.svg"
 							className="h-12 w-12 object-cover object-center invert opacity-90 dark:invert-0 dark:opacity-100"
 						/>
