@@ -19,7 +19,7 @@ function base(overrides: Partial<Credentials> = {}): Credentials {
 		user_id: "123456789",
 		server_id: "2001",
 		address_phase: "9",
-		address_package: "12A",
+		address_package: "12",
 		address_block: "14",
 		address_lot: "3",
 		preferred_lane: "jungle",
@@ -36,10 +36,10 @@ describe("sanitizePersonName", () => {
 });
 
 describe("sanitizeAddressPackage", () => {
-	it("keeps 2 digits then 1 letter", () => {
-		expect(sanitizeAddressPackage("12a")).toBe("12A");
-		expect(sanitizeAddressPackage("1x2b")).toBe("12B");
-		expect(sanitizeAddressPackage("99ZZ")).toBe("99Z");
+	it("keeps up to 2 digits only", () => {
+		expect(sanitizeAddressPackage("12a")).toBe("12");
+		expect(sanitizeAddressPackage("1x2b")).toBe("12");
+		expect(sanitizeAddressPackage("999")).toBe("99");
 	});
 });
 
@@ -84,15 +84,18 @@ describe("validateCredentialsFields", () => {
 		).toMatch(/4–5 digits/i);
 	});
 
-	it("requires package as 2 digits + 1 letter", () => {
-		expect(
-			validateCredentialsFields(base({ address_package: "12" }), day),
-		).toMatch(/2 digits and 1 letter/i);
-		expect(
-			validateCredentialsFields(base({ address_package: "1A" }), day),
-		).toMatch(/2 digits and 1 letter/i);
+	it("requires package as 1–2 digits", () => {
 		expect(
 			validateCredentialsFields(base({ address_package: "12A" }), day),
+		).toMatch(/1–2 digits/i);
+		expect(
+			validateCredentialsFields(base({ address_package: "" }), day),
+		).toMatch(/package is required/i);
+		expect(
+			validateCredentialsFields(base({ address_package: "12" }), day),
+		).toBeNull();
+		expect(
+			validateCredentialsFields(base({ address_package: "1" }), day),
 		).toBeNull();
 	});
 });

@@ -20,6 +20,7 @@ import {
 	DrawerTitle,
 } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
 	Select,
 	SelectContent,
@@ -30,22 +31,25 @@ import {
 } from "@/components/ui/select";
 import skConsentMarkdown from "@/content/sk-consent.md?raw";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { TEAM_INTENT_LABELS } from "@/lib/admin/participant-approval";
 import { LANE_ROLE_LABELS } from "@/lib/legacy/lane-role-icons";
 import { sanitizePhilippineMobileInput } from "@/lib/legacy/philippine-mobile";
 import {
 	ELIGIBLE_PHASES,
-	LANES,
 	NAME_MAX_LENGTH,
 	SERVER_ID_MAX_LENGTH,
 	USER_ID_MAX_LENGTH,
 	ageOnTournamentDay,
+	getCredentialFieldErrors,
 	isCreateTeamBatch,
 	memberCountBounds,
+	PACKAGE_MAX_LENGTH,
 	sanitizeAddressPackage,
 	sanitizeDigits,
 	sanitizePersonName,
 	validateUploadFile,
 	type Action,
+	type CredentialField,
 	type Credentials,
 	type FlowStep,
 	type Lane,
@@ -57,6 +61,7 @@ import { cn } from "@/lib/utils";
 import type { PlayerRole } from "@/types/__pocketbase-types";
 import { Link } from "@tanstack/react-router";
 import {
+	ArrowLeft,
 	CircleCheck,
 	CircleX,
 	Clock3,
@@ -85,6 +90,7 @@ export const FLOW_STEPS: FlowStep[] = [
 	"consent",
 	"credentials",
 	"documents",
+	"review",
 	"pending",
 	"approved",
 	"rejected",
@@ -97,7 +103,8 @@ export const STEP_LABELS: Record<FlowStep, string> = {
 	credentials: "Credentials",
 	team_details: "Squad",
 	documents: "Documents",
-	pending: "Pending",
+	review: "Review",
+	pending: "Receipt",
 	approved: "Approved",
 	rejected: "Rejected",
 };
@@ -107,7 +114,7 @@ export function stepLabelFor(
 	intent: TeamIntent | null,
 ): string {
 	if (step === "team_details") {
-		return intent === "create_team" ? "Team name" : "Team select";
+		return intent === "create_team" ? "Name" : "Select";
 	}
 	return STEP_LABELS[step];
 }
@@ -154,15 +161,27 @@ function Field({
 	label,
 	children,
 	className,
+	error,
 }: {
 	label: string;
 	children: ReactNode;
 	className?: string;
+	error?: string;
 }) {
 	return (
 		<div className={cn("flex flex-col gap-1.5", className)}>
-			<span className="text-muted-foreground text-xs font-medium">{label}</span>
+			<span
+				className={cn(
+					"text-xs font-medium",
+					error ? "text-destructive" : "text-muted-foreground",
+				)}
+			>
+				{label}
+			</span>
 			{children}
+			{error ? (
+				<p className="text-destructive text-xs leading-snug">{error}</p>
+			) : null}
 		</div>
 	);
 }
@@ -274,9 +293,17 @@ export function ConsentStep({ state, dispatch }: Props) {
 				<li>Age 15+ on {state.tournament_day}</li>
 				<li>One pending/approved registration per email</li>
 			</ul>
+			<p className="flex flex-col gap-0.5 rounded-2xl border border-primary/35 bg-primary/10 px-3 py-2.5 text-sm leading-relaxed">
+				<span className="font-medium text-primary">
+					All information you submit must be correct.
+				</span>
+				<span className="text-muted-foreground">
+					Even small errors may cause your registration to be rejected.
+				</span>
+			</p>
 			{state.consent_accepted ? (
-				<p className="inline-flex items-center gap-1.5 text-sm text-success">
-					<CircleCheck className="size-4 shrink-0" aria-hidden />
+				<p className="flex items-center gap-2.5 rounded-2xl border border-success/40 bg-success/15 px-3.5 py-3 text-base font-medium text-success">
+					<CircleCheck className="size-5 shrink-0" aria-hidden />
 					Terms accepted
 				</p>
 			) : (
@@ -360,6 +387,19 @@ export function CredentialsStep({ state, dispatch }: Props) {
 			? "—"
 			: String(age);
 
+	const fieldErrors: Partial<Record<CredentialField, string>> = state.last_error
+		? getCredentialFieldErrors(c, state.tournament_day)
+		: {};
+	if (
+		state.last_error &&
+		/already has a pending|different registration email/i.test(
+			state.last_error,
+		)
+	) {
+		fieldErrors.email = state.last_error;
+	}
+	const err = (key: CredentialField) => fieldErrors[key];
+
 	return (
 		<div className="flex flex-col gap-4">
 			<PlayerChrome state={state} />
@@ -379,7 +419,7 @@ export function CredentialsStep({ state, dispatch }: Props) {
 				</p>
 			)}
 			<div className="grid gap-3 sm:grid-cols-2">
-				<Field label="Name">
+				<Field label="Name" error={err("name")}>
 					<Input
 						value={c.name}
 						onChange={(e) => set({ name: sanitizePersonName(e.target.value) })}
@@ -387,9 +427,10 @@ export function CredentialsStep({ state, dispatch }: Props) {
 						placeholder="Full name"
 						maxLength={NAME_MAX_LENGTH}
 						inputMode="text"
+						aria-invalid={Boolean(err("name")) || undefined}
 					/>
 				</Field>
-				<Field label="Email">
+				<Field label="Email" error={err("email")}>
 					<Input
 						type="email"
 						value={c.email}
@@ -397,22 +438,28 @@ export function CredentialsStep({ state, dispatch }: Props) {
 						autoComplete="email"
 						placeholder="you@example.com"
 						maxLength={254}
+						aria-invalid={Boolean(err("email")) || undefined}
 					/>
 				</Field>
-				<Field label="IGN">
+				<Field label="IGN" error={err("ign")}>
 					<Input
 						value={c.ign}
 						onChange={(e) => set({ ign: e.target.value })}
 						placeholder="In-game name"
+						aria-invalid={Boolean(err("ign")) || undefined}
 					/>
 				</Field>
-				<Field label={`Birthdate (age on day: ${ageLabel})`}>
+				<Field
+					label={`Birthdate (age on day: ${ageLabel})`}
+					error={err("birthdate")}
+				>
 					<BirthdayPicker
 						value={c.birthdate}
 						onChange={(v) => set({ birthdate: v })}
+						aria-invalid={Boolean(err("birthdate"))}
 					/>
 				</Field>
-				<Field label="User ID (8–10 digits)">
+				<Field label="User ID (8–10 digits)" error={err("user_id")}>
 					<Input
 						value={c.user_id}
 						onChange={(e) =>
@@ -425,9 +472,10 @@ export function CredentialsStep({ state, dispatch }: Props) {
 						placeholder="123456789"
 						maxLength={USER_ID_MAX_LENGTH}
 						className="tabular-nums"
+						aria-invalid={Boolean(err("user_id")) || undefined}
 					/>
 				</Field>
-				<Field label="Server ID (4–5 digits)">
+				<Field label="Server ID (4–5 digits)" error={err("server_id")}>
 					<Input
 						value={c.server_id}
 						onChange={(e) =>
@@ -443,15 +491,19 @@ export function CredentialsStep({ state, dispatch }: Props) {
 						placeholder="2001"
 						maxLength={SERVER_ID_MAX_LENGTH}
 						className="tabular-nums"
+						aria-invalid={Boolean(err("server_id")) || undefined}
 					/>
 				</Field>
-				<div className="col-span-full grid grid-cols-4 gap-2 sm:gap-3">
-					<Field label="Phase" className="min-w-0">
+				<div className="col-span-full grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+					<Field label="Phase" className="min-w-0" error={err("address_phase")}>
 						<Select
 							value={c.address_phase || null}
 							onValueChange={(v) => set({ address_phase: v ?? "" })}
 						>
-							<SelectTrigger className="w-full px-2 sm:px-3">
+							<SelectTrigger
+								className="w-full"
+								aria-invalid={Boolean(err("address_phase")) || undefined}
+							>
 								<SelectValue placeholder="Phase">
 									{(value: string | null) =>
 										value && value in PHASE_LABELS
@@ -471,7 +523,11 @@ export function CredentialsStep({ state, dispatch }: Props) {
 							</SelectContent>
 						</Select>
 					</Field>
-					<Field label="Package" className="min-w-0">
+					<Field
+						label="Package"
+						className="min-w-0"
+						error={err("address_package")}
+					>
 						<Input
 							value={c.address_package}
 							onChange={(e) =>
@@ -479,13 +535,15 @@ export function CredentialsStep({ state, dispatch }: Props) {
 									address_package: sanitizeAddressPackage(e.target.value),
 								})
 							}
+							inputMode="numeric"
 							autoComplete="off"
-							placeholder="12A"
-							maxLength={3}
-							className="px-2 uppercase sm:px-3"
+							placeholder="12"
+							maxLength={PACKAGE_MAX_LENGTH}
+							className="tabular-nums"
+							aria-invalid={Boolean(err("address_package")) || undefined}
 						/>
 					</Field>
-					<Field label="Block" className="min-w-0">
+					<Field label="Block" className="min-w-0" error={err("address_block")}>
 						<Input
 							value={c.address_block}
 							onChange={(e) =>
@@ -493,10 +551,11 @@ export function CredentialsStep({ state, dispatch }: Props) {
 							}
 							inputMode="numeric"
 							placeholder="Blk"
-							className="tabular-nums px-2 sm:px-3"
+							className="tabular-nums"
+							aria-invalid={Boolean(err("address_block")) || undefined}
 						/>
 					</Field>
-					<Field label="Lot" className="min-w-0">
+					<Field label="Lot" className="min-w-0" error={err("address_lot")}>
 						<Input
 							value={c.address_lot}
 							onChange={(e) =>
@@ -504,52 +563,71 @@ export function CredentialsStep({ state, dispatch }: Props) {
 							}
 							inputMode="numeric"
 							placeholder="Lot"
-							className="tabular-nums px-2 sm:px-3"
+							className="tabular-nums"
+							aria-invalid={Boolean(err("address_lot")) || undefined}
 						/>
 					</Field>
 				</div>
-				<Field label="Preferred lane">
-					<Select
-						value={c.preferred_lane || null}
+				<Field
+					label="Preferred lane"
+					className="col-span-full"
+					error={err("preferred_lane")}
+				>
+					<RadioGroup
+						value={c.preferred_lane}
 						onValueChange={(v) =>
 							set({ preferred_lane: (v ?? "") as Lane | "" })
 						}
+						className="grid grid-cols-2 gap-2 sm:gap-3"
+						aria-invalid={Boolean(err("preferred_lane")) || undefined}
 					>
-						<SelectTrigger className="w-full gap-2">
-							<SelectValue placeholder="Select lane">
-								{(value: string | null) =>
-									value ? (
-										<span className="flex min-w-0 items-center gap-2">
-											<LaneRoleIcon
-												role={value as PlayerRole}
-												className="size-5 shrink-0"
-											/>
-											<span className="truncate">
-												{LANE_ROLE_LABELS[value as PlayerRole] ?? value}
-											</span>
-										</span>
-									) : null
-								}
-							</SelectValue>
-						</SelectTrigger>
-						<SelectContent>
-							<SelectGroup>
-								{LANES.map((l) => (
-									<SelectItem key={l} value={l}>
-										<span className="flex items-center gap-2">
-											<LaneRoleIcon
-												role={l as PlayerRole}
-												className="size-5 shrink-0"
-											/>
-											<span>{LANE_ROLE_LABELS[l as PlayerRole]}</span>
-										</span>
-									</SelectItem>
-								))}
-							</SelectGroup>
-						</SelectContent>
-					</Select>
+						{(
+							[
+								{ lane: "exp", label: "Experience Lane", className: "" },
+								{ lane: "jungle", label: "Jungle", className: "" },
+								{
+									lane: "mid",
+									label: "Mid Lane",
+									className: "col-span-2",
+								},
+								{ lane: "gold", label: "Gold Lane", className: "" },
+								{ lane: "support", label: "Support", className: "" },
+							] as const
+						).map(({ lane: l, label, className: cellClass }) => {
+							const on = c.preferred_lane === l;
+							const inputId = `preferred-lane-${l}`;
+							return (
+								<label
+									key={l}
+									htmlFor={inputId}
+									className={cn(
+										"relative flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-2xl border px-3 py-3 transition-colors has-focus-visible:ring-2 has-focus-visible:ring-primary/50",
+										cellClass,
+										err("preferred_lane") && !on
+											? "border-destructive/50"
+											: on
+												? "border-primary bg-primary/10"
+												: "border-border hover:bg-muted/60",
+									)}
+								>
+									<RadioGroupItem
+										id={inputId}
+										value={l}
+										className="sr-only"
+									/>
+									<LaneRoleIcon
+										role={l as PlayerRole}
+										className="size-5 shrink-0"
+									/>
+									<span className="whitespace-nowrap text-sm font-medium">
+										{label}
+									</span>
+								</label>
+							);
+						})}
+					</RadioGroup>
 				</Field>
-				<Field label="Contact (optional)">
+				<Field label="Contact (optional)" className="col-span-full">
 					<Input
 						type="tel"
 						inputMode="tel"
@@ -696,7 +774,10 @@ function JoinTeamPicker({ state, dispatch }: Props) {
 					autoComplete="off"
 				/>
 			</Field>
-			<ul className="flex flex-col gap-2" aria-label="Listed teams">
+			<ul
+				className="flex max-h-90 flex-col gap-2 overflow-y-auto overscroll-contain pr-1"
+				aria-label="Listed teams"
+			>
 				{teams.length === 0 ? (
 					<li className="rounded-2xl border border-dashed border-border/70 px-4 py-6 text-center text-muted-foreground text-sm">
 						No teams match your search.
@@ -869,6 +950,124 @@ export function DocumentsStep({ state, dispatch }: Props) {
 							</div>
 						</div>
 					</div>
+				);
+			})}
+		</div>
+	);
+}
+
+function ReviewRow({ label, value }: { label: string; value: string }) {
+	return (
+		<p className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-x-3 text-sm sm:grid-cols-[7.5rem_minmax(0,1fr)]">
+			<span className="font-mono text-[0.65rem] text-muted-foreground uppercase tracking-[0.14em]">
+				{label}
+			</span>
+			<span className="min-w-0 text-pretty text-foreground/90">{value}</span>
+		</p>
+	);
+}
+
+function reviewUploadsLabel(uploads: Uploads): string {
+	const parts = (
+		[
+			["School ID front", uploads.school_id_front],
+			["School ID back", uploads.school_id_back],
+			["Purok endorsement", uploads.purok_endorsement],
+		] as const
+	).map(([label, file]) =>
+		file ? `${label}: ${file.name}` : `${label}: missing`,
+	);
+	return parts.join(" · ");
+}
+
+export function ReviewStep({ state }: Props) {
+	const batch = isCreateTeamBatch(state);
+	const count = batch ? state.member_count : 1;
+	const registrants = state.registrants.slice(0, count);
+	const intent = state.team_intent;
+	const intentLabel =
+		intent && intent in TEAM_INTENT_LABELS
+			? TEAM_INTENT_LABELS[intent]
+			: "—";
+	const teamValue =
+		intent === "join_team"
+			? (state.listed_teams.find((t) => t.id === state.preferred_team)?.name ??
+				"—")
+			: intent === "create_team"
+				? state.preferred_team_name.trim() || "—"
+				: "Open matching";
+
+	return (
+		<div className="flex flex-col gap-4">
+			<p className="text-muted-foreground text-sm leading-relaxed">
+				Check everything below, then submit. Nothing is sent until you confirm.
+			</p>
+
+			<section className="flex flex-col gap-2 rounded-2xl border border-border/70 px-4 py-3">
+				<p className="font-mono text-[0.65rem] text-primary uppercase tracking-[0.18em]">
+					Team
+				</p>
+				<ReviewRow label="Intent" value={intentLabel} />
+				<ReviewRow
+					label={intent === "create_team" ? "Team name" : "Team"}
+					value={teamValue}
+				/>
+				{batch ? (
+					<ReviewRow
+						label="Squad size"
+						value={`${count} players (you are captain)`}
+					/>
+				) : null}
+				<ReviewRow
+					label="Consent"
+					value={
+						state.consent_accepted
+							? state.consent_version ?? "Accepted"
+							: "Not accepted"
+					}
+				/>
+			</section>
+
+			{registrants.map((reg, index) => {
+				const c = reg.credentials;
+				const lane =
+					c.preferred_lane && c.preferred_lane in LANE_ROLE_LABELS
+						? LANE_ROLE_LABELS[c.preferred_lane as PlayerRole]
+						: c.preferred_lane || "—";
+				const key = c.email.trim().toLowerCase() || `player-${c.user_id}-${c.ign}`;
+				return (
+					<section
+						key={key}
+						className="flex flex-col gap-2 rounded-2xl border border-border/70 px-4 py-3"
+					>
+						<p className="font-mono text-[0.65rem] text-primary uppercase tracking-[0.18em]">
+							{batch
+								? index === 0
+									? `Player ${index + 1} · Team captain`
+									: `Player ${index + 1} · Teammate`
+								: "Player"}
+						</p>
+						<ReviewRow label="Name" value={c.name.trim() || "—"} />
+						<ReviewRow label="Email" value={c.email.trim() || "—"} />
+						<ReviewRow label="IGN" value={c.ign.trim() || "—"} />
+						<ReviewRow label="Birthdate" value={c.birthdate || "—"} />
+						<ReviewRow
+							label="User / Server"
+							value={`${c.user_id.trim() || "—"} / ${c.server_id.trim() || "—"}`}
+						/>
+						<ReviewRow
+							label="Address"
+							value={`Phase ${c.address_phase} · Pkg ${c.address_package} · Blk ${c.address_block} · Lot ${c.address_lot}`}
+						/>
+						<ReviewRow label="Lane" value={lane} />
+						{c.contact_number.trim() ? (
+							<ReviewRow label="Contact" value={c.contact_number.trim()} />
+						) : null}
+						<ReviewRow
+							label="Documents"
+							value={reviewUploadsLabel(reg.uploads)}
+						/>
+					</section>
 				);
 			})}
 		</div>
@@ -1102,6 +1301,8 @@ export function StepBody(props: Props) {
 			return <TeamDetailsStep {...props} />;
 		case "documents":
 			return <DocumentsStep {...props} />;
+		case "review":
+			return <ReviewStep {...props} />;
 		case "pending":
 		case "approved":
 		case "rejected":
@@ -1113,6 +1314,24 @@ export function StepBody(props: Props) {
 
 export function ErrorBanner({ state }: { state: RegistrationDraft }) {
 	if (!state.last_error) return null;
+
+	// Credential validation (and email-taken API errors) render on the fields.
+	if (state.step === "credentials") {
+		const fieldErrors = getCredentialFieldErrors(
+			state.credentials,
+			state.tournament_day,
+		);
+		const fieldMsgs = Object.values(fieldErrors);
+		if (fieldMsgs.includes(state.last_error)) return null;
+		if (
+			/already has a pending|different registration email/i.test(
+				state.last_error,
+			)
+		) {
+			return null;
+		}
+	}
+
 	return (
 		<div
 			role="alert"
@@ -1145,7 +1364,8 @@ export function NavRow({
 		state.step === "credentials" ||
 		state.step === "team_intent" ||
 		state.step === "team_details" ||
-		state.step === "documents";
+		state.step === "documents" ||
+		state.step === "review";
 
 	if (!fillable) return null;
 
@@ -1154,21 +1374,27 @@ export function NavRow({
 		(!isCreateTeamBatch(state) ||
 			state.active_registrant_index >= state.member_count - 1);
 
-	const showSubmitButton = Boolean(showSubmit) || onLastDocumentPlayer;
+	const showSubmitButton = Boolean(showSubmit) || state.step === "review";
 
 	return (
-		<div className="flex flex-wrap items-center gap-2">
+		<div className="flex w-full flex-row items-stretch gap-2">
 			<Button
 				type="button"
 				variant="outline"
+				size="lg"
+				className="min-h-12 w-12 shrink-0 px-0 sm:w-auto sm:flex-1 sm:px-4"
 				onClick={() => dispatch({ type: "BACK" })}
 				disabled={state.step === "team_intent" || submitting}
+				aria-label="Back"
 			>
-				Back
+				<ArrowLeft className="size-5 sm:hidden" aria-hidden />
+				<span className="hidden sm:inline">Back</span>
 			</Button>
 			{showSubmitButton ? (
 				<Button
 					type="button"
+					size="lg"
+					className="min-h-12 flex-[1.4]"
 					onClick={() => onSubmit?.()}
 					disabled={submitting || !onSubmit || submitDisabled}
 				>
@@ -1183,6 +1409,8 @@ export function NavRow({
 			) : (
 				<Button
 					type="button"
+					size="lg"
+					className="min-h-12 flex-[1.4]"
 					onClick={() => {
 						if (onContinue) void onContinue();
 						else dispatch({ type: "NEXT" });
@@ -1192,7 +1420,7 @@ export function NavRow({
 					{submitting
 						? "Checking…"
 						: state.step === "documents" || state.step === "credentials"
-							? isCreateTeamBatch(state)
+							? isCreateTeamBatch(state) && !onLastDocumentPlayer
 								? "Next player"
 								: "Continue"
 							: "Continue"}

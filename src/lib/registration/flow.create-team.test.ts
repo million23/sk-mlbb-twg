@@ -57,7 +57,7 @@ function validPlayer(i: number, phase: string = "4"): Partial<Credentials> {
 		user_id: `${12345678 + i}`,
 		server_id: "2001",
 		address_phase: phase,
-		address_package: "12A",
+		address_package: "12",
 		address_block: "2",
 		address_lot: "3",
 		preferred_lane: "mid",
@@ -101,7 +101,7 @@ describe("memberCountBounds", () => {
 });
 
 describe("create-team registration wizard", () => {
-	it("orders steps: team → team name → consent → credentials → documents → pending", () => {
+	it("orders steps: team → team name → consent → credentials → documents → review → pending", () => {
 		const state = openState({ team_intent: "create_team", member_count: 2 });
 		expect(wizardStepsFor(state)).toEqual([
 			"team_intent",
@@ -109,6 +109,7 @@ describe("create-team registration wizard", () => {
 			"consent",
 			"credentials",
 			"documents",
+			"review",
 			"pending",
 		]);
 	});
@@ -159,6 +160,9 @@ describe("create-team registration wizard", () => {
 
 		state = fillUploads(state);
 		expect(validateAllRegistrants(state)).toBeNull();
+		expect(canAdvance(state)).toBeNull();
+		state = reduce(state, { type: "NEXT" });
+		expect(state.step).toBe("review");
 		expect(canAdvance(state)).toBeNull();
 	});
 

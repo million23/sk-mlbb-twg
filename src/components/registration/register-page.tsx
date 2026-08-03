@@ -16,7 +16,6 @@ import {
 } from "@/hooks/registration";
 import {
   canAdvance,
-  isCreateTeamBatch,
   validateAllRegistrants,
   validateCredentials,
   validateTeamDetails,
@@ -28,7 +27,7 @@ import { cn } from "@/lib/utils";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { format, parseISO } from "date-fns";
 import { Check, House } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 
 import {
   ErrorBanner,
@@ -59,6 +58,63 @@ function tournamentOptionDate(t: RegistrationTournament): string | null {
   } catch {
     return day;
   }
+}
+
+function RegistrationStepper({
+  steps,
+  activeIndex,
+}: {
+  steps: { id: string; label: string }[];
+  activeIndex: number;
+}) {
+  return (
+    <ol
+      className="flex w-full min-w-0 flex-row items-center"
+      aria-label="Registration progress"
+    >
+      {steps.map((step, i) => {
+        const current = i === activeIndex;
+        const done = i < activeIndex;
+        const last = i === steps.length - 1;
+        return (
+          <Fragment key={step.id}>
+            <li className="flex shrink-0">
+              <span
+                className={cn(
+                  "flex h-9 items-center justify-center font-mono text-xs font-medium uppercase tracking-[0.1em] transition-[background-color,color,padding] duration-300 sm:h-10 sm:text-sm sm:tracking-[0.12em]",
+                  current
+                    ? "max-w-[7.5rem] truncate rounded-full bg-primary px-2.5 text-primary-foreground sm:max-w-none sm:px-4"
+                    : "size-9 sm:size-10",
+                  !current && done && "bg-muted text-foreground",
+                  !current && !done && "bg-muted/40 text-muted-foreground",
+                )}
+                aria-current={current ? "step" : undefined}
+                title={current ? step.label : undefined}
+              >
+                <span className="sr-only">
+                  {current
+                    ? `Current step: ${step.label}`
+                    : `Step ${i + 1}: ${step.label}`}
+                </span>
+                <span aria-hidden className="truncate">
+                  {current ? step.label : String(i + 1).padStart(2, "0")}
+                </span>
+              </span>
+            </li>
+            {!last ? (
+              <li
+                className={cn(
+                  "mx-1 h-px min-w-0 flex-1 sm:mx-2",
+                  done ? "bg-primary/45" : "bg-border/70",
+                )}
+                aria-hidden
+              />
+            ) : null}
+          </Fragment>
+        );
+      })}
+    </ol>
+  );
 }
 
 /** Public registration — stepper wizard wired to Orval-backed hooks. */
@@ -198,7 +254,7 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
   };
 
   const handleSubmit = async () => {
-    if (state.step !== "documents") return;
+    if (state.step !== "review") return;
     const err =
       canAdvance(state) ??
       validateTeamIntent(state) ??
@@ -251,15 +307,11 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
     }
   };
 
-  const onLastDocumentPlayer =
-    state.step === "documents" &&
-    (!isCreateTeamBatch(state) ||
-      state.active_registrant_index >= state.member_count - 1);
+  const onReviewStep = state.step === "review";
 
   return (
-    <div className="flex min-h-svh flex-col bg-background text-foreground">
-      <div className="flex flex-1 flex-col px-4 py-6 sm:px-6 md:items-center md:justify-center md:py-10">
-        <div className="flex w-full max-w-2xl flex-col gap-6">
+    <div className="bg-background text-foreground">
+      <div className="mx-auto flex w-full min-w-0 max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 md:py-8">
           <header className="flex items-start justify-between gap-3">
             <div>
               <p className="font-mono text-[0.65rem] text-primary uppercase tracking-[0.2em]">
@@ -312,20 +364,16 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
             </div>
           ) : needsTournamentPick ? (
             <>
-              <ol className="flex flex-wrap gap-1">
-                <li className="rounded-full bg-primary px-3 py-1 font-mono text-[0.65rem] text-primary-foreground uppercase tracking-wider">
-                  01 Tournament
-                </li>
-                {wizard.map((step, i) => (
-                  <li
-                    key={step}
-                    className="rounded-full bg-muted/40 px-3 py-1 font-mono text-[0.65rem] text-muted-foreground uppercase tracking-wider"
-                  >
-                    {String(i + 2).padStart(2, "0")}{" "}
-                    {stepLabelFor(step, state.team_intent)}
-                  </li>
-                ))}
-              </ol>
+              <RegistrationStepper
+                activeIndex={0}
+                steps={[
+                  { id: "tournament", label: "Tournament" },
+                  ...wizard.map((step) => ({
+                    id: step,
+                    label: stepLabelFor(step, state.team_intent),
+                  })),
+                ]}
+              />
               <div className="rounded-3xl border border-border/80 bg-card p-5 sm:p-6">
                 <h2 className="mb-2 font-serif text-xl tracking-tight">
                   Tournament
@@ -342,32 +390,21 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
             </>
           ) : (
             <>
-              <ol className="flex flex-wrap gap-1">
-                {wizard.map((step, i) => {
-                  const done = activeIdx > i || state.step === "approved";
-                  const current =
-                    focusStep === step ||
-                    (step === "pending" &&
-                      (state.step === "approved" || state.step === "rejected"));
-                  return (
-                    <li
-                      key={step}
-                      className={`rounded-full px-3 py-1 font-mono text-[0.65rem] uppercase tracking-wider ${
-                        current
-                          ? "bg-primary text-primary-foreground"
-                          : done
-                            ? "bg-muted text-foreground"
-                            : "bg-muted/40 text-muted-foreground"
-                      }`}
-                    >
-                      {String(i + 1).padStart(2, "0")}{" "}
-                      {stepLabelFor(step, state.team_intent)}
-                    </li>
-                  );
-                })}
-              </ol>
+              <RegistrationStepper
+                activeIndex={
+                  activeIdx < 0
+                    ? 0
+                    : state.step === "approved" || state.step === "rejected"
+                      ? wizard.length - 1
+                      : activeIdx
+                }
+                steps={wizard.map((step) => ({
+                  id: step,
+                  label: stepLabelFor(step, state.team_intent),
+                }))}
+              />
 
-              <div className="rounded-3xl border border-border/80 bg-card p-5 sm:p-6">
+              <div className="h-fit w-full rounded-3xl border border-border/80 bg-card p-5 sm:p-6">
                 {state.step !== "pending" &&
                 state.step !== "approved" &&
                 state.step !== "rejected" ? (
@@ -379,9 +416,9 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
                       : STEP_LABELS[state.step]}
                   </h2>
                 ) : null}
-                <div className="flex flex-col gap-4">
+                <div className="flex h-fit flex-col gap-4">
                   <StepBody state={state} dispatch={dispatch} />
-                  {onLastDocumentPlayer ? (
+                  {onReviewStep ? (
                     <>
                       {/* Honeypot — leave empty (off-screen for bots that autofill) */}
                       <div
@@ -410,7 +447,7 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
                     onSubmit={handleSubmit}
                     submitting={submit.isPending || checkingEmail}
                     submitDisabled={
-                      onLastDocumentPlayer &&
+                      onReviewStep &&
                       isTurnstileConfigured() &&
                       !turnstileToken
                     }
@@ -419,7 +456,6 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
               </div>
             </>
           )}
-        </div>
       </div>
 
       <ResponsiveModal open={pickerOpen} onOpenChange={setPickerOpen}>

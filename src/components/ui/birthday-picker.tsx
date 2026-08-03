@@ -42,6 +42,7 @@ export interface BirthdayPickerProps {
   id?: string;
   className?: string;
   disabled?: boolean;
+  "aria-invalid"?: boolean;
 }
 
 function toYYYYMMDD(year: number, month: number, day: number): string {
@@ -89,6 +90,7 @@ export function BirthdayPicker({
   id,
   className,
   disabled,
+  "aria-invalid": ariaInvalid,
 }: BirthdayPickerProps) {
   const parsed = React.useMemo(() => parseValue(value), [value]);
 
@@ -199,12 +201,18 @@ export function BirthdayPicker({
   return (
     <fieldset
       id={id}
-      className={cn("m-0 flex min-w-0 gap-2 border-0 p-0", className)}
+      className={cn(
+        "m-0 grid min-w-0 grid-cols-2 gap-2 border-0 p-0 sm:grid-cols-[minmax(0,1fr)_5.5rem_6.5rem]",
+        className,
+      )}
       aria-label="Birthday"
       disabled={disabled}
     >
       <Select value={month} onValueChange={handleMonthChange}>
-        <SelectTrigger className="flex-1 min-w-0">
+        <SelectTrigger
+          className="col-span-2 min-w-0 w-full sm:col-span-1"
+          aria-invalid={ariaInvalid || undefined}
+        >
           <SelectValue placeholder="Month">
             {(selected) =>
               selected != null && selected !== ""
@@ -225,7 +233,10 @@ export function BirthdayPicker({
         </SelectContent>
       </Select>
       <Select value={day} onValueChange={handleDayChange}>
-        <SelectTrigger className="w-20 shrink-0">
+        <SelectTrigger
+          className="min-w-0 w-full"
+          aria-invalid={ariaInvalid || undefined}
+        >
           <SelectValue placeholder="Day">
             {(selected) =>
               selected != null && selected !== "" ? String(selected) : null
@@ -250,8 +261,9 @@ export function BirthdayPicker({
         onChange={handleYearChange}
         placeholder="Year"
         maxLength={YEAR_MAX_LENGTH}
-        className="w-24 shrink-0 tabular-nums"
+        className="min-w-0 w-full tabular-nums"
         autoComplete="bday-year"
+        aria-invalid={ariaInvalid || undefined}
       />
     </fieldset>
   );

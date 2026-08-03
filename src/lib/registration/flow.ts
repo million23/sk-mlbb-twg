@@ -1,7 +1,8 @@
 /**
  * Public registration flow state machine:
  * window → team intent → (team select | team name) → consent →
- * credentials (×N for create) → documents (×N for create) → pending.
+ * credentials (×N for create) → documents (×N for create) →
+ * review → pending.
  * Phase-9 team rule is deferred (informational copy only).
  */
 
@@ -25,6 +26,7 @@ export type FlowStep =
 	| "credentials"
 	| "team_details"
 	| "documents"
+	| "review"
 	| "pending"
 	| "approved"
 	| "rejected";
@@ -206,7 +208,7 @@ function persistActive(state: RegistrationDraft): RegistrationDraft {
 export function wizardStepsFor(state: RegistrationDraft): FlowStep[] {
 	const steps: FlowStep[] = ["team_intent"];
 	if (needsTeamDetails(state.team_intent)) steps.push("team_details");
-	steps.push("consent", "credentials", "documents", "pending");
+	steps.push("consent", "credentials", "documents", "review", "pending");
 	return steps;
 }
 
@@ -318,8 +320,9 @@ export const USER_ID_MAX_LENGTH = 10;
 export const SERVER_ID_MIN_LENGTH = 4;
 export const SERVER_ID_MAX_LENGTH = 5;
 
-/** Package: 2 digits + 1 letter (e.g. 12A). */
-const PACKAGE_PATTERN = /^\d{2}[A-Za-z]$/;
+/** Package: up to 2 digits (e.g. 12). */
+export const PACKAGE_MAX_LENGTH = 2;
+const PACKAGE_PATTERN = /^\d{1,2}$/;
 
 export function sanitizePersonName(raw: string): string {
 	return raw.replace(/[0-9]/g, "").slice(0, NAME_MAX_LENGTH);
@@ -329,90 +332,105 @@ export function sanitizeDigits(raw: string, max: number): string {
 	return raw.replace(/\D/g, "").slice(0, max);
 }
 
-/** Progressive package input: up to 2 digits then 1 letter. */
+/** Digits-only package, max 2. */
 export function sanitizeAddressPackage(raw: string): string {
-	const cleaned = raw.toUpperCase().replace(/[^0-9A-Z]/g, "");
-	let digits = "";
-	let letter = "";
-	for (const ch of cleaned) {
-		if (digits.length < 2 && /\d/.test(ch)) {
-			digits += ch;
-			continue;
-		}
-		if (digits.length === 2 && !letter && /[A-Z]/.test(ch)) {
-			letter = ch;
-			break;
+	return sanitizeDigits(raw, PACKAGE_MAX_LENGTH);
+}
+
+export type CredentialField =
+	| "name"
+	| "email"
+	| "ign"
+	| "birthdate"
+	| "user_id"
+	| "server_id"
+	| "address_phase"
+	| "address_package"
+	| "address_block"
+	| "address_lot"
+	| "preferred_lane";
+
+/** All invalid credential fields (for inline highlights). */
+export function getCredentialFieldErrors(
+	c: Credentials,
+	tournamentDay: string,
+): Partial<Record<CredentialField, string>> {
+	const errors: Partial<Record<CredentialField, string>> = {};
+
+	const name = c.name.trim();
+	if (!name) errors.name = "Name is required";
+	else if (name.length > NAME_MAX_LENGTH) {
+		errors.name = `Name must be ${NAME_MAX_LENGTH} characters or fewer`;
+	} else if (/\d/.test(name) || !NAME_PATTERN.test(name)) {
+		errors.name = "Name cannot include numbers or special symbols";
+	}
+
+	const email = c.email.trim();
+	if (!email) errors.email = "Email is required";
+	else if (email.length > EMAIL_MAX_LENGTH || !EMAIL_PATTERN.test(email)) {
+		errors.email = "Enter a valid email address";
+	}
+
+	if (!c.ign.trim()) errors.ign = "IGN is required";
+
+	if (!tournamentDay) {
+		errors.birthdate =
+			"Tournament date is missing — set start_at on the tournament";
+	} else if (!c.birthdate) {
+		errors.birthdate = "Birthdate is required";
+	} else {
+		const age = ageOnTournamentDay(c.birthdate, tournamentDay);
+		if (age === null) errors.birthdate = "Invalid birthdate";
+		else if (age < 15) {
+			errors.birthdate = `Must be 15+ on tournament day (age on ${tournamentDay}: ${age})`;
 		}
 	}
-	return `${digits}${letter}`;
+
+	const userId = c.user_id.trim();
+	if (!userId) errors.user_id = "User ID is required";
+	else if (!/^\d+$/.test(userId)) errors.user_id = "User ID must be digits only";
+	else if (
+		userId.length < USER_ID_MIN_LENGTH ||
+		userId.length > USER_ID_MAX_LENGTH
+	) {
+		errors.user_id = `User ID must be ${USER_ID_MIN_LENGTH}–${USER_ID_MAX_LENGTH} digits`;
+	}
+
+	const serverId = c.server_id.trim();
+	if (!serverId) errors.server_id = "Server ID is required";
+	else if (!/^\d+$/.test(serverId)) {
+		errors.server_id = "Server ID must be digits only";
+	} else if (
+		serverId.length < SERVER_ID_MIN_LENGTH ||
+		serverId.length > SERVER_ID_MAX_LENGTH
+	) {
+		errors.server_id = `Server ID must be ${SERVER_ID_MIN_LENGTH}–${SERVER_ID_MAX_LENGTH} digits`;
+	}
+
+	if (!c.address_phase) errors.address_phase = "Phase is required";
+	else if (!(ELIGIBLE_PHASES as readonly string[]).includes(c.address_phase)) {
+		errors.address_phase = "Phase must be 4, 9, or 10";
+	}
+
+	const pkg = c.address_package.trim();
+	if (!pkg) errors.address_package = "Package is required";
+	else if (!PACKAGE_PATTERN.test(pkg)) {
+		errors.address_package = "Package must be 1–2 digits";
+	}
+
+	if (!c.address_block.trim()) errors.address_block = "Block is required";
+	if (!c.address_lot.trim()) errors.address_lot = "Lot is required";
+	if (!c.preferred_lane) errors.preferred_lane = "Preferred lane is required";
+
+	return errors;
 }
 
 export function validateCredentialsFields(
 	c: Credentials,
 	tournamentDay: string,
 ): string | null {
-	const name = c.name.trim();
-	if (!name) return "Name is required";
-	if (name.length > NAME_MAX_LENGTH) {
-		return `Name must be ${NAME_MAX_LENGTH} characters or fewer`;
-	}
-	if (/\d/.test(name) || !NAME_PATTERN.test(name)) {
-		return "Name cannot include numbers or special symbols";
-	}
-
-	const email = c.email.trim();
-	if (!email) return "Valid email is required";
-	if (email.length > EMAIL_MAX_LENGTH || !EMAIL_PATTERN.test(email)) {
-		return "Enter a valid email address (e.g. you@example.com)";
-	}
-
-	if (!c.ign.trim()) return "IGN is required";
-	if (!c.birthdate) return "Birthdate is required";
-
-	const userId = c.user_id.trim();
-	if (!userId) return "User ID is required";
-	if (!/^\d+$/.test(userId)) return "User ID must be digits only";
-	if (
-		userId.length < USER_ID_MIN_LENGTH ||
-		userId.length > USER_ID_MAX_LENGTH
-	) {
-		return `User ID must be ${USER_ID_MIN_LENGTH}–${USER_ID_MAX_LENGTH} digits`;
-	}
-
-	const serverId = c.server_id.trim();
-	if (!serverId) return "Server ID is required";
-	if (!/^\d+$/.test(serverId)) return "Server ID must be digits only";
-	if (
-		serverId.length < SERVER_ID_MIN_LENGTH ||
-		serverId.length > SERVER_ID_MAX_LENGTH
-	) {
-		return `Server ID must be ${SERVER_ID_MIN_LENGTH}–${SERVER_ID_MAX_LENGTH} digits`;
-	}
-
-	if (!c.address_phase) return "Phase is required";
-	if (!(ELIGIBLE_PHASES as readonly string[]).includes(c.address_phase)) {
-		return "Phase must be 4, 9, or 10";
-	}
-
-	const pkg = c.address_package.trim();
-	if (!pkg) return "Package is required";
-	if (!PACKAGE_PATTERN.test(pkg)) {
-		return "Package must be 2 digits and 1 letter (e.g. 12A)";
-	}
-
-	if (!c.address_block.trim()) return "Block is required";
-	if (!c.address_lot.trim()) return "Lot is required";
-	if (!c.preferred_lane) return "Preferred lane is required";
-
-	if (!tournamentDay) {
-		return "Tournament date is missing — set start_at on the tournament in PocketBase";
-	}
-	const age = ageOnTournamentDay(c.birthdate, tournamentDay);
-	if (age === null) return "Invalid birthdate";
-	if (age < 15) {
-		return `Must be 15+ on tournament day (age on ${tournamentDay}: ${age})`;
-	}
-	return null;
+	const errors = getCredentialFieldErrors(c, tournamentDay);
+	return Object.values(errors)[0] ?? null;
 }
 
 export function validateCredentials(
@@ -570,6 +588,12 @@ export function canAdvance(state: RegistrationDraft): string | null {
 			return validateTeamDetails(state);
 		case "documents":
 			return validateUploads(state);
+		case "review":
+			return (
+				validateTeamIntent(state) ??
+				validateTeamDetails(state) ??
+				validateAllRegistrants(state)
+			);
 		default:
 			return "Cannot advance from this step";
 	}
@@ -584,7 +608,7 @@ const PRESETS: Record<CredentialPreset, Partial<Credentials>> = {
 		user_id: "123456789",
 		server_id: "2001",
 		address_phase: "9",
-		address_package: "02A",
+		address_package: "2",
 		address_block: "14",
 		address_lot: "3",
 		preferred_lane: "jungle",
@@ -598,7 +622,7 @@ const PRESETS: Record<CredentialPreset, Partial<Credentials>> = {
 		user_id: "987654321",
 		server_id: "2001",
 		address_phase: "4",
-		address_package: "01B",
+		address_package: "1",
 		address_block: "5",
 		address_lot: "8",
 		preferred_lane: "gold",
@@ -612,7 +636,7 @@ const PRESETS: Record<CredentialPreset, Partial<Credentials>> = {
 		user_id: "12345678",
 		server_id: "2001",
 		address_phase: "9",
-		address_package: "01A",
+		address_package: "1",
 		address_block: "1",
 		address_lot: "1",
 		preferred_lane: "mid",
@@ -625,7 +649,7 @@ const PRESETS: Record<CredentialPreset, Partial<Credentials>> = {
 		user_id: "23456789",
 		server_id: "2001",
 		address_phase: "" as EligiblePhase | "",
-		address_package: "01A",
+		address_package: "1",
 		address_block: "1",
 		address_lot: "1",
 		preferred_lane: "exp",
@@ -638,7 +662,7 @@ const PRESETS: Record<CredentialPreset, Partial<Credentials>> = {
 		user_id: "34567890",
 		server_id: "2001",
 		address_phase: "10",
-		address_package: "03C",
+		address_package: "3",
 		address_block: "7",
 		address_lot: "2",
 		preferred_lane: "support",
@@ -657,6 +681,8 @@ function nextMajorStep(state: RegistrationDraft): FlowStep | null {
 			return "credentials";
 		case "credentials":
 			return "documents";
+		case "documents":
+			return "review";
 		default:
 			return null;
 	}
@@ -674,6 +700,8 @@ function prevMajorStep(state: RegistrationDraft): FlowStep | null {
 			return "consent";
 		case "documents":
 			return "credentials";
+		case "review":
+			return "documents";
 		default:
 			return null;
 	}
@@ -812,7 +840,7 @@ export function reduce(
 			if (!n) {
 				return {
 					...state,
-					last_error: "Use submit from documents",
+					last_error: "Use submit from review",
 				};
 			}
 			const persisted = persistActive(state);
