@@ -22,7 +22,7 @@ export const LANDING_STEPS = [
   {
     title: "Share your info and documents",
     blurb:
-      "Enter your credentials, then upload your school ID and purok endorsement. The committee reviews everything after.",
+      "Enter your credentials, then upload a valid ID or school ID and purok endorsement. The committee reviews everything after.",
   },
 ] as const;
 

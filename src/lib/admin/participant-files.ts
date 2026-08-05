@@ -9,8 +9,8 @@ export const PARTICIPANT_DOC_FIELDS = [
 export type ParticipantDocField = (typeof PARTICIPANT_DOC_FIELDS)[number];
 
 export const PARTICIPANT_DOC_LABELS: Record<ParticipantDocField, string> = {
-  school_id_front: "School ID (front)",
-  school_id_back: "School ID (back)",
+  school_id_front: "Valid ID / School ID (front)",
+  school_id_back: "Valid ID / School ID (back)",
   purok_endorsement: "Purok endorsement",
 };
 

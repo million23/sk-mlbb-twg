@@ -676,9 +676,9 @@ export function TeamIntentStep({ state, dispatch }: Props) {
 
 	return (
 		<div className="flex flex-col gap-4">
-			<p className="text-muted-foreground text-sm leading-relaxed">
-				Choose how you want to enter. The committee may still prefer teams with
-				a Phase 9 resident — that rule is not enforced in this form right now.
+			<			<p className="text-muted-foreground text-sm leading-relaxed">
+				Choose how you want to enter. Note: Phase 9 participants should be the
+				team captain.
 			</p>
 			<div className="grid gap-2">
 				{intents.map((intent) => {
@@ -708,8 +708,9 @@ export function TeamIntentStep({ state, dispatch }: Props) {
 					<p className="rounded-2xl border border-primary/35 bg-primary/10 px-3 py-2 text-sm leading-relaxed">
 						<span className="font-medium text-primary">You are the team captain.</span>{" "}
 						<span className="text-muted-foreground">
-							Player 1 is always the captain (lobby invite goes to them). Enter
-							your details first, then each teammate.
+							Player 1 is always the captain (lobby invite goes to them). Phase 9
+							participants should be the team captain. Enter your details first,
+							then each teammate.
 						</span>
 					</p>
 					<Field label="Squad size (including you as captain)">
@@ -826,8 +827,8 @@ export function TeamDetailsStep({ state, dispatch }: Props) {
 			<div className="flex flex-col gap-3">
 				<p className="text-muted-foreground text-sm leading-relaxed">
 					Name the squad for all {state.member_count} registrants. You (Player
-					1) are the team captain — the committee creates the official team
-					after review.
+					1) are the team captain — Phase 9 participants should be the team
+					captain. The committee creates the official team after review.
 				</p>
 				<Field label="Preferred team name">
 					<Input
@@ -860,8 +861,8 @@ function formatFileSize(bytes: number): string {
 
 export function DocumentsStep({ state, dispatch }: Props) {
 	const files: { key: keyof Uploads; label: string }[] = [
-		{ key: "school_id_front", label: "School ID — front" },
-		{ key: "school_id_back", label: "School ID — back" },
+		{ key: "school_id_front", label: "Valid ID / School ID — front" },
+		{ key: "school_id_back", label: "Valid ID / School ID — back" },
 		{ key: "purok_endorsement", label: "Purok endorsement" },
 	];
 
@@ -870,7 +871,8 @@ export function DocumentsStep({ state, dispatch }: Props) {
 			<PlayerChrome state={state} />
 			<p className="text-muted-foreground text-sm">
 				Attach all three documents (JPG, PNG, WebP, HEIC, or PDF — max 5 MiB
-				each). They upload with your registration for committee review.
+				each). Use a valid government ID or school ID — students and adults are
+				both welcome. They upload with your registration for committee review.
 			</p>
 			{files.map((f) => {
 				const file = state.uploads[f.key];
@@ -970,8 +972,8 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
 function reviewUploadsLabel(uploads: Uploads): string {
 	const parts = (
 		[
-			["School ID front", uploads.school_id_front],
-			["School ID back", uploads.school_id_back],
+			["Valid ID / School ID front", uploads.school_id_front],
+			["Valid ID / School ID back", uploads.school_id_back],
 			["Purok endorsement", uploads.purok_endorsement],
 		] as const
 	).map(([label, file]) =>
