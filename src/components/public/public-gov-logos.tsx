@@ -28,7 +28,7 @@ export function PublicGovLogos({
             alt={logo.alt}
             width={72}
             height={72}
-            className="size-full scale-[1.12] object-cover"
+            className="size-full object-contain object-center"
             loading="lazy"
             decoding="async"
           />
@@ -42,7 +42,7 @@ export function PublicGovLogos({
                 target="_blank"
                 rel="noopener noreferrer"
                 className={cn(
-                  "block overflow-hidden rounded-full opacity-90 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "flex items-center justify-center opacity-90 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   sizeClassName,
                 )}
                 aria-label={`${logo.alt} on Facebook`}
@@ -52,7 +52,7 @@ export function PublicGovLogos({
             ) : (
               <span
                 className={cn(
-                  "block overflow-hidden rounded-full",
+                  "flex items-center justify-center",
                   sizeClassName,
                 )}
               >
