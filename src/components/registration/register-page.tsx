@@ -26,7 +26,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { format, parseISO } from "date-fns";
-import { Check, House } from "lucide-react";
+import { Check, ChevronDown, House } from "lucide-react";
 import { Fragment, useEffect, useMemo, useState } from "react";
 
 import {
@@ -117,6 +117,65 @@ function RegistrationStepper({
   );
 }
 
+function TournamentSelectorBar({
+  openList,
+  selectedId,
+  selectedTitle,
+  onChangeClick,
+}: {
+  openList: RegistrationTournament[];
+  selectedId: string | undefined;
+  selectedTitle: string | undefined;
+  onChangeClick: () => void;
+}) {
+  const selected = openList.find((t) => t.id === selectedId);
+  const label = selectedTitle?.trim() || (selected ? tournamentOptionLabel(selected) : "");
+  const dayLabel = selected ? tournamentOptionDate(selected) : null;
+  const canChange = openList.length > 1;
+
+  if (!label) return null;
+
+  if (!canChange) {
+    return (
+      <div className="rounded-2xl border border-border/60 bg-muted/30 px-4 py-3">
+        <p className="font-mono text-[0.6rem] text-muted-foreground uppercase tracking-[0.16em]">
+          Event
+        </p>
+        <p className="mt-0.5 font-medium text-sm">{label}</p>
+        {dayLabel ? (
+          <p className="mt-0.5 text-muted-foreground text-xs">
+            Tournament day · {dayLabel}
+          </p>
+        ) : null}
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onChangeClick}
+      className="flex w-full items-center gap-3 rounded-2xl border border-border/80 bg-muted/30 px-4 py-3 text-left transition-colors hover:border-primary/35 hover:bg-muted/50"
+    >
+      <span className="min-w-0 flex-1">
+        <span className="font-mono text-[0.6rem] text-muted-foreground uppercase tracking-[0.16em]">
+          Tournament
+        </span>
+        <span className="mt-0.5 block truncate font-medium text-sm">{label}</span>
+        {dayLabel ? (
+          <span className="mt-0.5 block text-muted-foreground text-xs">
+            Tournament day · {dayLabel}
+          </span>
+        ) : null}
+      </span>
+      <span className="flex shrink-0 items-center gap-1 text-primary text-xs font-medium">
+        Change
+        <ChevronDown className="size-4" aria-hidden />
+      </span>
+    </button>
+  );
+}
+
 /** Public registration — stepper wizard wired to Orval-backed hooks. */
 export function RegisterPage({ tournamentId }: RegisterPageProps) {
   const navigate = useNavigate();
@@ -151,7 +210,8 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
     state.step === "pending" ||
     state.step === "approved" ||
     state.step === "rejected";
-  const showChangeTournament = openList.length > 1 && !submitted && !!selectedId;
+  const showTournamentSelector =
+    !submitted && !!selectedId && openList.length >= 1 && !needsTournamentPick;
 
   // One open tournament: land on it without a pick step.
   useEffect(() => {
@@ -322,23 +382,10 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
                   ? "Choose a tournament"
                   : "Register for the tournament"}
               </h1>
-              {tournament.data?.title ? (
-                <p className="mt-1 text-muted-foreground text-sm">
-                  {tournament.data.title}
-                </p>
-              ) : needsTournamentPick ? (
+              {needsTournamentPick ? (
                 <p className="mt-1 text-muted-foreground text-sm">
                   Several events are open — pick which one you’re registering for.
                 </p>
-              ) : null}
-              {showChangeTournament ? (
-                <button
-                  type="button"
-                  className="mt-1.5 text-left text-primary text-sm underline-offset-4 hover:underline"
-                  onClick={() => setPickerOpen(true)}
-                >
-                  Change tournament
-                </button>
               ) : null}
             </div>
             <Link
@@ -390,6 +437,15 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
             </>
           ) : (
             <>
+              {showTournamentSelector ? (
+                <TournamentSelectorBar
+                  openList={openList}
+                  selectedId={selectedId}
+                  selectedTitle={tournament.data?.title}
+                  onChangeClick={() => setPickerOpen(true)}
+                />
+              ) : null}
+
               <RegistrationStepper
                 activeIndex={
                   activeIdx < 0

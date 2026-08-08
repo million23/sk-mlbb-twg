@@ -272,7 +272,11 @@ export function ConsentStep({ state, dispatch }: Props) {
 
 	const consentActions = (
 		<>
-			<Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
+			<Button
+				type="button"
+				variant="outline"
+				onClick={() => handleOpenChange(false)}
+			>
 				Cancel
 			</Button>
 			<Button type="button" onClick={accept} disabled={!scrolledToEnd}>
@@ -392,9 +396,7 @@ export function CredentialsStep({ state, dispatch }: Props) {
 		: {};
 	if (
 		state.last_error &&
-		/already has a pending|different registration email/i.test(
-			state.last_error,
-		)
+		/already has a pending|different registration email/i.test(state.last_error)
 	) {
 		fieldErrors.email = state.last_error;
 	}
@@ -480,10 +482,7 @@ export function CredentialsStep({ state, dispatch }: Props) {
 						value={c.server_id}
 						onChange={(e) =>
 							set({
-								server_id: sanitizeDigits(
-									e.target.value,
-									SERVER_ID_MAX_LENGTH,
-								),
+								server_id: sanitizeDigits(e.target.value, SERVER_ID_MAX_LENGTH),
 							})
 						}
 						inputMode="numeric"
@@ -610,11 +609,7 @@ export function CredentialsStep({ state, dispatch }: Props) {
 												: "border-border hover:bg-muted/60",
 									)}
 								>
-									<RadioGroupItem
-										id={inputId}
-										value={l}
-										className="sr-only"
-									/>
+									<RadioGroupItem id={inputId} value={l} className="sr-only" />
 									<LaneRoleIcon
 										role={l as PlayerRole}
 										className="size-5 shrink-0"
@@ -652,10 +647,7 @@ export function TeamIntentStep({ state, dispatch }: Props) {
 		state.min_team_size,
 		state.max_team_size,
 	);
-	const sizeOptions = Array.from(
-		{ length: max - min + 1 },
-		(_, i) => min + i,
-	);
+	const sizeOptions = Array.from({ length: max - min + 1 }, (_, i) => min + i);
 	const intents: { id: TeamIntent; title: string; blurb: string }[] = [
 		{
 			id: "open_matching",
@@ -677,8 +669,8 @@ export function TeamIntentStep({ state, dispatch }: Props) {
 	return (
 		<div className="flex flex-col gap-4">
 			<p className="text-muted-foreground text-sm leading-relaxed">
-				Choose how you want to enter. The committee may still prefer teams with
-				a Phase 9 resident — that rule is not enforced in this form right now.
+				Choose how you want to enter. Note: Phase 9 participants should be the
+				team captain.
 			</p>
 			<div className="grid gap-2">
 				{intents.map((intent) => {
@@ -706,10 +698,13 @@ export function TeamIntentStep({ state, dispatch }: Props) {
 			{state.team_intent === "create_team" ? (
 				<div className="flex flex-col gap-3">
 					<p className="rounded-2xl border border-primary/35 bg-primary/10 px-3 py-2 text-sm leading-relaxed">
-						<span className="font-medium text-primary">You are the team captain.</span>{" "}
+						<span className="font-medium text-primary">
+							You are the team captain.
+						</span>{" "}
 						<span className="text-muted-foreground">
-							Player 1 is always the captain (lobby invite goes to them). Enter
-							your details first, then each teammate.
+							Player 1 is always the captain (lobby invite goes to them). Phase
+							9 participants should be the team captain. Enter your details
+							first, then each teammate.
 						</span>
 					</p>
 					<Field label="Squad size (including you as captain)">
@@ -826,8 +821,8 @@ export function TeamDetailsStep({ state, dispatch }: Props) {
 			<div className="flex flex-col gap-3">
 				<p className="text-muted-foreground text-sm leading-relaxed">
 					Name the squad for all {state.member_count} registrants. You (Player
-					1) are the team captain — the committee creates the official team
-					after review.
+					1) are the team captain — Phase 9 participants should be the team
+					captain. The committee creates the official team after review.
 				</p>
 				<Field label="Preferred team name">
 					<Input
@@ -860,8 +855,8 @@ function formatFileSize(bytes: number): string {
 
 export function DocumentsStep({ state, dispatch }: Props) {
 	const files: { key: keyof Uploads; label: string }[] = [
-		{ key: "school_id_front", label: "School ID — front" },
-		{ key: "school_id_back", label: "School ID — back" },
+		{ key: "school_id_front", label: "Valid ID / School ID — front" },
+		{ key: "school_id_back", label: "Valid ID / School ID — back" },
 		{ key: "purok_endorsement", label: "Purok endorsement" },
 	];
 
@@ -870,7 +865,8 @@ export function DocumentsStep({ state, dispatch }: Props) {
 			<PlayerChrome state={state} />
 			<p className="text-muted-foreground text-sm">
 				Attach all three documents (JPG, PNG, WebP, HEIC, or PDF — max 5 MiB
-				each). They upload with your registration for committee review.
+				each). Use a valid government ID or school ID — students and adults are
+				both welcome. They upload with your registration for committee review.
 			</p>
 			{files.map((f) => {
 				const file = state.uploads[f.key];
@@ -970,8 +966,8 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
 function reviewUploadsLabel(uploads: Uploads): string {
 	const parts = (
 		[
-			["School ID front", uploads.school_id_front],
-			["School ID back", uploads.school_id_back],
+			["Valid ID / School ID front", uploads.school_id_front],
+			["Valid ID / School ID back", uploads.school_id_back],
 			["Purok endorsement", uploads.purok_endorsement],
 		] as const
 	).map(([label, file]) =>
@@ -986,9 +982,7 @@ export function ReviewStep({ state }: Props) {
 	const registrants = state.registrants.slice(0, count);
 	const intent = state.team_intent;
 	const intentLabel =
-		intent && intent in TEAM_INTENT_LABELS
-			? TEAM_INTENT_LABELS[intent]
-			: "—";
+		intent && intent in TEAM_INTENT_LABELS ? TEAM_INTENT_LABELS[intent] : "—";
 	const teamValue =
 		intent === "join_team"
 			? (state.listed_teams.find((t) => t.id === state.preferred_team)?.name ??
@@ -1022,7 +1016,7 @@ export function ReviewStep({ state }: Props) {
 					label="Consent"
 					value={
 						state.consent_accepted
-							? state.consent_version ?? "Accepted"
+							? (state.consent_version ?? "Accepted")
 							: "Not accepted"
 					}
 				/>
@@ -1034,7 +1028,8 @@ export function ReviewStep({ state }: Props) {
 					c.preferred_lane && c.preferred_lane in LANE_ROLE_LABELS
 						? LANE_ROLE_LABELS[c.preferred_lane as PlayerRole]
 						: c.preferred_lane || "—";
-				const key = c.email.trim().toLowerCase() || `player-${c.user_id}-${c.ign}`;
+				const key =
+					c.email.trim().toLowerCase() || `player-${c.user_id}-${c.ign}`;
 				return (
 					<section
 						key={key}
