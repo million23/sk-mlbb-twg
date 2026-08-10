@@ -147,6 +147,7 @@ function TournamentOverviewPage() {
       pendingCount={counts.pending}
       approvedCount={counts.approved}
       teamCount={counts.teams}
+      participants={participantsQuery.data ?? []}
       isLoading={isLoading}
       isError={isError}
       notFound={notFound}

@@ -1,3 +1,4 @@
+import { TournamentAnalyticsCharts } from "@/components/admin/analytics/tournament-analytics-charts";
 import { TournamentStatusBadge } from "@/components/admin/overview/tournament-status-badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -20,6 +21,7 @@ import {
   Users,
   UsersRound,
 } from "lucide-react";
+import type { ParticipantsRecord } from "@/hooks/orval/model/participantsRecord";
 import type { ReactNode } from "react";
 
 export type TournamentOverviewProps = {
@@ -36,6 +38,7 @@ export type TournamentOverviewProps = {
   pendingCount: number;
   approvedCount: number;
   teamCount: number;
+  participants: ParticipantsRecord[];
   isLoading: boolean;
   isError: boolean;
   notFound: boolean;
@@ -104,6 +107,7 @@ export function TournamentOverview({
   pendingCount,
   approvedCount,
   teamCount,
+  participants,
   isLoading,
   isError,
   notFound,
@@ -324,6 +328,10 @@ export function TournamentOverview({
         </Stagger>
 
         <Stagger index={3}>
+          <TournamentAnalyticsCharts participants={participants} />
+        </Stagger>
+
+        <Stagger index={4}>
           <section className="flex flex-col gap-3">
             <div className="flex items-baseline justify-between gap-3">
               <h2 className="font-mono text-[0.65rem] text-muted-foreground uppercase tracking-[0.22em]">
