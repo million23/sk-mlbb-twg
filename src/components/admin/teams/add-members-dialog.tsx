@@ -81,7 +81,7 @@ export function AddMembersDialog({
 
   return (
     <ResponsiveModal open={open} onOpenChange={onOpenChange}>
-      <ResponsiveModalContent className="flex max-h-[90vh] max-w-lg flex-col overflow-hidden sm:max-w-lg">
+      <ResponsiveModalContent className="flex h-dvh max-h-dvh w-full max-w-none flex-col overflow-hidden rounded-none sm:h-auto sm:max-h-[90vh] sm:max-w-lg sm:rounded-lg">
         <ResponsiveModalHeader>
           <ResponsiveModalTitle>Add members</ResponsiveModalTitle>
           <ResponsiveModalDescription>
@@ -113,7 +113,8 @@ export function AddMembersDialog({
             <ul className="space-y-1.5">
               {filtered.map((p) => {
                 if (!p.id) return null;
-                const checked = selected.has(p.id);
+                const id = p.id;
+                const checked = selected.has(id);
                 const roles = (p.preferred_roles?.length
                   ? p.preferred_roles
                   : Array.isArray(p.preferred_lane)
@@ -122,11 +123,12 @@ export function AddMembersDialog({
                       ? [p.preferred_lane]
                       : []) as PlayerRole[];
                 return (
-                  <li key={p.id}>
-                    <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border/70 bg-background/60 px-3 py-2.5 hover:border-primary/30">
+                  <li key={id}>
+                    <label htmlFor={`add-member-${id}`} className="flex min-h-14 cursor-pointer items-center gap-3 rounded-xl border border-border/70 bg-background/60 px-3 py-3 active:bg-muted/70 hover:border-primary/30">
                       <Checkbox
+                        id={`add-member-${id}`}
                         checked={checked}
-                        onCheckedChange={() => toggle(p.id!)}
+                        onCheckedChange={() => toggle(id)}
                       />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate font-medium text-sm">

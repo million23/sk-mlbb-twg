@@ -150,15 +150,15 @@ export function AutoMatchDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[min(90vh,720px)] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
-        <DialogHeader className="flex flex-col gap-1 border-b border-border px-6 py-4 text-left">
+      <DialogContent className="flex h-dvh max-h-dvh w-full flex-col gap-0 overflow-hidden rounded-none p-0 sm:h-auto sm:max-h-[min(90vh,720px)] sm:max-w-2xl sm:rounded-lg">
+        <DialogHeader className="flex flex-col gap-1 border-b border-border px-4 py-4 text-left sm:px-6">
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
             {description ?? defaultDescription}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
           {bootError ? (
             <p className="text-destructive text-sm" role="alert">
               {bootError}
@@ -203,7 +203,7 @@ export function AutoMatchDialog({
                     key={`${row.teamA.id}-${row.teamB.id}-${index}`}
                     className="flex flex-col gap-3 px-3 py-3"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
                       <Badge variant="outline" className="font-mono text-xs">
                         M{index + 1}
                       </Badge>
@@ -289,7 +289,7 @@ export function AutoMatchDialog({
           )}
         </div>
 
-        <DialogFooter className="mx-0! mb-0! mt-auto shrink-0 flex-col-reverse gap-3 border-t border-border bg-muted/40 px-6 pt-4 pb-5 sm:flex-row sm:justify-end">
+        <DialogFooter className="mx-0! mb-0! mt-auto shrink-0 flex-col-reverse gap-3 border-t border-border bg-muted/40 px-4 pt-4 pb-5 sm:flex-row sm:justify-end sm:px-6">
           <Button
             type="button"
             variant="outline"

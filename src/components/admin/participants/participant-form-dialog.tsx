@@ -171,7 +171,7 @@ export function ParticipantFormDialog({
 
   return (
     <ResponsiveModal open={open} onOpenChange={onOpenChange}>
-      <ResponsiveModalContent className="flex max-h-[90vh] max-w-lg flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
+      <ResponsiveModalContent className="flex h-dvh max-h-dvh w-full max-w-none flex-col gap-0 overflow-hidden rounded-none p-0 sm:h-auto sm:max-h-[90vh] sm:max-w-lg sm:rounded-lg">
         <ResponsiveModalHeader className="shrink-0 border-b border-border/70 px-5 py-4 sm:px-6">
           <ResponsiveModalTitle>
             {mode === "create" ? "Add participant" : "Edit participant"}
@@ -212,7 +212,7 @@ export function ParticipantFormDialog({
               required
             />
           </Field>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="IGN">
               <Input
                 value={values.ign}
@@ -233,7 +233,7 @@ export function ParticipantFormDialog({
               onChange={(v) => patch({ birthdate: v })}
             />
           </Field>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="User ID">
               <Input
                 value={values.user_id}
@@ -250,7 +250,7 @@ export function ParticipantFormDialog({
             </Field>
           </div>
 
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             <Field label="Phase">
               <Select
                 value={values.address_phase}
