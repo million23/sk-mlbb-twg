@@ -171,11 +171,23 @@ export function ParticipantDetailSheet({
               <DetailRow label="Home address" value={formatHomeAddress(view)} />
               <DetailRow
                 label="Preferred lane"
-                value={
-                  LANE_ROLE_LABELS[
-                    view.preferred_lane as keyof typeof LANE_ROLE_LABELS
-                  ] ?? view.preferred_lane
-                }
+                value={(() => {
+                  const lanes: string[] =
+                    view.preferred_roles?.length
+                      ? (view.preferred_roles as unknown as string[])
+                      : view.preferred_lane
+                        ? [view.preferred_lane as unknown as string]
+                        : [];
+                  return lanes.length
+                    ? lanes
+                        .map(
+                          (l) =>
+                            (LANE_ROLE_LABELS[l as keyof typeof LANE_ROLE_LABELS] ??
+                              l),
+                        )
+                        .join(", ")
+                    : "—";
+                })()}
               />
               <DetailRow
                 label="Team intent"

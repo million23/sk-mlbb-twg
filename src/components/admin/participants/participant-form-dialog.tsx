@@ -28,15 +28,16 @@ import {
   PARTICIPANT_DOC_FIELDS,
   PARTICIPANT_DOC_LABELS,
 } from "@/lib/admin/participant-files";
-import { LANE_ROLE_LABELS } from "@/lib/legacy/lane-role-icons";
+
 import {
   ELIGIBLE_PHASES,
-  LANES,
   TEAM_INTENTS,
-  type ListedTeam,
 } from "@/lib/registration/flow";
+import type { LANES, ListedTeam } from "@/lib/registration/flow";
 import { TEAM_INTENT_LABELS } from "@/lib/admin/participant-approval";
 import { useEffect, useState, type ReactNode } from "react";
+
+const MAX_UI_PREFERRED_LANES = 3;
 
 const emptyValues = (): ParticipantFormValues => ({
   name: "",
@@ -50,7 +51,7 @@ const emptyValues = (): ParticipantFormValues => ({
   address_package: "",
   address_block: "",
   address_lot: "",
-  preferred_lane: "mid",
+  preferred_lane: ["mid"],
   team_intent: "open_matching",
   preferred_team: "",
   preferred_team_name: "",
@@ -71,7 +72,12 @@ function fromRecord(record: ParticipantsRecord): ParticipantFormValues {
     address_package: record.address_package ?? "",
     address_block: record.address_block ?? "",
     address_lot: record.address_lot ?? "",
-    preferred_lane: record.preferred_lane ?? "mid",
+    preferred_lane:
+      record.preferred_roles?.length
+        ? (record.preferred_roles as typeof LANES[number][])
+        : record.preferred_lane
+          ? ([record.preferred_lane] as typeof LANES[number][])
+          : ["mid"],
     team_intent: record.team_intent ?? "open_matching",
     preferred_team: record.preferred_team ?? "",
     preferred_team_name: record.preferred_team_name ?? "",
@@ -143,6 +149,8 @@ export function ParticipantFormDialog({
     if (!values.address_package.trim()) return "Package is required";
     if (!values.address_block.trim()) return "Block is required";
     if (!values.address_lot.trim()) return "Lot is required";
+    if (!values.preferred_lane || values.preferred_lane.length === 0)
+      return "Preferred lane is required";
     if (values.team_intent === "join_team" && !values.preferred_team) {
       return "Pick a team to join";
     }
@@ -287,36 +295,71 @@ export function ParticipantFormDialog({
             </Field>
           </div>
 
-          <Field label="Preferred lane">
-            <Select
-              value={values.preferred_lane}
-              onValueChange={(v) =>
-                patch({
-                  preferred_lane: (v ?? "mid") as ParticipantFormValues["preferred_lane"],
-                })
-              }
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue>
-                  {(value: string | null) =>
-                    value
-                      ? (LANE_ROLE_LABELS[
-                          value as keyof typeof LANE_ROLE_LABELS
-                        ] ?? value)
-                      : null
-                  }
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  {LANES.map((l) => (
-                    <SelectItem key={l} value={l}>
-                      {LANE_ROLE_LABELS[l]}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
+          <Field label="Preferred lane (select up to 3)">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
+              {(
+                [
+                  { lane: "exp", label: "Experience Lane", className: "" },
+                  { lane: "jungle", label: "Jungle", className: "" },
+                  {
+                    lane: "mid",
+                    label: "Mid Lane",
+                    className: "col-span-2",
+                  },
+                  { lane: "gold", label: "Gold Lane", className: "" },
+                  { lane: "support", label: "Support", className: "" },
+                ] as const
+              ).map(({ lane: l, label, className: cellClass }) => {
+                const on = values.preferred_lane.includes(l);
+                const inputId = `preferred-lane-${l}`;
+                return (
+                  <label
+                    key={l}
+                    htmlFor={inputId}
+                    className={
+                      "relative flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-2xl border px-3 py-3 transition-colors has-focus-visible:ring-2 has-focus-visible:ring-primary/50 " +
+                      cellClass +
+                      (on
+                        ? " border-primary bg-primary/10"
+                        : " border-border hover:bg-muted/60")
+                    }
+                  >
+                    <input
+                      type="checkbox"
+                      id={inputId}
+                      value={l}
+                      checked={on}
+                      disabled={
+                        !on &&
+                        values.preferred_lane.length >= MAX_UI_PREFERRED_LANES
+                      }
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          if (
+                            values.preferred_lane.length >=
+                            MAX_UI_PREFERRED_LANES
+                          ) {
+                            return;
+                          }
+                          patch({
+                            preferred_lane: [...values.preferred_lane, l],
+                          });
+                        } else {
+                          patch({
+                            preferred_lane: values.preferred_lane.filter((v) => v !== l),
+                          });
+                        }
+                      }}
+                      className="sr-only"
+                    />
+                    {/* icon-less in admin form to keep it lightweight; label is enough */}
+                    <span className="whitespace-nowrap text-sm font-medium">
+                      {label}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
           </Field>
 
           <Field label="Team intent">

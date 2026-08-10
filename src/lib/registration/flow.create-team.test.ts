@@ -60,7 +60,7 @@ function validPlayer(i: number, phase: string = "4"): Partial<Credentials> {
 		address_package: "12",
 		address_block: "2",
 		address_lot: "3",
-		preferred_lane: "mid",
+		preferred_lane: ["mid"],
 		contact_number: "09171234567",
 	};
 }
@@ -191,7 +191,7 @@ describe("create-team registration wizard", () => {
 			active_registrant_index: 1,
 			registrants: [
 				{
-					credentials: { ...validPlayer(0), preferred_lane: "mid" } as Credentials,
+					credentials: { ...validPlayer(0), preferred_lane: ["mid"] } as Credentials,
 					uploads: {
 						school_id_front: tinyPng(),
 						school_id_back: tinyPng(),
@@ -199,7 +199,7 @@ describe("create-team registration wizard", () => {
 					} satisfies Uploads,
 				},
 				{
-					credentials: { ...validPlayer(1), preferred_lane: "gold" } as Credentials,
+					credentials: { ...validPlayer(1), preferred_lane: ["gold"] } as Credentials,
 					uploads: {
 						school_id_front: tinyPng(),
 						school_id_back: tinyPng(),

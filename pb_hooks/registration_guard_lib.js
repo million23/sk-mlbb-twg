@@ -526,7 +526,7 @@ function lookupByStatusCode(app, rawCode) {
     address_package: String(r.get("address_package") || ""),
     address_block: String(r.get("address_block") || ""),
     address_lot: String(r.get("address_lot") || ""),
-    preferred_lane: String(r.get("preferred_lane") || ""),
+    preferred_lane: Array.isArray(r.get("preferred_lane")) ? r.get("preferred_lane").join(",") : String(r.get("preferred_lane") || ""),
     team_intent: String(r.get("team_intent") || ""),
     preferred_team_name: preferredTeamName,
     status: String(r.get("status") || ""),
