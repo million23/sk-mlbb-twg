@@ -67,7 +67,7 @@ export function MatchResultsDialog({
 
   return (
     <ResponsiveModal open={open} onOpenChange={onOpenChange}>
-      <ResponsiveModalContent className="flex max-h-[min(90vh,560px)] flex-col gap-0 overflow-hidden p-0 sm:max-w-md">
+      <ResponsiveModalContent className="flex h-dvh max-h-dvh w-full max-w-none flex-col gap-0 overflow-hidden rounded-none p-0 sm:h-auto sm:max-h-[min(90vh,560px)] sm:max-w-md sm:rounded-lg">
         <ResponsiveModalHeader className="flex flex-col gap-1 border-b border-border px-6 py-4 text-left">
           <ResponsiveModalTitle>Score & winner</ResponsiveModalTitle>
           <ResponsiveModalDescription className="line-clamp-2">
@@ -98,7 +98,7 @@ export function MatchResultsDialog({
           }}
         >
           <div className="flex flex-col gap-4 px-6 py-4">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label htmlFor="result-score-a">{teamALabel} — wins</Label>
                 <Input

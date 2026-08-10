@@ -101,7 +101,7 @@ export function AdminFormDialog({
 
   return (
     <ResponsiveModal open={open} onOpenChange={onOpenChange}>
-      <ResponsiveModalContent className="max-w-md">
+      <ResponsiveModalContent className="h-dvh max-h-dvh w-full max-w-none rounded-none overflow-y-auto sm:h-auto sm:max-h-[90vh] sm:max-w-md sm:rounded-lg">
         <ResponsiveModalHeader>
           <ResponsiveModalTitle>
             {mode === "create" ? "Add admin" : "Edit admin"}

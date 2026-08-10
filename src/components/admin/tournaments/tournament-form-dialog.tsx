@@ -231,7 +231,7 @@ export function TournamentFormDialog({
 
   return (
     <ResponsiveModal open={open} onOpenChange={onOpenChange}>
-      <ResponsiveModalContent className="max-h-[90vh] max-w-lg overflow-y-auto sm:max-w-lg">
+      <ResponsiveModalContent className="h-dvh max-h-dvh w-full max-w-none overflow-y-auto rounded-none sm:h-auto sm:max-h-[90vh] sm:max-w-lg sm:rounded-lg">
         <ResponsiveModalHeader>
           <ResponsiveModalTitle>
             {mode === "create" ? "Add tournament" : "Edit tournament"}

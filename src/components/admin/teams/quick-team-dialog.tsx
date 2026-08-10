@@ -178,7 +178,7 @@ export function QuickTeamDialog({
 
   return (
     <ResponsiveModal open={open} onOpenChange={onOpenChange}>
-      <ResponsiveModalContent className="flex max-h-[90vh] max-w-lg flex-col overflow-hidden sm:max-w-lg">
+      <ResponsiveModalContent className="flex h-dvh max-h-dvh w-full flex-col overflow-hidden rounded-none sm:h-auto sm:max-h-[90vh] sm:max-w-lg sm:rounded-lg">
         <ResponsiveModalHeader>
           <ResponsiveModalTitle>Quick team</ResponsiveModalTitle>
           <ResponsiveModalDescription>
@@ -189,7 +189,7 @@ export function QuickTeamDialog({
         </ResponsiveModalHeader>
 
         {step === 1 ? (
-          <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden">
+          <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden px-1 sm:px-0">
             <div className="space-y-1.5">
               <Label htmlFor="quick-team-name">Team name</Label>
               <Input
@@ -239,11 +239,16 @@ export function QuickTeamDialog({
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-muted-foreground text-xs text-pretty">
+              <div className="space-y-1">
+                <p className="font-medium text-sm">
+                  Selected {selected.size}/{QUICK_TEAM_MAX_MEMBERS}
+                </p>
+                <p className="text-muted-foreground text-xs text-pretty">
                 {suggestedLaneIds?.length
                   ? "Showing a lane-balanced five. Try another mix anytime."
                   : `Select up to ${QUICK_TEAM_MAX_MEMBERS} unassigned players.`}
-              </p>
+                </p>
+              </div>
               <Button
                 type="button"
                 variant="secondary"
@@ -273,13 +278,14 @@ export function QuickTeamDialog({
                 <ul className="space-y-1.5">
                   {filteredRoster.map((p) => {
                     if (!p.id) return null;
-                    const checked = selected.has(p.id);
+                    const id = p.id;
+                    const checked = selected.has(id);
                     return (
-                      <li key={p.id}>
-                        <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border/70 bg-background/60 px-3 py-2.5 hover:border-primary/30">
-                          <Checkbox
+                      <li key={id}>
+                        <label htmlFor={`quick-team-player-${id}`} className="flex min-h-14 cursor-pointer items-center gap-3 rounded-xl border border-border/70 bg-background/60 px-3 py-3 active:bg-muted/70 hover:border-primary/30">
+                          <Checkbox id={`quick-team-player-${id}`}
                             checked={checked}
-                            onCheckedChange={() => toggle(p.id!)}
+                            onCheckedChange={() => toggle(id)}
                           />
                           <span className="min-w-0 flex-1">
                             <span className="block truncate font-medium text-sm">
@@ -337,7 +343,7 @@ export function QuickTeamDialog({
           </p>
         ) : null}
 
-        <ResponsiveModalFooter>
+        <ResponsiveModalFooter className="sticky bottom-0 grid grid-cols-2 gap-2 border-t bg-background/95 p-3 backdrop-blur sm:flex sm:justify-end">
           {step === 1 ? (
             <>
               <Button
@@ -345,6 +351,7 @@ export function QuickTeamDialog({
                 variant="outline"
                 onClick={() => onOpenChange(false)}
                 disabled={pending}
+                className="w-full sm:w-auto"
               >
                 Cancel
               </Button>
@@ -352,6 +359,7 @@ export function QuickTeamDialog({
                 type="button"
                 disabled={!canContinue || pending}
                 onClick={() => setStep(2)}
+                className="w-full sm:w-auto"
               >
                 Continue
               </Button>
@@ -363,6 +371,7 @@ export function QuickTeamDialog({
                 variant="outline"
                 onClick={() => setStep(1)}
                 disabled={pending}
+                className="w-full sm:w-auto"
               >
                 Back
               </Button>
@@ -383,6 +392,7 @@ export function QuickTeamDialog({
                     setStep(1);
                   });
                 }}
+                className="w-full sm:w-auto"
               >
                 {pending ? (
                   <>
