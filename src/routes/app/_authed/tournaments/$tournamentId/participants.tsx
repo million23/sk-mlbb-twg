@@ -4,6 +4,7 @@ import { ParticipantDetailSheet } from "@/components/admin/participants/particip
 import { ParticipantFormDialog } from "@/components/admin/participants/participant-form-dialog";
 import { RegistrationStatusBadge } from "@/components/admin/participants/registration-status-badge";
 import { Button } from "@/components/ui/button";
+
 import {
   Empty,
   EmptyDescription,
@@ -45,11 +46,12 @@ import { useListedTeams } from "@/hooks/registration/use-listed-teams";
 import { useTournaments } from "@/hooks/legacy/use-tournaments";
 import { TEAM_INTENT_LABELS } from "@/lib/admin/participant-approval";
 import { formatParticipantNameDisplay } from "@/lib/legacy/participant-normalize";
+import * as XLSX from "xlsx";
 import { tournamentDayFromStartAt } from "@/lib/registration/orval";
 import type { TeamIntent } from "@/lib/registration/flow";
 import { createFileRoute } from "@tanstack/react-router";
 import { format, parseISO } from "date-fns";
-import { Plus, Search, Users } from "lucide-react";
+import { Download, Plus, Search, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -66,6 +68,158 @@ const STATUS_TAB_OPTIONS: {
   { value: "rejected", label: (c) => `Rejected (${c.rejected})` },
   { value: "all", label: (c) => `All (${c.all})` },
 ];
+
+function createParticipantWorksheet(
+  participants: ParticipantsRecord[],
+  teamNameById: Map<string, string>,
+) {
+  const rows = participants.map((p) => {
+    const intent = (p.team_intent ?? "open_matching") as TeamIntent;
+    const preferredLanes = p.preferred_roles?.length
+      ? p.preferred_roles
+      : p.preferred_lane
+        ? [p.preferred_lane]
+        : [];
+
+    return {
+      Name: formatParticipantNameDisplay(p.name),
+      Email: p.email ?? "",
+      IGN: p.ign ?? "",
+      "User ID": p.user_id ?? "",
+      "Server ID": p.server_id ?? "",
+      Contact: p.contact_number ?? "",
+      Phase: p.address_phase ?? "",
+      Package: p.address_package ?? "",
+      Block: p.address_block ?? "",
+      Lot: p.address_lot ?? "",
+      "Preferred Lane": p.preferred_lane ?? "",
+      "Preferred Lanes": preferredLanes.join(", "),
+      "Team Intent": TEAM_INTENT_LABELS[intent] ?? intent,
+      "Preferred Team":
+        p.preferred_team_name ??
+        (p.preferred_team
+          ? teamNameById.get(p.preferred_team) ?? p.preferred_team
+          : ""),
+      Team: p.team ? teamNameById.get(p.team) ?? p.team : "",
+      Status: p.registration_status ?? "",
+      "Registration Status Code": p.registration_status_code ?? "",
+      "Rejection Reason": p.registration_reject_reason ?? "",
+      Registered: p.created ?? "",
+    };
+  });
+
+  const worksheet = XLSX.utils.json_to_sheet(rows, {
+    header: [
+      "Name",
+      "Email",
+      "IGN",
+      "User ID",
+      "Server ID",
+      "Contact",
+      "Phase",
+      "Package",
+      "Block",
+      "Lot",
+      "Preferred Lane",
+      "Preferred Lanes",
+      "Team Intent",
+      "Preferred Team",
+      "Team",
+      "Status",
+      "Registration Status Code",
+      "Rejection Reason",
+      "Registered",
+    ],
+  });
+  const worksheetRef = worksheet["!ref"];
+  const headerRange = worksheetRef
+    ? XLSX.utils.decode_range(worksheetRef)
+    : null;
+  if (headerRange && worksheetRef) {
+    for (let column = headerRange.s.c; column <= headerRange.e.c; column += 1) {
+      const cellAddress = XLSX.utils.encode_cell({ r: headerRange.s.r, c: column });
+      const headerCell = worksheet[cellAddress];
+      if (!headerCell) continue;
+      headerCell.s = {
+        fill: { fgColor: { rgb: "1F4E78" } },
+        font: { bold: true, color: { rgb: "FFFFFF" } },
+        alignment: { horizontal: "center", vertical: "center", wrapText: true },
+        border: {
+          top: { style: "thin", color: { rgb: "17365D" } },
+          bottom: { style: "thin", color: { rgb: "17365D" } },
+          left: { style: "thin", color: { rgb: "17365D" } },
+          right: { style: "thin", color: { rgb: "17365D" } },
+        },
+      };
+    }
+    worksheet["!rows"] = [{ hpt: 28 }];
+    worksheet["!autofilter"] = { ref: worksheetRef };
+  }
+  worksheet["!cols"] = [
+    { wch: 24 },
+    { wch: 30 },
+    { wch: 18 },
+    { wch: 14 },
+    { wch: 12 },
+    { wch: 16 },
+    { wch: 10 },
+    { wch: 10 },
+    { wch: 10 },
+    { wch: 12 },
+    { wch: 16 },
+    { wch: 24 },
+    { wch: 18 },
+    { wch: 24 },
+    { wch: 24 },
+    { wch: 14 },
+    { wch: 24 },
+    { wch: 30 },
+    { wch: 24 },
+  ];
+
+  return worksheet;
+}
+
+function exportParticipants(
+  participants: ParticipantsRecord[],
+  teamNameById: Map<string, string>,
+  tournamentName: string,
+) {
+  const workbook = XLSX.utils.book_new();
+  const sheets: { name: string; rows: ParticipantsRecord[] }[] = [
+    { name: "All", rows: participants },
+    {
+      name: "Pending",
+      rows: participants.filter((p) => p.registration_status === "pending"),
+    },
+    {
+      name: "Approved",
+      rows: participants.filter((p) => p.registration_status === "approved"),
+    },
+    {
+      name: "Rejected",
+      rows: participants.filter((p) => p.registration_status === "rejected"),
+    },
+  ];
+
+  for (const sheet of sheets) {
+    XLSX.utils.book_append_sheet(
+      workbook,
+      createParticipantWorksheet(sheet.rows, teamNameById),
+      sheet.name,
+    );
+  }
+
+  const safeTournamentName = tournamentName
+    .trim()
+    .replace(/[^a-z0-9]+/gi, "-")
+    .replace(/^-|-$/g, "") || "tournament";
+  XLSX.writeFile(
+    workbook,
+    `${safeTournamentName}-participants-${new Date().toISOString().slice(0, 10)}.xlsx`,
+    { cellStyles: true },
+  );
+}
 
 export const Route = createFileRoute(
   "/app/_authed/tournaments/$tournamentId/participants",
@@ -124,6 +278,7 @@ function TournamentParticipantsPage() {
   const selected =
     participants.find((p) => p.id === selectedId) ?? null;
 
+
   const counts = useMemo(() => {
     const c = { pending: 0, approved: 0, rejected: 0, all: participants.length };
     for (const p of participants) {
@@ -163,18 +318,35 @@ function TournamentParticipantsPage() {
           title="Participants"
           description="Review registrants, view documents, approve or reject, and manage the roster."
           actions={
-            canManageParticipants ? (
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 type="button"
-                onClick={() => {
-                  setEditing(null);
-                  setFormOpen(true);
-                }}
+                variant="outline"
+                disabled={participants.length === 0}
+                onClick={() =>
+                  exportParticipants(
+                    participants,
+                    teamNameById,
+                    tournament?.title ?? "tournament",
+                  )
+                }
               >
-                <Plus className="size-4" />
-                Add participant
+                <Download className="size-4" />
+                Export Excel
               </Button>
-            ) : undefined
+              {canManageParticipants ? (
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setEditing(null);
+                    setFormOpen(true);
+                  }}
+                >
+                  <Plus className="size-4" />
+                  Add participant
+                </Button>
+              ) : null}
+            </div>
           }
         />
       </AdminStagger>
@@ -339,6 +511,7 @@ function TournamentParticipantsPage() {
           </TabsContent>
         </Tabs>
       </AdminStagger>
+
 
       <ParticipantDetailSheet
         record={selected}
