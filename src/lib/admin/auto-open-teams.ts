@@ -7,7 +7,7 @@ export type OpenMatchingCandidate = {
   team?: string | null;
   status?: string | null;
   preferred_roles?: unknown;
-  preferred_lane?: string | null;
+  preferred_lane?: unknown;
 };
 
 export type PlannedOpenTeam = {
@@ -25,7 +25,10 @@ function preferredRolesForPick(p: OpenMatchingCandidate): unknown {
   if (Array.isArray(p.preferred_roles) && p.preferred_roles.length > 0) {
     return p.preferred_roles;
   }
-  if (p.preferred_lane) return [p.preferred_lane];
+  if (Array.isArray(p.preferred_lane) && p.preferred_lane.length > 0) {
+    return p.preferred_lane;
+  }
+  if (p.preferred_lane && typeof p.preferred_lane === "string") return [p.preferred_lane];
   return p.preferred_roles;
 }
 

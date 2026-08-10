@@ -22,7 +22,7 @@ function base(overrides: Partial<Credentials> = {}): Credentials {
 		address_package: "12",
 		address_block: "14",
 		address_lot: "3",
-		preferred_lane: "jungle",
+		preferred_lane: ["jungle"],
 		contact_number: "09171234567",
 		...overrides,
 	};

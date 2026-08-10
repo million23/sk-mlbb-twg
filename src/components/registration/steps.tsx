@@ -78,6 +78,8 @@ import {
 } from "react";
 import ReactMarkdown from "react-markdown";
 
+const MAX_UI_PREFERRED_LANES = 3;
+
 const PHASE_LABELS: Record<(typeof ELIGIBLE_PHASES)[number], string> = {
 	"4": "Phase 4",
 	"9": "Phase 9",
@@ -557,26 +559,18 @@ export function CredentialsStep({ state, dispatch }: Props) {
 					<Field label="Lot" className="min-w-0" error={err("address_lot")}>
 						<Input
 							value={c.address_lot}
-							onChange={(e) =>
-								set({ address_lot: sanitizeDigits(e.target.value, 4) })
-							}
-							inputMode="numeric"
-							placeholder="Lot"
-							className="tabular-nums"
+							onChange={(e) => set({ address_lot: e.target.value })}
+							placeholder="Lot or Excess"
 							aria-invalid={Boolean(err("address_lot")) || undefined}
 						/>
 					</Field>
 				</div>
 				<Field
-					label="Preferred lane"
+					label="Preferred lane (select up to 3)"
 					className="col-span-full"
 					error={err("preferred_lane")}
 				>
-					<RadioGroup
-						value={c.preferred_lane}
-						onValueChange={(v) =>
-							set({ preferred_lane: (v ?? "") as Lane | "" })
-						}
+					<div
 						className="grid grid-cols-2 gap-2 sm:gap-3"
 						aria-invalid={Boolean(err("preferred_lane")) || undefined}
 					>
@@ -593,7 +587,7 @@ export function CredentialsStep({ state, dispatch }: Props) {
 								{ lane: "support", label: "Support", className: "" },
 							] as const
 						).map(({ lane: l, label, className: cellClass }) => {
-							const on = c.preferred_lane === l;
+							const on = c.preferred_lane.includes(l);
 							const inputId = `preferred-lane-${l}`;
 							return (
 								<label
@@ -609,7 +603,22 @@ export function CredentialsStep({ state, dispatch }: Props) {
 												: "border-border hover:bg-muted/60",
 									)}
 								>
-									<RadioGroupItem id={inputId} value={l} className="sr-only" />
+									<input 
+										type="checkbox"
+										id={inputId} 
+										value={l} 
+										checked={on}
+										disabled={!on && c.preferred_lane.length >= MAX_UI_PREFERRED_LANES}
+										onChange={(e) => {
+											if (e.target.checked) {
+												if (c.preferred_lane.length >= MAX_UI_PREFERRED_LANES) return;
+												set({ preferred_lane: [...c.preferred_lane, l as Lane] })
+											} else {
+												set({ preferred_lane: c.preferred_lane.filter((v) => v !== l) })
+											}
+										}}
+										className="sr-only" 
+									/>
 									<LaneRoleIcon
 										role={l as PlayerRole}
 										className="size-5 shrink-0"
@@ -620,7 +629,7 @@ export function CredentialsStep({ state, dispatch }: Props) {
 								</label>
 							);
 						})}
-					</RadioGroup>
+					</div>
 				</Field>
 				<Field label="Contact (optional)" className="col-span-full">
 					<Input
@@ -1025,9 +1034,9 @@ export function ReviewStep({ state }: Props) {
 			{registrants.map((reg, index) => {
 				const c = reg.credentials;
 				const lane =
-					c.preferred_lane && c.preferred_lane in LANE_ROLE_LABELS
-						? LANE_ROLE_LABELS[c.preferred_lane as PlayerRole]
-						: c.preferred_lane || "—";
+					c.preferred_lane && c.preferred_lane.length > 0
+						? c.preferred_lane.map(l => l in LANE_ROLE_LABELS ? LANE_ROLE_LABELS[l as PlayerRole] : l).join(", ")
+						: "—";
 				const key =
 					c.email.trim().toLowerCase() || `player-${c.user_id}-${c.ign}`;
 				return (

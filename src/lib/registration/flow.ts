@@ -43,7 +43,7 @@ export type Credentials = {
 	address_package: string;
 	address_block: string;
 	address_lot: string;
-	preferred_lane: Lane | "";
+	preferred_lane: Lane[];
 	contact_number: string;
 };
 
@@ -126,7 +126,7 @@ export function emptyCredentials(): Credentials {
 		address_package: "",
 		address_block: "",
 		address_lot: "",
-		preferred_lane: "",
+		preferred_lane: [],
 		contact_number: "",
 	};
 }
@@ -418,9 +418,11 @@ export function getCredentialFieldErrors(
 		errors.address_package = "Package must be 1–2 digits";
 	}
 
-	if (!c.address_block.trim()) errors.address_block = "Block is required";
-	if (!c.address_lot.trim()) errors.address_lot = "Lot is required";
-	if (!c.preferred_lane) errors.preferred_lane = "Preferred lane is required";
+	if (!c.address_block || c.address_block.trim().length === 0) errors.address_block = "Block is required";
+	if (!c.address_lot || c.address_lot.trim().length === 0) errors.address_lot = "Lot is required";
+	if (!c.preferred_lane || c.preferred_lane.length === 0) {
+		errors.preferred_lane = "Preferred lane is required";
+	}
 
 	return errors;
 }
@@ -611,7 +613,7 @@ const PRESETS: Record<CredentialPreset, Partial<Credentials>> = {
 		address_package: "2",
 		address_block: "14",
 		address_lot: "3",
-		preferred_lane: "jungle",
+		preferred_lane: ["jungle"],
 		contact_number: "09171234567",
 	},
 	valid_phase4: {
@@ -625,7 +627,7 @@ const PRESETS: Record<CredentialPreset, Partial<Credentials>> = {
 		address_package: "1",
 		address_block: "5",
 		address_lot: "8",
-		preferred_lane: "gold",
+		preferred_lane: ["gold"],
 		contact_number: "09181234567",
 	},
 	underage: {
@@ -639,7 +641,7 @@ const PRESETS: Record<CredentialPreset, Partial<Credentials>> = {
 		address_package: "1",
 		address_block: "1",
 		address_lot: "1",
-		preferred_lane: "mid",
+		preferred_lane: ["mid"],
 	},
 	bad_phase: {
 		name: "Outside Phase",
@@ -652,7 +654,7 @@ const PRESETS: Record<CredentialPreset, Partial<Credentials>> = {
 		address_package: "1",
 		address_block: "1",
 		address_lot: "1",
-		preferred_lane: "exp",
+		preferred_lane: ["exp"],
 	},
 	duplicate_email: {
 		name: "Taken Email",
@@ -665,7 +667,7 @@ const PRESETS: Record<CredentialPreset, Partial<Credentials>> = {
 		address_package: "3",
 		address_block: "7",
 		address_lot: "2",
-		preferred_lane: "support",
+		preferred_lane: ["support"],
 	},
 };
 

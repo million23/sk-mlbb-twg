@@ -139,7 +139,7 @@ export function VerifyPage({ initialCode = "" }: VerifyPageProps) {
     : null;
 
   const intent = (receipt?.team_intent || "open_matching") as TeamIntent;
-  const lane = receipt?.preferred_lane as PlayerRole | undefined;
+  const lanes = receipt?.preferred_lane as PlayerRole[] | undefined;
 
   return (
     <LandingShell>
@@ -321,11 +321,11 @@ export function VerifyPage({ initialCode = "" }: VerifyPageProps) {
                 <ReceiptRow label="User ID" value={receipt.user_id} />
                 <ReceiptRow label="Server ID" value={receipt.server_id} />
                 <ReceiptRow
-                  label="Preferred lane"
+                  label="Preferred lanes"
                   value={
-                    lane && lane in LANE_ROLE_LABELS
-                      ? LANE_ROLE_LABELS[lane]
-                      : receipt.preferred_lane || "—"
+                    lanes && lanes.length > 0
+                      ? lanes.map((l) => l in LANE_ROLE_LABELS ? LANE_ROLE_LABELS[l] : l).join(", ")
+                      : "—"
                   }
                 />
               </ReceiptSection>

@@ -53,7 +53,7 @@ export type ParticipantFormValues = {
   address_package: string;
   address_block: string;
   address_lot: string;
-  preferred_lane: "mid" | "gold" | "exp" | "support" | "jungle";
+  preferred_lane: ("mid" | "gold" | "exp" | "support" | "jungle")[];
   team_intent: "open_matching" | "join_team" | "create_team";
   preferred_team: string;
   preferred_team_name: string;
@@ -242,8 +242,14 @@ export function useParticipantMutations(tournamentId: string) {
         address_package: values.address_package.trim(),
         address_block: values.address_block.trim(),
         address_lot: values.address_lot.trim(),
-        preferred_lane: values.preferred_lane,
-        preferred_roles: [values.preferred_lane],
+        preferred_lane: (values.preferred_lane[0] ?? "mid") as (
+          | "mid"
+          | "gold"
+          | "exp"
+          | "support"
+          | "jungle"
+        ),
+        preferred_roles: values.preferred_lane,
         team_intent: values.team_intent,
         ...(values.team_intent === "join_team" && values.preferred_team
           ? { preferred_team: values.preferred_team }
@@ -311,8 +317,14 @@ export function useParticipantMutations(tournamentId: string) {
         address_package: values.address_package.trim(),
         address_block: values.address_block.trim(),
         address_lot: values.address_lot.trim(),
-        preferred_lane: values.preferred_lane,
-        preferred_roles: [values.preferred_lane],
+        preferred_lane: (values.preferred_lane[0] ?? "mid") as (
+          | "mid"
+          | "gold"
+          | "exp"
+          | "support"
+          | "jungle"
+        ),
+        preferred_roles: values.preferred_lane,
         team_intent: values.team_intent,
         // Clear relation when leaving join_team (PocketBase accepts "").
         preferred_team:

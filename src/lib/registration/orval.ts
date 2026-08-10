@@ -139,10 +139,9 @@ export function buildParticipantFormData(
 	form.append("address_package", c.address_package.trim());
 	form.append("address_block", c.address_block.trim());
 	form.append("address_lot", c.address_lot.trim());
-	form.append("preferred_lane", c.preferred_lane);
-	// PocketBase multi-select: repeat the key (not a JSON string).
-	if (c.preferred_lane) {
-		form.append("preferred_roles", c.preferred_lane);
+	for (const lane of c.preferred_lane || []) {
+		form.append("preferred_lane", lane);
+		form.append("preferred_roles", lane);
 	}
 	form.append("status", "unassigned");
 	// Required on participants; public create also forced by pb_hooks when deployed.
