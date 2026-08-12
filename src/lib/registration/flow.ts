@@ -856,11 +856,13 @@ export function reduce(
 			return clearErr(syncActive(nextState));
 		}
 
-		case "SET_CREDENTIALS":
-			return clearErr({
-				...state,
-				credentials: { ...state.credentials, ...action.patch },
-			});
+		case "SET_CREDENTIALS": {
+			const credentials = { ...state.credentials, ...action.patch };
+			const registrants = state.registrants.map((r, i) =>
+				i === state.active_registrant_index ? { ...r, credentials } : r,
+			);
+			return clearErr({ ...state, credentials, registrants });
+		}
 
 		case "LOAD_PRESET": {
 			const patch = { ...PRESETS[action.preset] };
