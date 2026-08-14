@@ -16,6 +16,7 @@ import {
 import { TEAM_INTENT_LABELS } from "@/lib/admin/participant-approval";
 import { LANE_ROLE_LABELS } from "@/lib/legacy/lane-role-icons";
 import { formatParticipantNameDisplay } from "@/lib/legacy/participant-normalize";
+import { calendarDayFromPbDate, normalizePbDateString } from "@/lib/legacy/registered-date";
 import type { TeamIntent } from "@/lib/registration/flow";
 import { cn } from "@/lib/utils";
 import type { PlayerRole } from "@/types/__pocketbase-types";
@@ -31,15 +32,16 @@ type VerifyPageProps = {
 
 function formatWhen(iso?: string): string {
   if (!iso?.trim()) return "—";
-  const d = parseISO(iso);
+  const d = parseISO(normalizePbDateString(iso));
   if (!isValid(d)) return iso;
   return format(d, "MMM d, yyyy · h:mm a");
 }
 
 function formatBirthdate(iso?: string): string {
-  if (!iso?.trim()) return "—";
-  const d = parseISO(iso);
-  if (!isValid(d)) return iso;
+  const day = calendarDayFromPbDate(iso);
+  if (!day) return iso?.trim() || "—";
+  const d = parseISO(day);
+  if (!isValid(d)) return iso ?? "—";
   return format(d, "MMM d, yyyy");
 }
 

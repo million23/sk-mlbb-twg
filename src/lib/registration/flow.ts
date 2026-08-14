@@ -6,6 +6,8 @@
  * Phase-9 team rule is deferred (informational copy only).
  */
 
+import { calendarDayFromPbDate } from "@/lib/legacy/registered-date";
+
 export const ELIGIBLE_PHASES = ["4", "9", "10"] as const;
 export const LANES = ["mid", "gold", "exp", "support", "jungle"] as const;
 export const TEAM_INTENTS = [
@@ -298,8 +300,11 @@ export function ageOnTournamentDay(
 	tournamentDay: string,
 ): number | null {
 	if (!birthdate || !tournamentDay) return null;
-	const birth = new Date(`${birthdate}T00:00:00`);
-	const day = new Date(`${tournamentDay}T00:00:00`);
+	const birthDay = calendarDayFromPbDate(birthdate);
+	const dayStr = calendarDayFromPbDate(tournamentDay);
+	if (!birthDay || !dayStr) return null;
+	const birth = new Date(`${birthDay}T00:00:00`);
+	const day = new Date(`${dayStr}T00:00:00`);
 	if (Number.isNaN(birth.getTime()) || Number.isNaN(day.getTime())) return null;
 	let age = day.getFullYear() - birth.getFullYear();
 	const m = day.getMonth() - birth.getMonth();

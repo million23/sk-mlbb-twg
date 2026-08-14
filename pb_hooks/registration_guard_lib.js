@@ -119,9 +119,22 @@ function hasActiveDuplicate(app, filter, params) {
 
 var ELIGIBLE_PHASES = { "4": true, "9": true, "10": true };
 
+/** DateTime.string() / ISO / date-only → comparable string. */
+function dateFieldToString(raw) {
+  if (raw == null) return "";
+  if (typeof raw === "object") {
+    try {
+      if (typeof raw.string === "function") {
+        return String(raw.string()).trim();
+      }
+    } catch (err) {}
+  }
+  return String(raw).trim();
+}
+
 /** Prefer calendar date prefix (avoids TZ day-shift). */
 function dayFromDateField(raw) {
-  const s = String(raw || "").trim();
+  const s = dateFieldToString(raw);
   if (!s) return "";
   const m = /^(\d{4}-\d{2}-\d{2})/.exec(s);
   if (m) return m[1];
@@ -150,8 +163,8 @@ function resolveTournamentDayFromRecord(tournament) {
 
 /** Calendar age on tournament day (YYYY-MM-DD). Null if invalid. */
 function ageOnTournamentDay(birthdate, tournamentDay) {
-  const b = String(birthdate || "").trim();
-  const day = String(tournamentDay || "").trim();
+  const b = dayFromDateField(birthdate);
+  const day = dayFromDateField(tournamentDay);
   if (!b || !day) return null;
   const birth = new Date(b + "T00:00:00");
   const td = new Date(day + "T00:00:00");
@@ -192,7 +205,7 @@ function enforceEligibilityGuards(e) {
     throw new BadRequestError("Phase must be 4, 9, or 10");
   }
 
-  const birthdate = String(e.record.get("birthdate") || "").trim();
+  const birthdate = e.record.get("birthdate");
   const age = ageOnTournamentDay(birthdate, tournamentDay);
   if (age === null) {
     throw new BadRequestError("Invalid birthdate");

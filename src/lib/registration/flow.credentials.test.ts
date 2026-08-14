@@ -98,4 +98,13 @@ describe("validateCredentialsFields", () => {
 			validateCredentialsFields(base({ address_package: "1" }), day),
 		).toBeNull();
 	});
+
+	it("accepts PocketBase DateTime birthdates for the age check", () => {
+		expect(
+			validateCredentialsFields(
+				base({ birthdate: "2008-01-10 00:00:00.000Z" }),
+				day,
+			),
+		).toBeNull();
+	});
 });

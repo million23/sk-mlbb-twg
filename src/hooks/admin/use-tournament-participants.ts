@@ -21,6 +21,7 @@ import {
 import { PARTICIPANT_DOC_FIELDS } from "@/lib/admin/participant-files";
 import { ApiError, customInstance } from "@/lib/api/mutator/custom-instance";
 import { getAuthRecordId } from "@/lib/legacy/mutation-authors";
+import { toPocketBaseDateTime } from "@/lib/legacy/registered-date";
 import { pb } from "@/lib/pocketbase";
 import {
   registrationApiErrorMessage,
@@ -235,7 +236,7 @@ export function useParticipantMutations(tournamentId: string) {
         name: values.name.trim(),
         email: values.email.trim(),
         ign: values.ign.trim(),
-        birthdate: values.birthdate,
+        birthdate: toPocketBaseDateTime(values.birthdate),
         user_id: values.user_id.trim(),
         server_id: values.server_id.trim(),
         address_phase: values.address_phase,
@@ -310,7 +311,7 @@ export function useParticipantMutations(tournamentId: string) {
         name: values.name.trim(),
         email: values.email.trim(),
         ign: values.ign.trim(),
-        birthdate: values.birthdate,
+        birthdate: toPocketBaseDateTime(values.birthdate),
         user_id: values.user_id.trim(),
         server_id: values.server_id.trim(),
         address_phase: values.address_phase,

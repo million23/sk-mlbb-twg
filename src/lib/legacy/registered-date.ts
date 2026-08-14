@@ -14,6 +14,25 @@ export function normalizePbDateString(raw: string): string {
 	return `${s}T12:00:00`;
 }
 
+/** Calendar day prefix from date-only, ISO, or PocketBase DateTime. */
+export function calendarDayFromPbDate(raw: string | undefined): string {
+	if (!raw?.trim()) return "";
+	const m = /^(\d{4}-\d{2}-\d{2})/.exec(raw.trim());
+	return m?.[1] ?? "";
+}
+
+/**
+ * PocketBase DateTime write format: `YYYY-MM-DD HH:mm:ss.SSSZ` (UTC).
+ * Calendar dates (birthdates) are stored at midnight UTC.
+ *
+ * @see https://pocketbase.io/jsvm/interfaces/types.DateTime.html
+ */
+export function toPocketBaseDateTime(raw: string | undefined): string {
+	const day = calendarDayFromPbDate(raw);
+	if (!day) return raw?.trim() ?? "";
+	return `${day} 00:00:00.000Z`;
+}
+
 function parseRegisteredInstant(created: string): Date | null {
 	const d = parseISO(normalizePbDateString(created));
 	return isValid(d) ? d : null;
