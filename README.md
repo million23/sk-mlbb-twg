@@ -1,16 +1,20 @@
 # SK MLBB Tournament Tracker
 
-Web app for managing **Mobile Legends** tournaments for **Sangguniang Kabataan, Barangay 176-E**. Admins sign in to manage participants, teams, tournaments, matches, and related data. The public home page links to the admin login.
+Web app for the **Sangguniang Kabataan, Barangay 176-E** Mobile Legends tournament.
+
+The **public site** covers landing, eligibility, registration, status lookup, tournaments, and the organizers page. The **committee app** (`/app`) is for staff and superadmins: approve registrants, form teams, generate four elimination brackets under one tournament, score matches, and advance winners.
+
+For how to run an event (players and committee), see **[MANUAL.md](./MANUAL.md)**.
 
 ## Stack
 
 - [Bun](https://bun.sh/) — runtime and package manager
 - [Vite](https://vite.dev/) + [React 19](https://react.dev/)
 - [TanStack Router](https://tanstack.com/router) — file-based routes under `src/routes`
-- [TanStack Query](https://tanstack.com/query) & [TanStack DB](https://tanstack.com/db) — client data layer
-- [PocketBase](https://pocketbase.io/) — backend (hosted URL via env)
+- [TanStack Query](https://tanstack.com/query) — client data layer
+- [PocketBase](https://pocketbase.io/) — backend (hosted URL via env); hooks in `pb_hooks/`
 - [Tailwind CSS v4](https://tailwindcss.com/) — styling
-- UI: shadcn-style components (e.g. [Base UI](https://base-ui.com/), Lucide)
+- UI: shadcn-style components ([Base UI](https://base-ui.com/), Lucide)
 
 ## Prerequisites
 
@@ -24,13 +28,20 @@ Web app for managing **Mobile Legends** tournaments for **Sangguniang Kabataan, 
    bun install
    ```
 
-2. Environment variables — copy the example file and set your PocketBase / PocketHost URL:
+2. Environment variables — copy the example file and fill in values:
 
    ```bash
    cp .env.example .env
    ```
 
-   Edit `.env` and set `VITE_POCKETHOST_URL` to your PocketBase instance (see `.env.example`).
+   | Variable | Purpose |
+   | --- | --- |
+   | `VITE_POCKETHOST_URL` | PocketBase / PocketHost instance |
+   | `VITE_TURNSTILE_SITE_KEY` | Cloudflare Turnstile on public registration (optional) |
+   | `VITE_RESEND_API_KEY` / `VITE_RESEND_FROM` | Registration status-code email |
+   | `VITE_WEBSITE_URL_BETA` / `VITE_WEBSITE_URL_MAIN` | Public site hosts (allowlist awareness) |
+
+   Turnstile **secret**, Resend server keys used by hooks, and Discord webhooks belong on the **PocketHost server env**, not in `VITE_*`. See `.env.example` and [pb_hooks/README.md](./pb_hooks/README.md).
 
 ## Scripts
 
@@ -40,19 +51,46 @@ Web app for managing **Mobile Legends** tournaments for **Sangguniang Kabataan, 
 | `bun run build` | Production build |
 | `bun run preview` | Preview the production build locally |
 | `bun run test` | Run [Vitest](https://vitest.dev/) tests |
+| `bun run test:watch` | Vitest in watch mode |
+| `bun run api:generate` | Refresh OpenAPI types (Orval) |
+| `bun run smoke:create-team` | Smoke-test create-team registration |
+
+## Routes
+
+Public:
+
+- `/` — landing
+- `/register` — registration wizard
+- `/verify` — 6-digit status code lookup
+- `/tournaments` — public events and match view (`/tournaments/$id`)
+- `/about` — organizers
+
+Committee (auth required after login):
+
+- `/app/auth/login` — staff / superadmin sign-in
+- `/app` — dashboard
+- `/app/tournaments` — tournament list
+- `/app/tournaments/$tournamentId` — overview, participants, teams, matches, team standing
+- `/app/admins` — committee accounts
+- `/app/audit-logs` — audit log (placeholder)
+
+Routing is file-based under `src/routes`. New files are picked up by the TanStack Router Vite plugin. See the [TanStack Router docs](https://tanstack.com/router/latest/docs/framework/react/overview).
 
 ## Project layout
 
-- `src/routes/` — routes (e.g. `/`, `/app/auth/login`, `/app/$id/…` for tournament-scoped admin pages)
-- `src/components/` — shared UI and feature components
-- `src/lib/` — utilities, PocketBase client, etc.
+- `src/routes/` — public and `/app` routes
+- `src/components/` — landing, registration, admin, and shared UI
+- `src/lib/` — PocketBase client, registration flow, bracket / auto-match helpers
+- `pb_hooks/` — PocketBase hooks (registration guard, mail, Discord)
+- `MANUAL.md` — player and committee operations manual
 
-Routing is file-based: new files under `src/routes` are picked up by the TanStack Router Vite plugin. See the [TanStack Router docs](https://tanstack.com/router/latest/docs/framework/react/overview) for loaders, `Link`, and layouts (`src/routes/__root.tsx`).
+`src/routes/legacy/` is the abandoned UI. Do not extend it for new work.
 
-## E2E tests (Maestro)
+## Docs
 
-End-to-end flows live in `maestro/`. See [maestro/README.md](./maestro/README.md) for prerequisites, base URL (`http://localhost:1023`), and how to run flows.
-
-## More context
-
-High-level product and scope notes are in [PROPOSAL.md](./PROPOSAL.md).
+| File | What it is |
+| --- | --- |
+| [MANUAL.md](./MANUAL.md) | How to register, verify, and run the tournament |
+| [CONTEXT.md](./CONTEXT.md) | Domain language (registrant vs participant, team intent, …) |
+| [PROPOSAL.md](./PROPOSAL.md) | Original product proposal and scope |
+| [pb_hooks/README.md](./pb_hooks/README.md) | Backend hooks and mail |
