@@ -73,41 +73,52 @@ export type AboutOrganizer = {
 
 export const ABOUT_ORGANIZERS: readonly AboutOrganizer[] = [
   {
+    name: 'Rafael "Paeng" Mahinay',
+    role: "176‑E SK Kagawad, Committee on Good Governance",
+    image: "/gov-profiles/raf-profile.png",
+  },
+  {
+    name: "Rogen Rabago",
+    role: "176‑E SK Kagawad, Chairman, Committee on Education",
+    image: "/gov-profiles/rogen-profile.png",
+  },
+  {
     name: "Gerald Chavez",
     role: "Software Engineer",
     image: "/gov-profiles/rald-logo.png",
     glitchReveal: true,
   },
-  {
-    name: 'Rafael "Paeng" Mahinay',
-    role: "176‑E SK Kagawad, Committee on Good Governance",
-  },
-  {
-    name: "Rogen Rabago",
-    role: "176‑E SK Kagawad, Chairman, Committee on Education",
-  },
 ];
 
 export type AboutPerson = {
   name: string;
+  role?: string;
   /** Public path under `/public` when a photo is ready. */
   image?: string;
 };
 
 export const ABOUT_LEADERS: readonly AboutPerson[] = [
-  { name: "Allyssa Costibolo" },
-  { name: "Cholo Edusma" },
-  { name: "Shanea Senin" },
-  { name: "Lawrence Dullo" },
+  { name: "Allyssa Costibolo", image: "/gov-profiles/allysa-profile.png" },
+  { name: "Cholo Edusma", image: "/gov-profiles/cholo-profile.png" },
+  { name: "Shanea Senin", image: "/gov-profiles/shanea-profile.png" },
+  { name: "Lawrence Dullo", image: "/gov-profiles/lawrence-profile.png" },
   { name: "Joshua Agapito" },
-  { name: "Gian Dela cruz" },
-  { name: "Tanya Adduro" },
+  { name: "Gian Dela cruz", image: "/gov-profiles/gian-profile.png" },
+  { name: "Tanya Adduro", image: "/gov-profiles/tanya-profile.png" },
 ];
 
 export const ABOUT_OTHERS: readonly AboutPerson[] = [
-  { name: "Jead Jylle Vincent Empas" },
-  { name: "Let Ranido" },
-  { name: "Arcel Zamora" },
-  { name: "Jony Bulan" },
+  {
+    name: "Jead Jylle Vincent Empas",
+    role: "SK 176‑E Kagawad, Committee on Health",
+    image: "/gov-profiles/jead-profile.png",
+  },
+  {
+    name: "Emerlita Ranido",
+    role: "SK 176‑E Kagawad, Committee on Livelihood",
+  },
+  { name: "Arcel Zamora", image: "/gov-profiles/arcel-profile.png" },
+  { name: "Jony Bulan", image: "/gov-profiles/jony-profile.png" },
   { name: "Jairo Mirafuentes" },
+  { name: "Jaomine Patrick Arcilla" },
 ];
