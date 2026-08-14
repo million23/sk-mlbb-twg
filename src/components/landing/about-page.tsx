@@ -14,6 +14,8 @@ import {
   wipeCanvas,
 } from "@/components/landing/gerald-portrait";
 
+import { getAvatarUrl } from "@/lib/legacy/avatar";
+
 import {
   ABOUT_LEADERS,
   ABOUT_ORGANIZERS,
@@ -22,6 +24,7 @@ import {
   ABOUT_PAGE_HEADLINE,
   ABOUT_PAGE_SUPPORT,
   type AboutOrganizer,
+  type AboutPerson,
 } from "./content";
 
 const GLITCH_OUT_MS = 850;
@@ -75,10 +78,6 @@ function SectionLabel({ children }: { children: string }) {
   );
 }
 
-function placeholderSrc(name: string, px: number) {
-  return `https://i.pravatar.cc/${px}?u=${encodeURIComponent(name)}`;
-}
-
 function GlitchPersonPhoto({
   name,
   image,
@@ -89,7 +88,7 @@ function GlitchPersonPhoto({
   /** Paint portrait while true; wipe canvases when false. */
   active: boolean;
 }) {
-  const src = image ?? placeholderSrc(name, 480);
+  const src = image ?? getAvatarUrl(name);
   const layerRefs = useRef<(HTMLCanvasElement | null)[]>([]);
 
   useEffect(() => {
@@ -146,14 +145,11 @@ function GlitchPersonPhoto({
 function PersonPhoto({
   name,
   image,
-  size = "featured",
 }: {
   name: string;
   image?: string;
-  size?: "featured" | "member";
 }) {
-  const px = size === "featured" ? 480 : 320;
-  const src = image ?? placeholderSrc(name, px);
+  const src = image ?? getAvatarUrl(name);
 
   return (
     <div className="relative aspect-square w-full overflow-hidden border border-border/50 bg-muted/40">
@@ -316,10 +312,8 @@ function OrganizerCard({
 
 function GridPersonCard({
   person,
-  size = "member",
 }: {
-  person: { name: string; image?: string };
-  size?: "featured" | "member";
+  person: AboutPerson;
 }) {
   const {
     rootRef,
@@ -338,10 +332,17 @@ function GridPersonCard({
       onClick={onClick}
     >
       <div className="flex flex-col gap-4">
-        <PersonPhoto name={person.name} image={person.image} size={size} />
-        <FoilName className="font-serif text-lg tracking-tight text-foreground/90 sm:text-xl">
-          {person.name}
-        </FoilName>
+        <PersonPhoto name={person.name} image={person.image} />
+        <div className="flex flex-col gap-1.5">
+          <FoilName className="font-serif text-lg tracking-tight text-foreground/90 sm:text-xl">
+            {person.name}
+          </FoilName>
+          {person.role ? (
+            <p className="text-pretty text-muted-foreground text-sm leading-relaxed">
+              {person.role}
+            </p>
+          ) : null}
+        </div>
       </div>
     </PersonCardShell>
   );
@@ -349,15 +350,13 @@ function GridPersonCard({
 
 function PersonGrid({
   people,
-  size = "member",
 }: {
-  people: readonly { name: string; image?: string }[];
-  size?: "featured" | "member";
+  people: readonly AboutPerson[];
 }) {
   return (
     <ul className="mt-8 grid grid-cols-1 gap-8 sm:mt-10 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3 lg:gap-10">
       {people.map((person) => (
-        <GridPersonCard key={person.name} person={person} size={size} />
+        <GridPersonCard key={person.name} person={person} />
       ))}
     </ul>
   );
