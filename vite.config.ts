@@ -28,8 +28,8 @@ const config = defineConfig({
       output: {
         /**
          * Keep chunking predictable for the heaviest libraries.
-         * Do not group @base-ui here: concatenating its circular ESM graph
-         * causes a production TDZ crash.
+         * Do not group @base-ui or @tanstack here: concatenating their
+         * circular ESM graphs causes production init crashes.
          */
         manualChunks(id) {
           if (!id.includes("node_modules")) return;
@@ -37,7 +37,6 @@ const config = defineConfig({
           if (id.includes("recharts") || id.includes("/d3-")) return "vendor-recharts";
           if (id.includes("pocketbase")) return "vendor-pocketbase";
           if (id.includes("lucide-react")) return "vendor-icons";
-          if (id.includes("@tanstack/")) return "vendor-tanstack";
         },
       },
     },
