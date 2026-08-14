@@ -66,8 +66,8 @@ function parseValue(value: string | undefined): {
   day: string;
 } {
   if (!value?.trim()) return { year: "", month: "", day: "" };
-  // Parse YYYY-MM-DD without Date() timezone shifts.
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+  // Parse YYYY-MM-DD (and PocketBase DateTime prefixes) without Date() TZ shifts.
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(value.trim());
   if (m?.[1] && m[2] && m[3]) {
     return {
       year: m[1],

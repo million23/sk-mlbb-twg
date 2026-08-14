@@ -95,7 +95,7 @@ async function createPlayer(index: number) {
 	form.append("name", `Smoke Player ${index + 1}`);
 	form.append("email", email);
 	form.append("ign", `SmokeIGN${index + 1}`);
-	form.append("birthdate", "2008-01-15");
+	form.append("birthdate", "2008-01-15 00:00:00.000Z");
 	form.append("user_id", `smoke${stamp}${index}`);
 	form.append("server_id", "2001");
 	form.append("address_phase", index === 0 ? "9" : "4");

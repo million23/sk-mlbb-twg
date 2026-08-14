@@ -3,6 +3,7 @@ import type { TeamsRecord } from "@/hooks/orval/model/teamsRecord";
 import type { TournamentsRecord } from "@/hooks/orval/model/tournamentsRecord";
 import { getPostCollectionsParticipantsRecordsUrl } from "@/hooks/orval/participants-collection/participants-collection";
 import { ApiError, customInstance } from "@/lib/api/mutator/custom-instance";
+import { toPocketBaseDateTime } from "@/lib/legacy/registered-date";
 import { resolveRegistrationAppOrigin } from "@/lib/registration/app-origin";
 import {
 	CONSENT_VERSION,
@@ -132,7 +133,7 @@ export function buildParticipantFormData(
 	form.append("name", c.name.trim());
 	form.append("email", c.email.trim().toLowerCase());
 	form.append("ign", c.ign.trim());
-	form.append("birthdate", c.birthdate);
+	form.append("birthdate", toPocketBaseDateTime(c.birthdate));
 	form.append("user_id", c.user_id.trim());
 	form.append("server_id", c.server_id.trim());
 	form.append("address_phase", c.address_phase);

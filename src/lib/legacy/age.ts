@@ -1,3 +1,5 @@
+import { calendarDayFromPbDate } from "@/lib/legacy/registered-date";
+
 /**
  * Age bracket shape (from API or passed in).
  * minAge/maxAge are inclusive. maxAge: null means "and above".
@@ -10,12 +12,13 @@ export interface AgeBracketConfig {
 }
 
 /**
- * Compute age in years from a birthdate string (ISO or YYYY-MM-DD).
+ * Compute age in years from a birthdate string (ISO, PocketBase DateTime, or YYYY-MM-DD).
  * Returns null if birthdate is invalid or in the future.
  */
 export function getAge(birthdate: string | undefined): number | null {
-  if (!birthdate?.trim()) return null;
-  const date = new Date(birthdate);
+  const day = calendarDayFromPbDate(birthdate);
+  if (!day) return null;
+  const date = new Date(`${day}T00:00:00`);
   if (Number.isNaN(date.getTime())) return null;
   const today = new Date();
   if (date > today) return null;
@@ -34,8 +37,9 @@ export function getAge(birthdate: string | undefined): number | null {
 export function formatBirthdateDisplay(
   birthdate: string | undefined
 ): string | null {
-  if (!birthdate?.trim()) return null;
-  const date = new Date(birthdate);
+  const day = calendarDayFromPbDate(birthdate);
+  if (!day) return null;
+  const date = new Date(`${day}T00:00:00`);
   if (Number.isNaN(date.getTime())) return null;
   return date.toLocaleDateString("en-US", {
     month: "2-digit",
