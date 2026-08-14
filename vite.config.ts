@@ -28,6 +28,8 @@ const config = defineConfig({
       output: {
         /**
          * Keep chunking predictable for the heaviest libraries.
+         * Do not group @base-ui here: concatenating its circular ESM graph
+         * causes a production TDZ crash.
          */
         manualChunks(id) {
           if (!id.includes("node_modules")) return;
@@ -36,7 +38,6 @@ const config = defineConfig({
           if (id.includes("pocketbase")) return "vendor-pocketbase";
           if (id.includes("lucide-react")) return "vendor-icons";
           if (id.includes("@tanstack/")) return "vendor-tanstack";
-          if (id.includes("@base-ui/")) return "vendor-base-ui";
         },
       },
     },
