@@ -14,12 +14,11 @@ import {
   type RegistrationStatusReceipt,
 } from "@/hooks/registration";
 import { TEAM_INTENT_LABELS } from "@/lib/admin/participant-approval";
-import { LANE_ROLE_LABELS } from "@/lib/legacy/lane-role-icons";
+import { formatPreferredLaneLabels } from "@/lib/legacy/lane-role-icons";
 import { formatParticipantNameDisplay } from "@/lib/legacy/participant-normalize";
 import { calendarDayFromPbDate, normalizePbDateString } from "@/lib/legacy/registered-date";
 import type { TeamIntent } from "@/lib/registration/flow";
 import { cn } from "@/lib/utils";
-import type { PlayerRole } from "@/types/__pocketbase-types";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { format, isValid, parseISO } from "date-fns";
 import { House, Search } from "lucide-react";
@@ -141,7 +140,6 @@ export function VerifyPage({ initialCode = "" }: VerifyPageProps) {
     : null;
 
   const intent = (receipt?.team_intent || "open_matching") as TeamIntent;
-  const lanes = receipt?.preferred_lane as PlayerRole[] | undefined;
 
   return (
     <LandingShell>
@@ -324,11 +322,7 @@ export function VerifyPage({ initialCode = "" }: VerifyPageProps) {
                 <ReceiptRow label="Server ID" value={receipt.server_id} />
                 <ReceiptRow
                   label="Preferred lanes"
-                  value={
-                    lanes && lanes.length > 0
-                      ? lanes.map((l) => l in LANE_ROLE_LABELS ? LANE_ROLE_LABELS[l] : l).join(", ")
-                      : "—"
-                  }
+                  value={formatPreferredLaneLabels(receipt.preferred_lane) || "—"}
                 />
               </ReceiptSection>
 
