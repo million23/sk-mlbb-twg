@@ -879,7 +879,7 @@ export function DocumentsStep({ state, dispatch }: Props) {
 			</p>
 			{files.map((f) => {
 				const file = state.uploads[f.key];
-				const inputId = `upload-${f.key}`;
+				const inputId = `upload-${f.key}-${state.active_registrant_index}`;
 				return (
 					<div
 						key={f.key}
@@ -901,6 +901,7 @@ export function DocumentsStep({ state, dispatch }: Props) {
 							</div>
 							<div className="flex shrink-0 flex-wrap items-center gap-2">
 								<input
+									key={`${f.key}-${state.active_registrant_index}`}
 									id={inputId}
 									type="file"
 									accept="image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf,.jpg,.jpeg,.png,.webp,.heic,.pdf"

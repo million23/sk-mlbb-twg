@@ -932,14 +932,18 @@ export function reduce(
 		case "SET_PREFERRED_TEAM_NAME":
 			return clearErr({ ...state, preferred_team_name: action.name });
 
-		case "SET_UPLOAD":
-			return clearErr({
-				...state,
-				uploads: {
-					...state.uploads,
-					[action.file]: action.value,
-				},
-			});
+		case "SET_UPLOAD": {
+			const uploads = {
+				...state.uploads,
+				[action.file]: action.value,
+			};
+			const registrants = state.registrants.map((r, i) =>
+				i === state.active_registrant_index
+					? { ...r, uploads: { ...r.uploads, [action.file]: action.value } }
+					: r,
+			);
+			return clearErr({ ...state, uploads, registrants });
+		}
 
 		case "HYDRATE": {
 			const next = {

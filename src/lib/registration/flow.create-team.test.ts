@@ -161,6 +161,8 @@ describe("create-team registration wizard", () => {
 		state = fillUploads(state);
 		expect(validateAllRegistrants(state)).toBeNull();
 		expect(canAdvance(state)).toBeNull();
+		expect(state.registrants[0]?.uploads.school_id_front?.name).toBe("doc.png");
+		expect(state.registrants[1]?.uploads.school_id_front?.name).toBe("doc.png");
 		state = reduce(state, { type: "NEXT" });
 		expect(state.step).toBe("review");
 		expect(canAdvance(state)).toBeNull();
