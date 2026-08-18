@@ -238,6 +238,8 @@ export async function createParticipantRecords(
 		if (already.has(i)) continue;
 		try {
 			const slice = draftForRegistrant(draft, i);
+			// One widget token for every teammate POST. Cloudflare tokens are
+			// single-use; pb_hooks/turnstile_cache.js reuses a verified token.
 			const record = await createParticipantRecord({
 				draft: slice,
 				turnstileToken,

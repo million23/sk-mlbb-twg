@@ -39,6 +39,7 @@ sk-mlbb-twg/
   pb_hooks/
     registration_guard.pb.js
     registration_guard_lib.js
+    turnstile_cache.js
     registration_mail.pb.js
     admins_mail.pb.js
     sk_ops.pb.js
@@ -54,7 +55,7 @@ After a test register, logs should show `[sk-mail] registration-received → …
 [`registration_guard.pb.js`](./registration_guard.pb.js) runs on public `participants` create:
 
 - Honeypot field `website` (must be empty)
-- Cloudflare Turnstile token `turnstile_token` (skipped for admin auth)
+- Cloudflare Turnstile token `turnstile_token` (skipped for admin auth). Create-team reuses one widget token for every teammate; after the first successful siteverify the hook allows that token again for up to 6 uses / 5 minutes (Cloudflare tokens are otherwise single-use and return `timeout-or-duplicate`).
 - Duplicate **email** and **user_id + server_id** per tournament when status is `pending` / `approved`
 - **Create-team** intent: find-or-create a `forming` row in `teams` for `preferred_team_name`, then set `preferred_team` on the registrant (players stay pending / unassigned until committee approve)
 
