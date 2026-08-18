@@ -6,6 +6,7 @@ import {
 	reduce,
 	validateAllRegistrants,
 	validateTeamDetails,
+	validateUploadsFields,
 	wizardStepsFor,
 	type Credentials,
 	type RegistrationDraft,
@@ -89,6 +90,28 @@ function fillUploads(state: RegistrationDraft): RegistrationDraft {
 	}
 	return next;
 }
+
+describe("validateUploadsFields", () => {
+	it("requires ID front and back but not purok endorsement", () => {
+		expect(
+			validateUploadsFields({
+				school_id_front: tinyPng(),
+				school_id_back: tinyPng(),
+				purok_endorsement: null,
+			}),
+		).toBeNull();
+	});
+
+	it("still rejects missing ID sides", () => {
+		expect(
+			validateUploadsFields({
+				school_id_front: tinyPng(),
+				school_id_back: null,
+				purok_endorsement: null,
+			}),
+		).toMatch(/back is required/i);
+	});
+});
 
 describe("memberCountBounds", () => {
 	it("allows 2–6 even when tournament min is 5", () => {

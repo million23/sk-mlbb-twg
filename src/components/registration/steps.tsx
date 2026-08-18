@@ -863,19 +863,24 @@ function formatFileSize(bytes: number): string {
 }
 
 export function DocumentsStep({ state, dispatch }: Props) {
-	const files: { key: keyof Uploads; label: string }[] = [
+	const files: { key: keyof Uploads; label: string; optional?: boolean }[] = [
 		{ key: "school_id_front", label: "Valid ID / School ID — front" },
 		{ key: "school_id_back", label: "Valid ID / School ID — back" },
-		{ key: "purok_endorsement", label: "Purok endorsement" },
+		{
+			key: "purok_endorsement",
+			label: "Purok endorsement",
+			optional: true,
+		},
 	];
 
 	return (
 		<div className="flex flex-col gap-3">
 			<PlayerChrome state={state} />
 			<p className="text-muted-foreground text-sm">
-				Attach all three documents (JPG, PNG, WebP, HEIC, or PDF — max 5 MiB
-				each). Use a valid government ID or school ID — students and adults are
-				both welcome. They upload with your registration for committee review.
+				Attach a valid ID or school ID — front and back (JPG, PNG, WebP, HEIC, or
+				PDF — max 5 MiB each). Purok endorsement is optional. Students and adults
+				are both welcome. Files upload with your registration for committee
+				review.
 			</p>
 			{files.map((f) => {
 				const file = state.uploads[f.key];
@@ -892,7 +897,15 @@ export function DocumentsStep({ state, dispatch }: Props) {
 					>
 						<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 							<div className="min-w-0 flex flex-col gap-0.5">
-								<span className="text-sm font-medium">{f.label}</span>
+								<span className="text-sm font-medium">
+									{f.label}
+									{f.optional ? (
+										<span className="font-normal text-muted-foreground">
+											{" "}
+											(optional)
+										</span>
+									) : null}
+								</span>
 								<span className="truncate font-mono text-muted-foreground text-xs">
 									{file
 										? `${file.name} · ${formatFileSize(file.size)}`
@@ -976,12 +989,14 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
 function reviewUploadsLabel(uploads: Uploads): string {
 	const parts = (
 		[
-			["Valid ID / School ID front", uploads.school_id_front],
-			["Valid ID / School ID back", uploads.school_id_back],
-			["Purok endorsement", uploads.purok_endorsement],
+			["Valid ID / School ID front", uploads.school_id_front, false],
+			["Valid ID / School ID back", uploads.school_id_back, false],
+			["Purok endorsement", uploads.purok_endorsement, true],
 		] as const
-	).map(([label, file]) =>
-		file ? `${label}: ${file.name}` : `${label}: missing`,
+	).map(([label, file, optional]) =>
+		file
+			? `${label}: ${file.name}`
+			: `${label}: ${optional ? "not uploaded" : "missing"}`,
 	);
 	return parts.join(" · ");
 }

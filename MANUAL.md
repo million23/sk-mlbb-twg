@@ -135,6 +135,9 @@ Required for each registrant:
 
 1. Valid ID or school ID — **front**
 2. Valid ID or school ID — **back**
+
+Optional:
+
 3. **Purok endorsement**
 
 Allowed files: JPG, PNG, WebP, HEIC, or PDF, **5 MiB or smaller** each.
@@ -252,7 +255,7 @@ Open a row. Check:
 
 - Age 15+ on tournament day
 - Phase 4, 9, or 10
-- Documents (ID front/back, purok endorsement)
+- Documents (ID front/back; purok endorsement if provided)
 - Team path (open matching / join listed / create team)
 - Email and IGN
 
