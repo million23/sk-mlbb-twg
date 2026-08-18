@@ -15,7 +15,7 @@ export const TEAM_INTENTS = [
 	"join_team",
 	"create_team",
 ] as const;
-export const CONSENT_VERSION = "sk-ta-2026-08";
+export const CONSENT_VERSION = "sk-ta-2026-08-18";
 
 export type EligiblePhase = (typeof ELIGIBLE_PHASES)[number];
 export type Lane = (typeof LANES)[number];
@@ -539,6 +539,7 @@ export function validateUploadFile(file: File): string | null {
 export function validateUploadsFields(u: Uploads): string | null {
 	if (!u.school_id_front) return "Valid ID / School ID front is required";
 	if (!u.school_id_back) return "Valid ID / School ID back is required";
+	if (!u.purok_endorsement) return "Purok endorsement is required";
 	for (const [key, file] of Object.entries(u) as [
 		keyof Uploads,
 		File | null,

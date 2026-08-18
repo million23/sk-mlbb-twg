@@ -106,7 +106,7 @@ Do this **before** consent.
 | **Join a listed team** | Pick an existing team the committee (or another squad) already named. |
 | **Create / name a team** | Name a squad and register **2–6** teammates in one session (capped by the tournament max, usually 6). |
 
-A team **should** include at least one Phase 9 resident. That rule is **guidance only** for now — the form and approve button do not block it.
+A team **should** include at least one Phase 9 resident. A Phase 9 resident as **team captain** is preferred but **not required**. Those rules are **guidance only** — the form and approve button do not block them.
 
 ### 3.2 Consent (T&A)
 
@@ -135,9 +135,6 @@ Required for each registrant:
 
 1. Valid ID or school ID — **front**
 2. Valid ID or school ID — **back**
-
-Optional:
-
 3. **Purok endorsement**
 
 Allowed files: JPG, PNG, WebP, HEIC, or PDF, **5 MiB or smaller** each.
@@ -255,7 +252,7 @@ Open a row. Check:
 
 - Age 15+ on tournament day
 - Phase 4, 9, or 10
-- Documents (ID front/back; purok endorsement if provided)
+- Documents (ID front/back, purok endorsement)
 - Team path (open matching / join listed / create team)
 - Email and IGN
 

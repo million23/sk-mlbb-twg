@@ -678,8 +678,8 @@ export function TeamIntentStep({ state, dispatch }: Props) {
 	return (
 		<div className="flex flex-col gap-4">
 			<p className="text-muted-foreground text-sm leading-relaxed">
-				Choose how you want to enter. Note: Phase 9 participants should be the
-				team captain.
+				Choose how you want to enter. A Phase 9 resident as team captain is
+				preferred, but not required.
 			</p>
 			<div className="grid gap-2">
 				{intents.map((intent) => {
@@ -711,9 +711,9 @@ export function TeamIntentStep({ state, dispatch }: Props) {
 							You are the team captain.
 						</span>{" "}
 						<span className="text-muted-foreground">
-							Player 1 is always the captain (lobby invite goes to them). Phase
-							9 participants should be the team captain. Enter your details
-							first, then each teammate.
+							Player 1 is always the captain (lobby invite goes to them). A
+							Phase 9 resident as captain is preferred, but not required. Enter
+							your details first, then each teammate.
 						</span>
 					</p>
 					<Field label="Squad size (including you as captain)">
@@ -830,8 +830,9 @@ export function TeamDetailsStep({ state, dispatch }: Props) {
 			<div className="flex flex-col gap-3">
 				<p className="text-muted-foreground text-sm leading-relaxed">
 					Name the squad for all {state.member_count} registrants. You (Player
-					1) are the team captain — Phase 9 participants should be the team
-					captain. The committee creates the official team after review.
+					1) are the team captain — a Phase 9 resident as captain is preferred,
+					but not required. The committee creates the official team after
+					review.
 				</p>
 				<Field label="Preferred team name">
 					<Input
@@ -863,24 +864,19 @@ function formatFileSize(bytes: number): string {
 }
 
 export function DocumentsStep({ state, dispatch }: Props) {
-	const files: { key: keyof Uploads; label: string; optional?: boolean }[] = [
+	const files: { key: keyof Uploads; label: string }[] = [
 		{ key: "school_id_front", label: "Valid ID / School ID — front" },
 		{ key: "school_id_back", label: "Valid ID / School ID — back" },
-		{
-			key: "purok_endorsement",
-			label: "Purok endorsement",
-			optional: true,
-		},
+		{ key: "purok_endorsement", label: "Purok endorsement" },
 	];
 
 	return (
 		<div className="flex flex-col gap-3">
 			<PlayerChrome state={state} />
 			<p className="text-muted-foreground text-sm">
-				Attach a valid ID or school ID — front and back (JPG, PNG, WebP, HEIC, or
-				PDF — max 5 MiB each). Purok endorsement is optional. Students and adults
-				are both welcome. Files upload with your registration for committee
-				review.
+				Attach all three documents (JPG, PNG, WebP, HEIC, or PDF — max 5 MiB
+				each). Use a valid government ID or school ID — students and adults are
+				both welcome. They upload with your registration for committee review.
 			</p>
 			{files.map((f) => {
 				const file = state.uploads[f.key];
@@ -897,15 +893,7 @@ export function DocumentsStep({ state, dispatch }: Props) {
 					>
 						<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 							<div className="min-w-0 flex flex-col gap-0.5">
-								<span className="text-sm font-medium">
-									{f.label}
-									{f.optional ? (
-										<span className="font-normal text-muted-foreground">
-											{" "}
-											(optional)
-										</span>
-									) : null}
-								</span>
+								<span className="text-sm font-medium">{f.label}</span>
 								<span className="truncate font-mono text-muted-foreground text-xs">
 									{file
 										? `${file.name} · ${formatFileSize(file.size)}`
@@ -989,14 +977,12 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
 function reviewUploadsLabel(uploads: Uploads): string {
 	const parts = (
 		[
-			["Valid ID / School ID front", uploads.school_id_front, false],
-			["Valid ID / School ID back", uploads.school_id_back, false],
-			["Purok endorsement", uploads.purok_endorsement, true],
+			["Valid ID / School ID front", uploads.school_id_front],
+			["Valid ID / School ID back", uploads.school_id_back],
+			["Purok endorsement", uploads.purok_endorsement],
 		] as const
-	).map(([label, file, optional]) =>
-		file
-			? `${label}: ${file.name}`
-			: `${label}: ${optional ? "not uploaded" : "missing"}`,
+	).map(([label, file]) =>
+		file ? `${label}: ${file.name}` : `${label}: missing`,
 	);
 	return parts.join(" · ");
 }

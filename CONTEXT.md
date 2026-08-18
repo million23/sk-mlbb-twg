@@ -55,7 +55,7 @@ The period when public sign-up is allowed for a tournament.
 _Avoid_: Open season, enrollment, intake
 
 **Purok endorsement**:
-An optional residency document that may be uploaded with a valid ID or school ID.
+A required residency document uploaded with a valid ID or school ID.
 _Avoid_: Barangay clearance (when meaning this upload), proof of address (generic)
 
 ## Teams
@@ -77,7 +77,7 @@ Team intent to name a new squad and register teammates (2–6) in one session.
 _Avoid_: New team (unqualified), squad builder, batch signup (as the intent name)
 
 **Phase-9 team rule**:
-A registering team should include at least one resident whose Phase is 9. Currently deferred — not enforced; soft guidance in copy only.
+A registering team should include at least one resident whose Phase is 9. Currently deferred — not enforced; soft guidance in copy only. A Phase 9 resident as team captain is preferred but optional.
 _Avoid_: Phase-9 requirement (when meaning individual residency)
 
 **Team**:

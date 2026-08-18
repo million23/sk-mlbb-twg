@@ -30,7 +30,7 @@ Hand this guide to the tester. Fill in the blanks under **Before you start**, th
 | Home address | Phase, Package, Block, and Lot only (e.g. Phase 10 Package 4 Block 57 Lot 2) |
 | Eligible phase | Phase **4**, **9**, or **10** only |
 | Team intent | Open matching, join an existing team, or create/name a preferred team |
-| Phase-9 team rule | Preferred guidance (Phase **9** on a team); **not enforced** in the form right now |
+| Phase-9 team rule | Preferred guidance (Phase **9** on a team; Phase 9 captain optional); **not enforced** in the form |
 | Consent (T&A) | Terms & agreement the registrant must accept before the form unlocks |
 | Registration email | Contact email on the form (not an admin login) |
 
@@ -133,7 +133,7 @@ Start from the test website → registration page.
 - [ ] Required fields work: name, birthdate, home address (Phase / Package / Block / Lot), IGN, server ID, user ID, preferred lane, registration email
 - [ ] Home address only allows Phase **4**, **9**, or **10**
 - [ ] Under 15 by tournament day is rejected with a clear message
-- [ ] Document uploads work: school ID (front and back) required; purok endorsement optional
+- [ ] Document uploads work: school ID (front and back), purok endorsement
 - [ ] Create-team: can register 2–6 players (within tournament min/max), each with credentials + documents; pending shows all status codes
 - [ ] Phase-9 team rule is **not** blocking submit or approve (deferred)
 - [ ] Same registration email cannot hold another pending or approved registration for the same tournament (clear error)
