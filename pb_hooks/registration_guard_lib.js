@@ -59,7 +59,7 @@ function headerString(headers, key) {
   return String(v).trim();
 }
 
-function verifyTurnstile(secret, token, remoteIp) {
+function siteverifyTurnstile(secret, token, remoteIp) {
   const form = [
     "secret=" + encodeURIComponent(secret),
     "response=" + encodeURIComponent(token),
@@ -91,11 +91,25 @@ function verifyTurnstile(secret, token, remoteIp) {
           ? res.raw
           : JSON.stringify(res.body || {});
     const data = JSON.parse(raw || "{}");
-    return data && data.success === true;
+    if (data && data.success === true) return true;
+    console.log("[sk-guard] turnstile denied", data && data["error-codes"]);
+    return false;
   } catch (err) {
     console.log("[sk-guard] turnstile parse failed", err);
     return false;
   }
+}
+
+function verifyTurnstile(secret, token, remoteIp) {
+  const cache = require(`${__hooks}/turnstile_cache.js`);
+  return cache.acceptTurnstile({
+    token: token,
+    remoteIp: remoteIp,
+    now: Date.now(),
+    verify: function () {
+      return siteverifyTurnstile(secret, token, remoteIp);
+    },
+  });
 }
 
 function hasActiveDuplicate(app, filter, params) {

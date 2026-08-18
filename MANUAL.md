@@ -106,7 +106,7 @@ Do this **before** consent.
 | **Join a listed team** | Pick an existing team the committee (or another squad) already named. |
 | **Create / name a team** | Name a squad and register **2–6** teammates in one session (capped by the tournament max, usually 6). |
 
-A team **should** include at least one Phase 9 resident. That rule is **guidance only** for now — the form and approve button do not block it.
+A team **should** include at least one Phase 9 resident. A Phase 9 resident as **team captain** is preferred but **not required**. Those rules are **guidance only** — the form and approve button do not block them.
 
 ### 3.2 Consent (T&A)
 

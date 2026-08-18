@@ -110,7 +110,7 @@ async function createPlayer(index: number) {
 	form.append("registration_status_code", code);
 	form.append("team_intent", "create_team");
 	form.append("preferred_team_name", teamName);
-	form.append("consent_version", "sk-ta-2026-08");
+	form.append("consent_version", "sk-ta-2026-08-18");
 	form.append("consent_accepted_at", new Date().toISOString());
 	form.append(
 		"school_id_front",

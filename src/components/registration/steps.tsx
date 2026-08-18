@@ -678,8 +678,8 @@ export function TeamIntentStep({ state, dispatch }: Props) {
 	return (
 		<div className="flex flex-col gap-4">
 			<p className="text-muted-foreground text-sm leading-relaxed">
-				Choose how you want to enter. Note: Phase 9 participants should be the
-				team captain.
+				Choose how you want to enter. A Phase 9 resident as team captain is
+				preferred, but not required.
 			</p>
 			<div className="grid gap-2">
 				{intents.map((intent) => {
@@ -711,9 +711,9 @@ export function TeamIntentStep({ state, dispatch }: Props) {
 							You are the team captain.
 						</span>{" "}
 						<span className="text-muted-foreground">
-							Player 1 is always the captain (lobby invite goes to them). Phase
-							9 participants should be the team captain. Enter your details
-							first, then each teammate.
+							Player 1 is always the captain (lobby invite goes to them). A
+							Phase 9 resident as captain is preferred, but not required. Enter
+							your details first, then each teammate.
 						</span>
 					</p>
 					<Field label="Squad size (including you as captain)">
@@ -830,8 +830,9 @@ export function TeamDetailsStep({ state, dispatch }: Props) {
 			<div className="flex flex-col gap-3">
 				<p className="text-muted-foreground text-sm leading-relaxed">
 					Name the squad for all {state.member_count} registrants. You (Player
-					1) are the team captain — Phase 9 participants should be the team
-					captain. The committee creates the official team after review.
+					1) are the team captain — a Phase 9 resident as captain is preferred,
+					but not required. The committee creates the official team after
+					review.
 				</p>
 				<Field label="Preferred team name">
 					<Input

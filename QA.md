@@ -30,7 +30,7 @@ Hand this guide to the tester. Fill in the blanks under **Before you start**, th
 | Home address | Phase, Package, Block, and Lot only (e.g. Phase 10 Package 4 Block 57 Lot 2) |
 | Eligible phase | Phase **4**, **9**, or **10** only |
 | Team intent | Open matching, join an existing team, or create/name a preferred team |
-| Phase-9 team rule | Preferred guidance (Phase **9** on a team); **not enforced** in the form right now |
+| Phase-9 team rule | Preferred guidance (Phase **9** on a team; Phase 9 captain optional); **not enforced** in the form |
 | Consent (T&A) | Terms & agreement the registrant must accept before the form unlocks |
 | Registration email | Contact email on the form (not an admin login) |
 
