@@ -29,10 +29,9 @@ Each participating team shall comply with the following requirements:
 1. A team shall consist of **five (5) main players** and may register up to **one (1) substitute player**.
 2. All registered players must be residents of **Phase 4, Phase 9, or Phase 10**.
 3. Every team must have **at least one (1) player who is a resident of Phase 9 (Barangay 176-E).**
-4. Each team must designate a Team Captain. A Phase 9 resident as captain is preferred but not required.
-5. All players must be **15 years old or older** on the first day of the tournament.
-6. Once registration has officially closed, no additional players may be added or replaced except with approval of Tournament Officials.
-7. Players are required to provide their own device and internet connection.
+4. All players must be **15 years old or older** on the first day of the tournament.
+5. Once registration has officially closed, no additional players may be added or replaced except with approval of Tournament Officials.
+6. Players are required to provide their own device and internet connection.
 
 ## 4. Tournament Structure
 

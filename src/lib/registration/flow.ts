@@ -15,7 +15,7 @@ export const TEAM_INTENTS = [
 	"join_team",
 	"create_team",
 ] as const;
-export const CONSENT_VERSION = "sk-ta-2026-08-18";
+export const CONSENT_VERSION = "sk-ta-2026-08-18-s2";
 
 export type EligiblePhase = (typeof ELIGIBLE_PHASES)[number];
 export type Lane = (typeof LANES)[number];
