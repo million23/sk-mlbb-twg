@@ -10,6 +10,7 @@ import {
 	LANDING_SITE_TITLE,
 	LANDING_SUPPORT,
 } from "./content";
+import { LandingTutorial } from "./landing-tutorial";
 
 const LANE_ICONS = [
 	{ alt: "Experience Lane", src: "/icons/lanes/explane-icon.svg" },
@@ -121,6 +122,10 @@ export function LandingHero() {
 							View tournaments
 						</Button>
 					</div>
+				</Stagger>
+
+				<Stagger delay={0.44}>
+					<LandingTutorial />
 				</Stagger>
 			</div>
 		</section>

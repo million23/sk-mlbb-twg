@@ -8,6 +8,13 @@ export const LANDING_HEADLINE =
 export const LANDING_SUPPORT =
   "Join as a player from Barangay 176-E. Fill out the form, send your documents, and wait for the SK committee to confirm your spot.";
 
+export const LANDING_TUTORIAL_SRC = "/video-tutorial.mp4";
+export const LANDING_TUTORIAL_EYEBROW = "Tutorial";
+export const LANDING_TUTORIAL_CTA = "Watch how to register";
+export const LANDING_TUTORIAL_TITLE = "How to register";
+export const LANDING_TUTORIAL_BLURB =
+  "Walkthrough of the form, documents, and team path.";
+
 export const LANDING_STEPS = [
   {
     title: "Choose your team path",
@@ -95,12 +102,22 @@ export type AboutPerson = {
   role?: string;
   /** Public path under `/public` when a photo is ready. */
   image?: string;
+  /** Extra frames; hover/tap plays them in order. */
+  images?: readonly string[];
 };
 
 export const ABOUT_LEADERS: readonly AboutPerson[] = [
   { name: "Allyssa Costibolo", image: "/gov-profiles/allysa-profile.png" },
   { name: "Cholo Edusma", image: "/gov-profiles/cholo-profile.png" },
-  { name: "Shanea Senin", image: "/gov-profiles/shanea-profile.png" },
+  {
+    name: "Shanea Senin",
+    image: "/gov-profiles/shanea-profile.png",
+    images: [
+      "/gov-profiles/shanea-profile.png",
+      "/gov-profiles/shanea2-profile.png",
+      "/gov-profiles/shanea3-profile.png",
+    ],
+  },
   { name: "Lawrence Dullo", image: "/gov-profiles/lawrence-profile.png" },
   { name: "Joshua Agapito" },
   { name: "Gian Dela cruz", image: "/gov-profiles/gian-profile.png" },
