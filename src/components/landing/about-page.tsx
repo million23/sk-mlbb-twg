@@ -145,10 +145,20 @@ function GlitchPersonPhoto({
 function PersonPhoto({
   name,
   image,
+  images,
+  active = false,
 }: {
   name: string;
   image?: string;
+  images?: readonly string[];
+  active?: boolean;
 }) {
+  if (images && images.length > 1) {
+    return (
+      <CyclePersonPhoto name={name} images={images} active={active} />
+    );
+  }
+
   const src = image ?? getAvatarUrl(name);
 
   return (
@@ -159,6 +169,68 @@ function PersonPhoto({
         className="size-full object-cover grayscale transition-[filter,transform] duration-500 ease-out group-data-[active=true]/person:scale-[1.03] group-data-[active=true]/person:grayscale-0"
         loading="lazy"
       />
+    </div>
+  );
+}
+
+const CYCLE_INTERVAL_MS = 1250;
+
+function CyclePersonPhoto({
+  name,
+  images,
+  active,
+}: {
+  name: string;
+  images: readonly string[];
+  active: boolean;
+}) {
+  const reduceMotion = useReducedMotion();
+  const [index, setIndex] = useState(0);
+  const [generation, setGeneration] = useState(0);
+
+  useEffect(() => {
+    if (!active) {
+      setIndex(0);
+      setGeneration(0);
+      return;
+    }
+    if (reduceMotion || images.length < 2) return;
+
+    const id = window.setInterval(() => {
+      setIndex((current) => (current + 1) % images.length);
+      setGeneration((g) => g + 1);
+    }, CYCLE_INTERVAL_MS);
+
+    return () => window.clearInterval(id);
+  }, [active, images.length, reduceMotion]);
+
+  const prev = (index - 1 + images.length) % images.length;
+  const swapping = generation > 0 && active && !reduceMotion;
+
+  return (
+    <div className="person-cycle relative aspect-square w-full overflow-hidden border border-border/50 bg-muted/40">
+      {images.map((src, i) => {
+        const isFront = i === index;
+        const isBack = swapping && i === prev;
+
+        return (
+          <img
+            key={src}
+            src={src}
+            alt={isFront ? name : ""}
+            aria-hidden={isFront ? undefined : true}
+            data-layer={isFront ? "front" : isBack ? "back" : "idle"}
+            data-animate={isFront && swapping ? "in" : undefined}
+            className="person-cycle-frame"
+            loading={i === 0 ? "lazy" : "eager"}
+            decoding="async"
+            draggable={false}
+          />
+        );
+      })}
+      {swapping ? (
+        <span key={generation} className="person-cycle-scan" aria-hidden />
+      ) : null}
     </div>
   );
 }
@@ -332,7 +404,12 @@ function GridPersonCard({
       onClick={onClick}
     >
       <div className="flex flex-col gap-4">
-        <PersonPhoto name={person.name} image={person.image} />
+        <PersonPhoto
+          name={person.name}
+          image={person.image}
+          images={person.images}
+          active={active}
+        />
         <div className="flex flex-col gap-1.5">
           <FoilName className="font-serif text-lg tracking-tight text-foreground/90 sm:text-xl">
             {person.name}
