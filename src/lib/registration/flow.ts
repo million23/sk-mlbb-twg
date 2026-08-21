@@ -320,7 +320,7 @@ const NAME_PATTERN = /^[\p{L}\s.'’-]+$/u;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const EMAIL_MAX_LENGTH = 254;
 
-export const USER_ID_MIN_LENGTH = 8;
+export const USER_ID_MIN_LENGTH = 7;
 export const USER_ID_MAX_LENGTH = 10;
 export const SERVER_ID_MIN_LENGTH = 4;
 export const SERVER_ID_MAX_LENGTH = 5;

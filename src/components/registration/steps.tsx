@@ -463,7 +463,7 @@ export function CredentialsStep({ state, dispatch }: Props) {
 						aria-invalid={Boolean(err("birthdate"))}
 					/>
 				</Field>
-				<Field label="User ID (8–10 digits)" error={err("user_id")}>
+				<Field label="User ID (7–10 digits)" error={err("user_id")}>
 					<Input
 						value={c.user_id}
 						onChange={(e) =>
