@@ -92,7 +92,7 @@ function fillUploads(state: RegistrationDraft): RegistrationDraft {
 }
 
 describe("validateUploadsFields", () => {
-	it("requires ID front, ID back, and purok endorsement", () => {
+	it("requires ID front and back, and allows missing purok endorsement", () => {
 		expect(
 			validateUploadsFields({
 				school_id_front: tinyPng(),
@@ -106,7 +106,7 @@ describe("validateUploadsFields", () => {
 				school_id_back: tinyPng(),
 				purok_endorsement: null,
 			}),
-		).toMatch(/purok endorsement is required/i);
+		).toBeNull();
 	});
 
 	it("still rejects missing ID sides", () => {

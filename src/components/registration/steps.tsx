@@ -65,6 +65,7 @@ import {
 	CircleCheck,
 	CircleX,
 	Clock3,
+	Copy,
 	House,
 	Mail,
 } from "lucide-react";
@@ -77,6 +78,7 @@ import {
 	type UIEvent,
 } from "react";
 import ReactMarkdown from "react-markdown";
+import { toast } from "sonner";
 
 const MAX_UI_PREFERRED_LANES = 3;
 
@@ -864,19 +866,22 @@ function formatFileSize(bytes: number): string {
 }
 
 export function DocumentsStep({ state, dispatch }: Props) {
-	const files: { key: keyof Uploads; label: string }[] = [
-		{ key: "school_id_front", label: "Valid ID / School ID — front" },
-		{ key: "school_id_back", label: "Valid ID / School ID — back" },
-		{ key: "purok_endorsement", label: "Purok endorsement" },
+	const files: { key: keyof Uploads; label: string; hint?: string }[] = [
+		{ key: "school_id_front", label: "Valid ID / School ID, front" },
+		{ key: "school_id_back", label: "Valid ID / School ID, back" },
+		{
+			key: "purok_endorsement",
+			label: "Purok endorsement (optional)",
+			hint: "Skip if you do not have it yet. You will present it at the tournament.",
+		},
 	];
 
 	return (
 		<div className="flex flex-col gap-3">
 			<PlayerChrome state={state} />
 			<p className="text-muted-foreground text-sm">
-				Attach all three documents (JPG, PNG, WebP, HEIC, or PDF — max 5 MiB
-				each). Use a valid government ID or school ID — students and adults are
-				both welcome. They upload with your registration for committee review.
+				ID front and back are required. Purok endorsement can wait until the
+				tournament. JPG, PNG, WebP, HEIC, or PDF, max 5 MiB each.
 			</p>
 			{files.map((f) => {
 				const file = state.uploads[f.key];
@@ -894,6 +899,11 @@ export function DocumentsStep({ state, dispatch }: Props) {
 						<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 							<div className="min-w-0 flex flex-col gap-0.5">
 								<span className="text-sm font-medium">{f.label}</span>
+								{f.hint && !file ? (
+									<span className="text-muted-foreground text-xs text-pretty">
+										{f.hint}
+									</span>
+								) : null}
 								<span className="truncate font-mono text-muted-foreground text-xs">
 									{file
 										? `${file.name} · ${formatFileSize(file.size)}`
@@ -982,7 +992,11 @@ function reviewUploadsLabel(uploads: Uploads): string {
 			["Purok endorsement", uploads.purok_endorsement],
 		] as const
 	).map(([label, file]) =>
-		file ? `${label}: ${file.name}` : `${label}: missing`,
+		file
+			? `${label}: ${file.name}`
+			: label === "Purok endorsement"
+				? `${label}: present at tournament`
+				: `${label}: missing`,
 	);
 	return parts.join(" · ");
 }
@@ -1077,6 +1091,41 @@ export function ReviewStep({ state }: Props) {
 				);
 			})}
 		</div>
+	);
+}
+
+async function copyStatusCode(code: string) {
+	try {
+		await navigator.clipboard.writeText(code);
+		toast.success("Copied status code");
+	} catch {
+		toast.error("Could not copy status code");
+	}
+}
+
+function StatusCodeButton({
+	code,
+	size = "lg",
+}: {
+	code: string;
+	size?: "lg" | "md";
+}) {
+	return (
+		<button
+			type="button"
+			onClick={() => void copyStatusCode(code)}
+			className={cn(
+				"group mt-1 flex w-full items-center justify-center gap-2 rounded-xl border border-transparent px-2 py-1.5 text-center font-mono tracking-[0.22em] text-foreground transition-[transform,background-color,border-color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-primary/25 hover:bg-primary/10 active:scale-[0.97]",
+				size === "lg" ? "text-3xl tracking-[0.28em]" : "text-2xl",
+			)}
+			aria-label={`Copy status code ${code}`}
+		>
+			<span>{code}</span>
+			<Copy
+				className="size-4 shrink-0 text-primary/70 opacity-70 transition-opacity group-hover:opacity-100"
+				aria-hidden
+			/>
+		</button>
 	);
 }
 
@@ -1187,8 +1236,8 @@ export function OutcomeStep({ state }: Props) {
 				}
 				body={
 					multi
-						? "Each teammate got their own status code by email. Save every code below for tracking."
-						: "The SK committee will check your credentials and documents. Save your status code — the same one is emailed to you for tracking approval."
+						? "Each teammate got their own status code by email. Save every code below for tracking. If a purok endorsement is missing, bring it to the tournament."
+						: "The SK committee will check your credentials and ID. Save your status code. The same one is emailed to you. If you skipped purok endorsement, bring it to the tournament."
 				}
 				details={
 					<div className="flex flex-col gap-3">
@@ -1203,9 +1252,12 @@ export function OutcomeStep({ state }: Props) {
 											Player {row.index + 1}
 											{row.email ? ` · ${row.email}` : ""}
 										</p>
-										<p className="mt-1 font-mono text-2xl tracking-[0.22em] text-foreground">
-											{row.statusCode}
-										</p>
+										{row.statusCode ? (
+											<StatusCodeButton
+												code={row.statusCode}
+												size="md"
+											/>
+										) : null}
 									</li>
 								))}
 							</ul>
@@ -1214,9 +1266,10 @@ export function OutcomeStep({ state }: Props) {
 								<p className="font-mono text-[0.65rem] text-muted-foreground uppercase tracking-[0.18em]">
 									Your status code
 								</p>
-								<p className="mt-2 font-mono text-3xl tracking-[0.28em] text-foreground">
-									{code}
+								<p className="mt-1 text-muted-foreground text-xs">
+									Tap to copy
 								</p>
+								<StatusCodeButton code={code} size="lg" />
 							</div>
 						) : null}
 						{!multi && email ? (

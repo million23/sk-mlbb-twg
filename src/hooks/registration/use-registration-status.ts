@@ -25,6 +25,7 @@ export type RegistrationStatusReceipt = {
   consent_version: string;
   consent_accepted_at: string;
   created: string;
+  has_purok_endorsement?: boolean;
 };
 
 type StatusLookupResponse = {

@@ -133,9 +133,10 @@ Create-team: fill credentials (and later documents) for **each** teammate, then 
 
 Required for each registrant:
 
-1. Valid ID or school ID — **front**
-2. Valid ID or school ID — **back**
-3. **Purok endorsement**
+1. Valid ID or school ID, **front**
+2. Valid ID or school ID, **back**
+
+**Purok endorsement** is optional at sign-up. If they skip it, approval is **conditional**. They must present the endorsement at the tournament.
 
 Allowed files: JPG, PNG, WebP, HEIC, or PDF, **5 MiB or smaller** each.
 
@@ -252,7 +253,7 @@ Open a row. Check:
 
 - Age 15+ on tournament day
 - Phase 4, 9, or 10
-- Documents (ID front/back, purok endorsement)
+- Documents (ID front/back). Purok endorsement optional. If missing, approve is conditional and they present it at the tournament.
 - Team path (open matching / join listed / create team)
 - Email and IGN
 

@@ -44,7 +44,7 @@ import {
 import type { ParticipantsRecord } from "@/hooks/orval/model/participantsRecord";
 import { useListedTeams } from "@/hooks/registration/use-listed-teams";
 import { useTournaments } from "@/hooks/legacy/use-tournaments";
-import { TEAM_INTENT_LABELS } from "@/lib/admin/participant-approval";
+import { TEAM_INTENT_LABELS, hasPurokEndorsement, isConditionalApproval } from "@/lib/admin/participant-approval";
 import { formatParticipantNameDisplay } from "@/lib/legacy/participant-normalize";
 import * as XLSX from "xlsx";
 import { tournamentDayFromStartAt } from "@/lib/registration/orval";
@@ -101,7 +101,10 @@ function createParticipantWorksheet(
           ? teamNameById.get(p.preferred_team) ?? p.preferred_team
           : ""),
       Team: p.team ? teamNameById.get(p.team) ?? p.team : "",
-      Status: p.registration_status ?? "",
+      Status: isConditionalApproval(p)
+        ? "conditionally approved"
+        : (p.registration_status ?? ""),
+      Endorsement: hasPurokEndorsement(p) ? "on file" : "present at tournament",
       "Registration Status Code": p.registration_status_code ?? "",
       "Rejection Reason": p.registration_reject_reason ?? "",
       Registered: p.created ?? "",
@@ -126,6 +129,7 @@ function createParticipantWorksheet(
       "Preferred Team",
       "Team",
       "Status",
+      "Endorsement",
       "Registration Status Code",
       "Rejection Reason",
       "Registered",
@@ -494,6 +498,7 @@ function TournamentParticipantsPage() {
                           <TableCell>
                             <RegistrationStatusBadge
                               status={p.registration_status}
+                              hasPurokEndorsement={hasPurokEndorsement(p)}
                             />
                           </TableCell>
                           <TableCell className="hidden text-muted-foreground text-sm sm:table-cell">
@@ -535,29 +540,37 @@ function TournamentParticipantsPage() {
           try {
             const { joinResult, teamResult } =
               await mutations.approve.mutateAsync(selected.id);
+            const conditional = !hasPurokEndorsement(selected);
+            const suffix = conditional
+              ? " Present purok endorsement at the tournament."
+              : "";
             if (joinResult.assigned && !joinResult.alreadyAssigned) {
               toast.success(
-                `Approved — joined team "${joinResult.teamName || "preferred team"}"`,
+                `Approved. Joined team "${joinResult.teamName || "preferred team"}".${suffix}`,
               );
             } else if (teamResult.formed) {
               toast.success(
                 teamResult.createdNew
-                  ? `Approved — created team "${teamResult.teamName}" with ${teamResult.memberCount} members`
-                  : `Approved — assigned to team "${teamResult.teamName}" (${teamResult.memberCount} members)`,
+                  ? `Approved. Created team "${teamResult.teamName}" with ${teamResult.memberCount} members.${suffix}`
+                  : `Approved. Assigned to team "${teamResult.teamName}" (${teamResult.memberCount} members).${suffix}`,
               );
             } else if (teamResult.reason === "still_pending") {
               toast.success(
-                "Registration approved — team will appear when all teammates with this name are approved",
+                `Registration approved. Team will appear when all teammates with this name are approved.${suffix}`,
               );
             } else if (
               joinResult.assigned === false &&
               joinResult.reason === "team_not_found"
             ) {
               toast.success(
-                "Registration approved — preferred team was missing; assign manually",
+                `Registration approved. Preferred team was missing. Assign manually.${suffix}`,
               );
             } else {
-              toast.success("Registration approved");
+              toast.success(
+                conditional
+                  ? "Conditionally approved. Present purok endorsement at the tournament."
+                  : "Registration approved",
+              );
             }
           } catch (err) {
             toast.error(participantMutationErrorMessage(err));

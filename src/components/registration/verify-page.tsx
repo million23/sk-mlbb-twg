@@ -77,8 +77,17 @@ function ReceiptSection({
   );
 }
 
-function statusCopy(status: string): { title: string; body: string } {
+function statusCopy(
+  status: string,
+  hasPurokEndorsement: boolean,
+): { title: string; body: string } {
   if (status === "approved") {
+    if (!hasPurokEndorsement) {
+      return {
+        title: "Conditionally approved",
+        body: "Bring your purok endorsement to the tournament. The committee will check it there.",
+      };
+    }
     return {
       title: "Registration approved",
       body: "You’re cleared as a participant. Watch for team and schedule updates from the committee.",
@@ -92,7 +101,7 @@ function statusCopy(status: string): { title: string; body: string } {
   }
   return {
     title: "In the review queue",
-    body: "The SK committee is still checking your credentials and documents.",
+    body: "The SK committee is still checking your credentials and ID. Purok endorsement can be presented at the tournament if you have not uploaded it.",
   };
 }
 
@@ -136,7 +145,10 @@ export function VerifyPage({ initialCode = "" }: VerifyPageProps) {
   };
 
   const copy = receipt
-    ? statusCopy(receipt.registration_status)
+    ? statusCopy(
+        receipt.registration_status,
+        receipt.has_purok_endorsement !== false,
+      )
     : null;
 
   const intent = (receipt?.team_intent || "open_matching") as TeamIntent;
@@ -267,7 +279,11 @@ export function VerifyPage({ initialCode = "" }: VerifyPageProps) {
                 className={cn(
                   "rounded-2xl border px-5 py-5",
                   receipt.registration_status === "approved" &&
+                    receipt.has_purok_endorsement !== false &&
                     "border-success/35 bg-success/6",
+                  receipt.registration_status === "approved" &&
+                    receipt.has_purok_endorsement === false &&
+                    "border-warning/35 bg-warning/6",
                   receipt.registration_status === "rejected" &&
                     "border-destructive/35 bg-destructive/6",
                   receipt.registration_status === "pending" &&
@@ -277,6 +293,7 @@ export function VerifyPage({ initialCode = "" }: VerifyPageProps) {
                 <div className="flex flex-wrap items-center gap-2">
                   <RegistrationStatusBadge
                     status={receipt.registration_status}
+                    hasPurokEndorsement={receipt.has_purok_endorsement !== false}
                   />
                   <span className="font-mono text-xs text-muted-foreground tracking-wider">
                     {receipt.registration_status_code}

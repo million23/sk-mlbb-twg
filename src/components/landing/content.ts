@@ -29,7 +29,7 @@ export const LANDING_STEPS = [
   {
     title: "Share your info and documents",
     blurb:
-      "Enter your credentials, then upload a valid ID or school ID and purok endorsement. The committee reviews everything after.",
+      "Enter your credentials, then upload a valid ID or school ID. Purok endorsement is optional now. If you skip it, bring it to the tournament.",
   },
 ] as const;
 

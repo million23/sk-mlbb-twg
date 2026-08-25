@@ -209,11 +209,10 @@ export function TournamentsPage({
                   ) : null}
                 </Empty>
               ) : (
-                active.map((tournament, i) => (
+                active.map((tournament) => (
                   <ActiveTournamentRow
                     key={tournament.id}
                     tournament={tournament}
-                    staggerIndex={i}
                     canManage={canManage}
                     onEdit={() => onEdit(tournament)}
                     onArchive={() => onArchiveRequest(tournament.id)}
@@ -244,11 +243,10 @@ export function TournamentsPage({
                   </EmptyHeader>
                 </Empty>
               ) : (
-                archived.map((tournament, i) => (
+                archived.map((tournament) => (
                   <ArchivedTournamentRow
                     key={tournament.id}
                     tournament={tournament}
-                    staggerIndex={i}
                     canManage={canManage}
                     onRestore={() => onRestore(tournament.id)}
                   />
@@ -331,13 +329,11 @@ function ErrorEmpty({
 
 function ActiveTournamentRow({
   tournament,
-  staggerIndex,
   canManage,
   onEdit,
   onArchive,
 }: {
   tournament: TournamentRow;
-  staggerIndex: number;
   canManage: boolean;
   onEdit: () => void;
   onArchive: () => void;
@@ -356,8 +352,7 @@ function ActiveTournamentRow({
 
   return (
     <article
-      className="tournament-overview-stagger group flex flex-col gap-4 rounded-2xl border border-border/80 bg-background/70 p-5 shadow-xs backdrop-blur-sm transition-[transform,border-color,background-color] duration-200 hover:-translate-y-px hover:border-primary/25 hover:bg-background animate-in fade-in slide-in-from-bottom-2 fill-mode-both sm:flex-row sm:items-center sm:justify-between"
-      style={{ animationDelay: `${Math.min(staggerIndex, 8) * 45}ms` }}
+      className="group flex flex-col gap-4 rounded-2xl border border-border/80 bg-background/70 p-5 shadow-xs backdrop-blur-sm transition-[transform,border-color,background-color] duration-200 hover:-translate-y-px hover:border-primary/25 hover:bg-background sm:flex-row sm:items-center sm:justify-between"
     >
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
@@ -430,12 +425,10 @@ function ActiveTournamentRow({
 
 function ArchivedTournamentRow({
   tournament,
-  staggerIndex,
   canManage,
   onRestore,
 }: {
   tournament: TournamentRow;
-  staggerIndex: number;
   canManage: boolean;
   onRestore: () => void;
 }) {
@@ -443,8 +436,7 @@ function ArchivedTournamentRow({
 
   return (
     <article
-      className="tournament-overview-stagger flex flex-col gap-3 rounded-2xl border border-border/80 bg-background/60 p-5 backdrop-blur-sm animate-in fade-in slide-in-from-bottom-2 fill-mode-both sm:flex-row sm:items-center sm:justify-between"
-      style={{ animationDelay: `${Math.min(staggerIndex, 8) * 45}ms` }}
+      className="flex flex-col gap-3 rounded-2xl border border-border/80 bg-background/60 p-5 backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between"
     >
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">

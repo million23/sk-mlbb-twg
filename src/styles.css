@@ -1411,10 +1411,38 @@
   animation: person-cycle-scan 0.48s linear forwards;
 }
 
+/* Registration wizard step body enter (keyed remount on step / player change) */
+.registration-step-enter {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@starting-style {
+  .registration-step-enter {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
 /* HIG: respect Reduce Motion (avoid animating layout / scroll; keep essential status motion) */
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+
+  .registration-step-enter {
+    transform: none;
+    transition: opacity 180ms ease;
+  }
+
+  @starting-style {
+    .registration-step-enter {
+      opacity: 0;
+      transform: none;
+    }
   }
 
   .audit-detail-sheet-content-in {
@@ -1425,12 +1453,6 @@
   [data-slot="alert-dialog-content"][data-open] > *,
   [data-slot="drawer-content"][data-state="open"] .drawer-content-inner {
     animation: none;
-  }
-
-  .tournament-overview-stagger {
-    animation: none !important;
-    opacity: 1 !important;
-    transform: none !important;
   }
 
   .landing-hero-wash,

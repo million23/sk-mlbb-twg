@@ -11,6 +11,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { HoldToConfirmButton } from "@/components/ui/hold-to-confirm-button";
 import { Label } from "@/components/ui/label";
 import {
   Sheet,
@@ -25,6 +26,7 @@ import type { ParticipantsRecord } from "@/hooks/orval/model/participantsRecord"
 import {
   committeeApproveBlockReason,
   formatHomeAddress,
+  hasPurokEndorsement,
   TEAM_INTENT_LABELS,
 } from "@/lib/admin/participant-approval";
 import { ageOnTournamentDay, type ListedTeam } from "@/lib/registration/flow";
@@ -93,6 +95,8 @@ export function ParticipantDetailSheet({
   const view = cached;
 
   const isPending = view.registration_status === "pending";
+  const endorsementOnFile = hasPurokEndorsement(view);
+  const approveWithoutEndorsement = isPending && !endorsementOnFile;
   const intent = (view.team_intent ?? "open_matching") as TeamIntent;
   const canFormCreateTeam =
     canManage &&
@@ -138,7 +142,10 @@ export function ParticipantDetailSheet({
               {formatParticipantNameDisplay(view.name) || "Participant"}
             </SheetTitle>
             <SheetDescription className="flex flex-wrap items-center gap-2">
-              <RegistrationStatusBadge status={view.registration_status} />
+              <RegistrationStatusBadge
+                status={view.registration_status}
+                hasPurokEndorsement={endorsementOnFile}
+              />
               <span className="text-muted-foreground">
                 IGN {view.ign}
               </span>
@@ -232,20 +239,44 @@ export function ParticipantDetailSheet({
                 Cannot approve yet: {blockReason}
               </output>
             ) : null}
+            {approveWithoutEndorsement && !blockReason ? (
+              <output className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-pretty">
+                No purok endorsement on file. Approve is conditional. They must
+                present it at the tournament.
+              </output>
+            ) : null}
+            {view.registration_status === "approved" && !endorsementOnFile ? (
+              <output className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-pretty">
+                Conditional approval. Present purok endorsement at the
+                tournament.
+              </output>
+            ) : null}
           </div>
 
           {canManage ? (
             <SheetFooter className="border-t border-border sm:flex-col">
               {isPending ? (
                 <div className="flex w-full flex-col gap-2">
-                  <Button
-                    type="button"
-                    disabled={Boolean(blockReason) || approvePending}
-                    onClick={onApprove}
-                  >
-                    <Check className="size-4" />
-                    Approve
-                  </Button>
+                  {approveWithoutEndorsement ? (
+                    <HoldToConfirmButton
+                      variant="default"
+                      disabled={Boolean(blockReason) || approvePending}
+                      holdLabel="Hold to approve…"
+                      onConfirm={onApprove}
+                    >
+                      <Check className="size-4" />
+                      Approve without endorsement
+                    </HoldToConfirmButton>
+                  ) : (
+                    <Button
+                      type="button"
+                      disabled={Boolean(blockReason) || approvePending}
+                      onClick={onApprove}
+                    >
+                      <Check className="size-4" />
+                      Approve
+                    </Button>
+                  )}
                   <Button
                     type="button"
                     variant="destructive"
@@ -330,17 +361,17 @@ export function ParticipantDetailSheet({
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
+            <HoldToConfirmButton
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={!rejectReason.trim() || rejectPending}
-              onClick={(e) => {
-                e.preventDefault();
+              holdLabel="Hold to reject…"
+              onConfirm={() => {
                 onReject(rejectReason.trim());
                 setRejectOpen(false);
               }}
             >
               Reject
-            </AlertDialogAction>
+            </HoldToConfirmButton>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
