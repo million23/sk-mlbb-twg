@@ -24,6 +24,38 @@ export function unwrapOrvalListItems<T>(res: unknown): T[] {
 	return [];
 }
 
+export type PocketBaseListPage<T> = {
+	items: T[];
+	page: number;
+	totalPages: number;
+	totalItems: number;
+};
+
+/** PocketBase list payload, including pagination fields. */
+export function unwrapOrvalListPage<T>(res: unknown): PocketBaseListPage<T> {
+	if (!res || typeof res !== "object") {
+		return { items: [], page: 1, totalPages: 0, totalItems: 0 };
+	}
+	const raw = res as {
+		items?: T[];
+		page?: number;
+		totalPages?: number;
+		totalItems?: number;
+		data?: {
+			items?: T[];
+			page?: number;
+			totalPages?: number;
+			totalItems?: number;
+		};
+	};
+	const body = Array.isArray(raw.items) || raw.totalPages != null ? raw : raw.data;
+	const items = Array.isArray(body?.items) ? body.items : [];
+	const page = body?.page ?? 1;
+	const totalPages = body?.totalPages ?? (items.length > 0 ? 1 : 0);
+	const totalItems = body?.totalItems ?? items.length;
+	return { items, page, totalPages, totalItems };
+}
+
 export function unwrapOrvalRecord<T>(res: unknown): T {
 	if (!res || typeof res !== "object") {
 		throw new Error("Empty API response");

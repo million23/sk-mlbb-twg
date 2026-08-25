@@ -200,6 +200,7 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
   const teams = useListedTeams(selectedId);
   const submit = useSubmitRegistration();
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileEpoch, setTurnstileEpoch] = useState(0);
   const [honeypot, setHoneypot] = useState("");
   const [checkingEmail, setCheckingEmail] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -247,6 +248,7 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
     }
     dispatch({ type: "RESET_DRAFT" });
     setTurnstileToken(null);
+    setTurnstileEpoch((n) => n + 1);
     setPickerOpen(false);
     void navigate({
       to: "/register",
@@ -345,6 +347,7 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
       });
       if (result.failedIndex != null) {
         setTurnstileToken(null);
+        setTurnstileEpoch((n) => n + 1);
         dispatch({
           type: "SUBMIT_PARTIAL",
           submitted: result.submitted,
@@ -360,6 +363,7 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
       });
     } catch (error) {
       setTurnstileToken(null);
+      setTurnstileEpoch((n) => n + 1);
       dispatch({
         type: "SET_LAST_ERROR",
         message: registrationApiErrorMessage(error),
@@ -497,7 +501,10 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
                           onChange={(e) => setHoneypot(e.target.value)}
                         />
                       </div>
-                      <TurnstileField onToken={setTurnstileToken} />
+                      <TurnstileField
+                        key={turnstileEpoch}
+                        onToken={setTurnstileToken}
+                      />
                     </>
                   ) : null}
                   <ErrorBanner state={state} />
