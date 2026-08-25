@@ -1460,7 +1460,7 @@ export function NavRow({
 					{submitting
 						? "Submitting…"
 						: submitDisabled
-							? "Complete verification…"
+							? "Waiting for verification"
 							: isCreateTeamBatch(state)
 								? "Submit team registration"
 								: "Submit registration"}
