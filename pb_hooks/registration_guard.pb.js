@@ -15,6 +15,13 @@ onRecordCreateRequest((e) => {
   e.next();
 }, "participants");
 
+/** Captain needs a saved participant id; team create may run before that. */
+onRecordAfterCreateSuccess((e) => {
+  const guard = require(`${__hooks}/registration_guard_lib.js`);
+  guard.assignCreateTeamCaptainAfterCreate(e);
+  e.next();
+}, "participants");
+
 routerAdd("GET", "/sk/registration/email-available", (e) => {
   const guard = require(`${__hooks}/registration_guard_lib.js`);
   const q = e.request.url.query();
