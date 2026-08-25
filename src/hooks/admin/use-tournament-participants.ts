@@ -19,6 +19,10 @@ import {
   maybeArchiveEmptyCreateTeam,
 } from "@/lib/admin/ensure-create-team";
 import { PARTICIPANT_DOC_FIELDS } from "@/lib/admin/participant-files";
+import {
+  participantListFilter,
+  type ParticipantListStatusTab,
+} from "@/lib/admin/participant-list-query";
 import { ApiError, customInstance } from "@/lib/api/mutator/custom-instance";
 import { getAuthRecordId } from "@/lib/legacy/mutation-authors";
 import { toPocketBaseDateTime } from "@/lib/legacy/registered-date";
@@ -26,10 +30,13 @@ import { pb } from "@/lib/pocketbase";
 import {
   registrationApiErrorMessage,
   unwrapOrvalListItems,
+  unwrapOrvalListPage,
   unwrapOrvalRecord,
 } from "@/lib/registration/orval";
 import {
+  infiniteQueryOptions,
   queryOptions,
+  useInfiniteQuery,
   useMutation,
   useQuery,
   useQueryClient,
@@ -121,6 +128,30 @@ function appendUploads(form: FormData, uploads?: ParticipantDocUploads) {
   }
 }
 
+export const PARTICIPANT_LIST_PAGE_SIZE = 40;
+
+async function fetchParticipantListPage(params: {
+  tournamentId: string;
+  tab: ParticipantListStatusTab;
+  search: string;
+  page: number;
+  perPage: number;
+  expand?: boolean;
+}) {
+  const res = await getCollectionsParticipantsRecords({
+    page: params.page,
+    perPage: params.perPage,
+    sort: "-created",
+    filter: participantListFilter(
+      params.tournamentId,
+      params.tab,
+      params.search,
+    ),
+    ...(params.expand ? { expand: "preferred_team,team" } : {}),
+  });
+  return unwrapOrvalListPage<ParticipantsRecord>(res);
+}
+
 export function tournamentParticipantsQueryOptions(tournamentId: string) {
   return queryOptions({
     queryKey: adminParticipantKeys.list(tournamentId),
@@ -138,8 +169,95 @@ export function tournamentParticipantsQueryOptions(tournamentId: string) {
   });
 }
 
+export function tournamentParticipantsInfiniteQueryOptions(
+  tournamentId: string,
+  tab: ParticipantListStatusTab,
+  search: string,
+) {
+  return infiniteQueryOptions({
+    queryKey: adminParticipantKeys.infinite(tournamentId, tab, search),
+    queryFn: ({ pageParam }) =>
+      fetchParticipantListPage({
+        tournamentId,
+        tab,
+        search,
+        page: pageParam,
+        perPage: PARTICIPANT_LIST_PAGE_SIZE,
+        expand: true,
+      }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) =>
+      lastPage.page < lastPage.totalPages ? lastPage.page + 1 : undefined,
+    enabled: Boolean(tournamentId),
+  });
+}
+
+export function tournamentParticipantCountsQueryOptions(tournamentId: string) {
+  return queryOptions({
+    queryKey: adminParticipantKeys.counts(tournamentId),
+    queryFn: async () => {
+      const tabs = ["all", "pending", "approved", "rejected"] as const;
+      const pages = await Promise.all(
+        tabs.map((tab) =>
+          fetchParticipantListPage({
+            tournamentId,
+            tab,
+            search: "",
+            page: 1,
+            perPage: 1,
+          }),
+        ),
+      );
+      return {
+        all: pages[0].totalItems,
+        pending: pages[1].totalItems,
+        approved: pages[2].totalItems,
+        rejected: pages[3].totalItems,
+      };
+    },
+    enabled: Boolean(tournamentId),
+  });
+}
+
 export function useTournamentParticipants(tournamentId: string) {
   return useQuery(tournamentParticipantsQueryOptions(tournamentId));
+}
+
+export function useTournamentParticipantsInfinite(
+  tournamentId: string,
+  tab: ParticipantListStatusTab,
+  search: string,
+) {
+  return useInfiniteQuery(
+    tournamentParticipantsInfiniteQueryOptions(tournamentId, tab, search),
+  );
+}
+
+export function useTournamentParticipantCounts(tournamentId: string) {
+  return useQuery(tournamentParticipantCountsQueryOptions(tournamentId));
+}
+
+export async function fetchAllTournamentParticipants(
+  tournamentId: string,
+): Promise<ParticipantsRecord[]> {
+  const items: ParticipantsRecord[] = [];
+  let page = 1;
+  let totalPages = 1;
+  while (page <= totalPages) {
+    const result = await fetchParticipantListPage({
+      tournamentId,
+      tab: "all",
+      search: "",
+      page,
+      perPage: 500,
+      expand: true,
+    });
+    items.push(...result.items);
+    totalPages = Math.max(result.totalPages, 1);
+    if (result.items.length === 0) break;
+    page += 1;
+  }
+  return items;
 }
 
 export function useParticipantMutations(tournamentId: string) {

@@ -37,25 +37,29 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAdminRbac } from "@/hooks/admin/use-admin-rbac";
 import {
+  fetchAllTournamentParticipants,
   participantMutationErrorMessage,
   useParticipantMutations,
-  useTournamentParticipants,
+  useTournamentParticipantCounts,
+  useTournamentParticipantsInfinite,
 } from "@/hooks/admin/use-tournament-participants";
+import { useInView } from "@/hooks/legacy/use-in-view";
 import type { ParticipantsRecord } from "@/hooks/orval/model/participantsRecord";
 import { useListedTeams } from "@/hooks/registration/use-listed-teams";
 import { useTournaments } from "@/hooks/legacy/use-tournaments";
 import { TEAM_INTENT_LABELS, hasPurokEndorsement, isConditionalApproval } from "@/lib/admin/participant-approval";
+import type { ParticipantListStatusTab } from "@/lib/admin/participant-list-query";
 import { formatParticipantNameDisplay } from "@/lib/legacy/participant-normalize";
 import * as XLSX from "xlsx";
 import { tournamentDayFromStartAt } from "@/lib/registration/orval";
 import type { TeamIntent } from "@/lib/registration/flow";
 import { createFileRoute } from "@tanstack/react-router";
 import { format, parseISO } from "date-fns";
-import { Download, Plus, Search, Users } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Download, Loader2, Plus, Search, Users } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
-type StatusTab = "pending" | "approved" | "rejected" | "all";
+type StatusTab = ParticipantListStatusTab;
 
 type StatusCounts = Record<StatusTab, number>;
 
@@ -234,11 +238,65 @@ export const Route = createFileRoute(
 function TournamentParticipantsPage() {
   const { tournamentId } = Route.useParams();
   const { canManageParticipants } = useAdminRbac();
-  const { data: participants = [], isLoading, isError, error, refetch } =
-    useTournamentParticipants(tournamentId);
   const { data: listedTeams = [] } = useListedTeams(tournamentId);
   const { data: tournaments } = useTournaments();
   const mutations = useParticipantMutations(tournamentId);
+
+  const [tab, setTab] = useState<StatusTab>("pending");
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedRecord, setSelectedRecord] =
+    useState<ParticipantsRecord | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<ParticipantsRecord | null>(null);
+  const [exporting, setExporting] = useState(false);
+
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      setDebouncedSearch(search.trim());
+    }, 300);
+    return () => window.clearTimeout(t);
+  }, [search]);
+
+  const listQuery = useTournamentParticipantsInfinite(
+    tournamentId,
+    tab,
+    debouncedSearch,
+  );
+  const { data: counts } = useTournamentParticipantCounts(tournamentId);
+  const tabCounts = counts ?? {
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+    all: 0,
+  };
+
+  const participants = useMemo(
+    () => listQuery.data?.pages.flatMap((page) => page.items) ?? [],
+    [listQuery.data],
+  );
+
+  const { ref: loadMoreRef, inView } = useInView({
+    enabled: Boolean(listQuery.hasNextPage),
+  });
+
+  useEffect(() => {
+    if (inView && listQuery.hasNextPage && !listQuery.isFetchingNextPage) {
+      void listQuery.fetchNextPage();
+    }
+  }, [
+    inView,
+    listQuery.hasNextPage,
+    listQuery.isFetchingNextPage,
+    listQuery.fetchNextPage,
+  ]);
+
+  useEffect(() => {
+    if (!selectedId) return;
+    const next = participants.find((p) => p.id === selectedId);
+    if (next) setSelectedRecord(next);
+  }, [participants, selectedId]);
 
   const tournament = tournaments?.find((t) => t.id === tournamentId);
   const tournamentDay = useMemo(() => {
@@ -273,46 +331,7 @@ function TournamentParticipantsPage() {
     return map;
   }, [listedTeams, participants]);
 
-  const [tab, setTab] = useState<StatusTab>("pending");
-  const [search, setSearch] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<ParticipantsRecord | null>(null);
-
-  const selected =
-    participants.find((p) => p.id === selectedId) ?? null;
-
-
-  const counts = useMemo(() => {
-    const c = { pending: 0, approved: 0, rejected: 0, all: participants.length };
-    for (const p of participants) {
-      if (p.registration_status === "pending") c.pending += 1;
-      else if (p.registration_status === "approved") c.approved += 1;
-      else if (p.registration_status === "rejected") c.rejected += 1;
-    }
-    return c;
-  }, [participants]);
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return participants.filter((p) => {
-      if (tab !== "all" && p.registration_status !== tab) return false;
-      if (!q) return true;
-      const hay = [
-        p.name,
-        p.email,
-        p.ign,
-        p.user_id,
-        p.contact_number,
-        p.registration_status_code,
-        p.preferred_team_name,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-      return hay.includes(q);
-    });
-  }, [participants, tab, search]);
+  const selected = selectedRecord;
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
@@ -326,17 +345,49 @@ function TournamentParticipantsPage() {
               <Button
                 type="button"
                 variant="outline"
-                disabled={participants.length === 0}
-                onClick={() =>
-                  exportParticipants(
-                    participants,
-                    teamNameById,
-                    tournament?.title ?? "tournament",
-                  )
-                }
+                disabled={exporting}
+                onClick={() => {
+                  void (async () => {
+                    setExporting(true);
+                    try {
+                      const rows =
+                        await fetchAllTournamentParticipants(tournamentId);
+                      if (rows.length === 0) {
+                        toast.error("No participants to export");
+                        return;
+                      }
+                      const names = new Map(teamNameById);
+                      for (const p of rows) {
+                        const expand = (
+                          p as ParticipantsRecord & {
+                            expand?: {
+                              preferred_team?: { name?: string; id?: string };
+                            };
+                          }
+                        ).expand?.preferred_team;
+                        if (expand?.id && expand.name) {
+                          names.set(expand.id, expand.name);
+                        }
+                      }
+                      exportParticipants(
+                        rows,
+                        names,
+                        tournament?.title ?? "tournament",
+                      );
+                    } catch (err) {
+                      toast.error(participantMutationErrorMessage(err));
+                    } finally {
+                      setExporting(false);
+                    }
+                  })();
+                }}
               >
-                <Download className="size-4" />
-                Export Excel
+                {exporting ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Download className="size-4" />
+                )}
+                {exporting ? "Exporting…" : "Export Excel"}
               </Button>
               {canManageParticipants ? (
                 <Button
@@ -369,7 +420,7 @@ function TournamentParticipantsPage() {
                 <SelectValue>
                   {(value) => {
                     const opt = STATUS_TAB_OPTIONS.find((o) => o.value === value);
-                    return opt ? opt.label(counts) : "Filter participants";
+                    return opt ? opt.label(tabCounts) : "Filter participants";
                   }}
                 </SelectValue>
               </SelectTrigger>
@@ -377,7 +428,7 @@ function TournamentParticipantsPage() {
                 <SelectGroup>
                   {STATUS_TAB_OPTIONS.map((opt) => (
                     <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label(counts)}
+                      {opt.label(tabCounts)}
                     </SelectItem>
                   ))}
                 </SelectGroup>
@@ -387,7 +438,7 @@ function TournamentParticipantsPage() {
             <TabsList className="hidden w-fit md:inline-flex">
               {STATUS_TAB_OPTIONS.map((opt) => (
                 <TabsTrigger key={opt.value} value={opt.value}>
-                  {opt.label(counts)}
+                  {opt.label(tabCounts)}
                 </TabsTrigger>
               ))}
             </TabsList>
@@ -405,29 +456,31 @@ function TournamentParticipantsPage() {
           </div>
 
           <TabsContent value={tab} className="mt-4">
-            {isLoading ? (
+            {listQuery.isLoading ? (
               <div className="space-y-2">
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />
               </div>
-            ) : isError ? (
+            ) : listQuery.isError ? (
               <Empty className="border border-border">
                 <EmptyHeader>
                   <EmptyTitle>Could not load participants</EmptyTitle>
                   <EmptyDescription>
-                    {error instanceof Error ? error.message : "Unknown error"}
+                    {listQuery.error instanceof Error
+                      ? listQuery.error.message
+                      : "Unknown error"}
                   </EmptyDescription>
                 </EmptyHeader>
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => refetch()}
+                  onClick={() => void listQuery.refetch()}
                 >
                   Retry
                 </Button>
               </Empty>
-            ) : filtered.length === 0 ? (
+            ) : participants.length === 0 ? (
               <Empty className="border border-border">
                 <EmptyHeader>
                   <EmptyMedia variant="icon">
@@ -467,14 +520,17 @@ function TournamentParticipantsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filtered.map((p) => {
+                    {participants.map((p) => {
                       const intent = (p.team_intent ??
                         "open_matching") as TeamIntent;
                       return (
                         <TableRow
                           key={p.id}
                           className="cursor-pointer"
-                          onClick={() => setSelectedId(p.id ?? null)}
+                          onClick={() => {
+                            setSelectedId(p.id ?? null);
+                            setSelectedRecord(p);
+                          }}
                         >
                           <TableCell className="font-medium">
                             <div className="min-w-0">
@@ -511,6 +567,22 @@ function TournamentParticipantsPage() {
                     })}
                   </TableBody>
                 </Table>
+                <div
+                  ref={loadMoreRef}
+                  className="flex h-12 items-center justify-center"
+                >
+                  {listQuery.isFetchingNextPage ? (
+                    <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                  ) : listQuery.hasNextPage ? (
+                    <span className="text-muted-foreground text-xs">
+                      Scroll for more
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground text-xs">
+                      End of list
+                    </span>
+                  )}
+                </div>
               </div>
             )}
           </TabsContent>
@@ -522,7 +594,10 @@ function TournamentParticipantsPage() {
         record={selected}
         open={Boolean(selected)}
         onOpenChange={(open) => {
-          if (!open) setSelectedId(null);
+          if (!open) {
+            setSelectedId(null);
+            setSelectedRecord(null);
+          }
         }}
         listedTeams={listedTeams}
         peers={participants}
@@ -635,6 +710,7 @@ function TournamentParticipantsPage() {
           try {
             await mutations.archive.mutateAsync(selected.id);
             setSelectedId(null);
+            setSelectedRecord(null);
             toast.success("Participant archived");
           } catch (err) {
             toast.error(participantMutationErrorMessage(err));
