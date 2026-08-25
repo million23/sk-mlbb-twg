@@ -72,25 +72,14 @@ function OverviewShell({
 }
 
 function Stagger({
-  index,
   className,
   children,
 }: {
-  index: number;
+  index?: number;
   className?: string;
   children: ReactNode;
 }) {
-  return (
-    <div
-      className={cn(
-        "tournament-overview-stagger animate-in fade-in slide-in-from-bottom-2 fill-mode-both duration-500",
-        className,
-      )}
-      style={{ animationDelay: `${index * 70}ms` }}
-    >
-      {children}
-    </div>
-  );
+  return <div className={cn(className)}>{children}</div>;
 }
 
 export function TournamentOverview({

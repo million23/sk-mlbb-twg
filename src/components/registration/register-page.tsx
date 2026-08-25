@@ -473,7 +473,12 @@ export function RegisterPage({ tournamentId }: RegisterPageProps) {
                   </h2>
                 ) : null}
                 <div className="flex h-fit flex-col gap-4">
-                  <StepBody state={state} dispatch={dispatch} />
+                  <div
+                    key={`${state.step}-${state.active_registrant_index}`}
+                    className="registration-step-enter"
+                  >
+                    <StepBody state={state} dispatch={dispatch} />
+                  </div>
                   {onReviewStep ? (
                     <>
                       {/* Honeypot — leave empty (off-screen for bots that autofill) */}

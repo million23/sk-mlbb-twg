@@ -31,7 +31,12 @@ import {
 
 import {
   ELIGIBLE_PHASES,
+  SERVER_ID_MAX_LENGTH,
+  SERVER_ID_MIN_LENGTH,
   TEAM_INTENTS,
+  USER_ID_MAX_LENGTH,
+  USER_ID_MIN_LENGTH,
+  sanitizeDigits,
 } from "@/lib/registration/flow";
 import type { LANES, ListedTeam } from "@/lib/registration/flow";
 import { TEAM_INTENT_LABELS } from "@/lib/admin/participant-approval";
@@ -86,6 +91,60 @@ function fromRecord(record: ParticipantsRecord): ParticipantFormValues {
   };
 }
 
+/** Shared with tests — first error string, or null when valid. */
+export function validateParticipantFormValues(
+  values: ParticipantFormValues,
+): string | null {
+  if (!values.name.trim()) return "Name is required";
+  if (!values.email.trim() || !values.email.includes("@")) {
+    return "Valid email is required";
+  }
+  if (!values.ign.trim()) return "IGN is required";
+  if (!values.birthdate) return "Birthdate is required";
+
+  const userId = values.user_id.trim();
+  if (!userId) return "User ID is required";
+  if (!/^\d+$/.test(userId)) return "User ID must be digits only";
+  if (
+    userId.length < USER_ID_MIN_LENGTH ||
+    userId.length > USER_ID_MAX_LENGTH
+  ) {
+    return `User ID must be ${USER_ID_MIN_LENGTH}–${USER_ID_MAX_LENGTH} digits`;
+  }
+
+  const serverId = values.server_id.trim();
+  if (!serverId) return "Server ID is required";
+  if (!/^\d+$/.test(serverId)) return "Server ID must be digits only";
+  if (
+    serverId.length < SERVER_ID_MIN_LENGTH ||
+    serverId.length > SERVER_ID_MAX_LENGTH
+  ) {
+    return `Server ID must be ${SERVER_ID_MIN_LENGTH}–${SERVER_ID_MAX_LENGTH} digits`;
+  }
+
+  if (!values.address_package.trim()) return "Package is required";
+  if (!values.address_block.trim()) return "Block is required";
+  if (!values.address_lot.trim()) return "Lot is required";
+  if (!values.preferred_lane || values.preferred_lane.length === 0)
+    return "Preferred lane is required";
+  if (values.team_intent === "join_team" && !values.preferred_team) {
+    return "Pick a team to join";
+  }
+  if (
+    values.team_intent === "create_team" &&
+    !values.preferred_team_name.trim()
+  ) {
+    return "Team name is required";
+  }
+  if (
+    values.registration_status === "rejected" &&
+    !values.registration_reject_reason.trim()
+  ) {
+    return "Reject reason is required";
+  }
+  return null;
+}
+
 function Field({
   label,
   children,
@@ -137,37 +196,7 @@ export function ParticipantFormDialog({
   const patch = (partial: Partial<ParticipantFormValues>) =>
     setValues((prev) => ({ ...prev, ...partial }));
 
-  const validate = (): string | null => {
-    if (!values.name.trim()) return "Name is required";
-    if (!values.email.trim() || !values.email.includes("@")) {
-      return "Valid email is required";
-    }
-    if (!values.ign.trim()) return "IGN is required";
-    if (!values.birthdate) return "Birthdate is required";
-    if (!values.user_id.trim()) return "User ID is required";
-    if (!values.server_id.trim()) return "Server ID is required";
-    if (!values.address_package.trim()) return "Package is required";
-    if (!values.address_block.trim()) return "Block is required";
-    if (!values.address_lot.trim()) return "Lot is required";
-    if (!values.preferred_lane || values.preferred_lane.length === 0)
-      return "Preferred lane is required";
-    if (values.team_intent === "join_team" && !values.preferred_team) {
-      return "Pick a team to join";
-    }
-    if (
-      values.team_intent === "create_team" &&
-      !values.preferred_team_name.trim()
-    ) {
-      return "Team name is required";
-    }
-    if (
-      values.registration_status === "rejected" &&
-      !values.registration_reject_reason.trim()
-    ) {
-      return "Reject reason is required";
-    }
-    return null;
-  };
+  const validate = (): string | null => validateParticipantFormValues(values);
 
   return (
     <ResponsiveModal open={open} onOpenChange={onOpenChange}>
@@ -234,17 +263,32 @@ export function ParticipantFormDialog({
             />
           </Field>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Field label="User ID">
+            <Field label={`User ID (${USER_ID_MIN_LENGTH}–${USER_ID_MAX_LENGTH} digits)`}>
               <Input
                 value={values.user_id}
-                onChange={(e) => patch({ user_id: e.target.value })}
+                onChange={(e) =>
+                  patch({
+                    user_id: sanitizeDigits(e.target.value, USER_ID_MAX_LENGTH),
+                  })
+                }
+                inputMode="numeric"
+                maxLength={USER_ID_MAX_LENGTH}
                 required
               />
             </Field>
-            <Field label="Server ID">
+            <Field label={`Server ID (${SERVER_ID_MIN_LENGTH}–${SERVER_ID_MAX_LENGTH} digits)`}>
               <Input
                 value={values.server_id}
-                onChange={(e) => patch({ server_id: e.target.value })}
+                onChange={(e) =>
+                  patch({
+                    server_id: sanitizeDigits(
+                      e.target.value,
+                      SERVER_ID_MAX_LENGTH,
+                    ),
+                  })
+                }
+                inputMode="numeric"
+                maxLength={SERVER_ID_MAX_LENGTH}
                 required
               />
             </Field>

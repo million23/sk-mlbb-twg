@@ -65,6 +65,7 @@ import {
 	CircleCheck,
 	CircleX,
 	Clock3,
+	Copy,
 	House,
 	Mail,
 } from "lucide-react";
@@ -77,6 +78,7 @@ import {
 	type UIEvent,
 } from "react";
 import ReactMarkdown from "react-markdown";
+import { toast } from "sonner";
 
 const MAX_UI_PREFERRED_LANES = 3;
 
@@ -1080,6 +1082,41 @@ export function ReviewStep({ state }: Props) {
 	);
 }
 
+async function copyStatusCode(code: string) {
+	try {
+		await navigator.clipboard.writeText(code);
+		toast.success("Copied status code");
+	} catch {
+		toast.error("Could not copy status code");
+	}
+}
+
+function StatusCodeButton({
+	code,
+	size = "lg",
+}: {
+	code: string;
+	size?: "lg" | "md";
+}) {
+	return (
+		<button
+			type="button"
+			onClick={() => void copyStatusCode(code)}
+			className={cn(
+				"group mt-1 flex w-full items-center justify-center gap-2 rounded-xl border border-transparent px-2 py-1.5 text-center font-mono tracking-[0.22em] text-foreground transition-[transform,background-color,border-color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-primary/25 hover:bg-primary/10 active:scale-[0.97]",
+				size === "lg" ? "text-3xl tracking-[0.28em]" : "text-2xl",
+			)}
+			aria-label={`Copy status code ${code}`}
+		>
+			<span>{code}</span>
+			<Copy
+				className="size-4 shrink-0 text-primary/70 opacity-70 transition-opacity group-hover:opacity-100"
+				aria-hidden
+			/>
+		</button>
+	);
+}
+
 function OutcomeShell({
 	tone,
 	icon,
@@ -1203,9 +1240,12 @@ export function OutcomeStep({ state }: Props) {
 											Player {row.index + 1}
 											{row.email ? ` · ${row.email}` : ""}
 										</p>
-										<p className="mt-1 font-mono text-2xl tracking-[0.22em] text-foreground">
-											{row.statusCode}
-										</p>
+										{row.statusCode ? (
+											<StatusCodeButton
+												code={row.statusCode}
+												size="md"
+											/>
+										) : null}
 									</li>
 								))}
 							</ul>
@@ -1214,9 +1254,10 @@ export function OutcomeStep({ state }: Props) {
 								<p className="font-mono text-[0.65rem] text-muted-foreground uppercase tracking-[0.18em]">
 									Your status code
 								</p>
-								<p className="mt-2 font-mono text-3xl tracking-[0.28em] text-foreground">
-									{code}
+								<p className="mt-1 text-muted-foreground text-xs">
+									Tap to copy
 								</p>
+								<StatusCodeButton code={code} size="lg" />
 							</div>
 						) : null}
 						{!multi && email ? (

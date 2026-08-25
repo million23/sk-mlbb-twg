@@ -11,6 +11,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { HoldToConfirmButton } from "@/components/ui/hold-to-confirm-button";
 import { Label } from "@/components/ui/label";
 import {
   Sheet,
@@ -330,17 +331,17 @@ export function ParticipantDetailSheet({
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
+            <HoldToConfirmButton
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={!rejectReason.trim() || rejectPending}
-              onClick={(e) => {
-                e.preventDefault();
+              holdLabel="Hold to reject…"
+              onConfirm={() => {
                 onReject(rejectReason.trim());
                 setRejectOpen(false);
               }}
             >
               Reject
-            </AlertDialogAction>
+            </HoldToConfirmButton>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

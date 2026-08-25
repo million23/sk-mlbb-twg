@@ -229,11 +229,10 @@ export function PlatformDashboard({
               </Empty>
             ) : (
               <div className="grid gap-3 md:grid-cols-2">
-                {sorted.map((tournament, i) => (
+                {sorted.map((tournament) => (
                   <TournamentCard
                     key={tournament.id}
                     tournament={tournament}
-                    staggerIndex={i}
                   />
                 ))}
               </div>
@@ -324,10 +323,8 @@ function ResumeBanner({ tournament }: { tournament: PlatformTournamentCard }) {
 
 function TournamentCard({
   tournament,
-  staggerIndex,
 }: {
   tournament: PlatformTournamentCard;
-  staggerIndex: number;
 }) {
   const dateRange = formatDateRange(tournament.startAt, tournament.endAt);
   const isOpen = tournament.registrationEnabled && tournament.registrationOpen;
@@ -339,8 +336,7 @@ function TournamentCard({
 
   return (
     <article
-      className="tournament-overview-stagger group relative flex flex-col overflow-hidden rounded-2xl border border-border/80 bg-background/70 shadow-xs backdrop-blur-sm transition-[transform,border-color,background-color] duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:bg-background animate-in fade-in slide-in-from-bottom-2 fill-mode-both"
-      style={{ animationDelay: `${Math.min(staggerIndex, 8) * 50}ms` }}
+      className="group relative flex flex-col overflow-hidden rounded-2xl border border-border/80 bg-background/70 shadow-xs backdrop-blur-sm transition-[transform,border-color,background-color] duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:bg-background"
     >
       <div className="flex flex-1 flex-col gap-4 p-5">
         <div className="flex items-start justify-between gap-3">
