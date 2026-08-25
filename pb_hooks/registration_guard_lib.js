@@ -387,11 +387,16 @@ function ensureFormingTeamForCreateIntent(e) {
       team.set("name", teamName);
       team.set("status", "forming");
       team.set("archived", false);
+      // Player 1 POSTs first. Id is usually already on the registrant
+      // record; if empty, after-create patches captain once the row exists.
+      const captainId = String(e.record.id || "").trim();
+      if (captainId) team.set("captain", captainId);
       e.app.save(team);
       console.log(
         "[sk-guard] created forming team",
         String(team.id || ""),
         teamName,
+        captainId ? "captain=" + captainId : "no captain yet",
       );
     } catch (err) {
       console.log("[sk-guard] team create failed", err);
@@ -400,6 +405,34 @@ function ensureFormingTeamForCreateIntent(e) {
   }
 
   e.record.set("preferred_team", team.id);
+}
+
+/**
+ * First create-team POST that finds a vacant captain slot becomes captain.
+ * Later teammates keep the existing captain.
+ */
+function assignCreateTeamCaptainAfterCreate(e) {
+  const intent = String(e.record.get("team_intent") || "");
+  if (intent !== "create_team") return;
+
+  const teamId = String(e.record.get("preferred_team") || "").trim();
+  const participantId = String(e.record.id || "").trim();
+  if (!teamId || !participantId) return;
+
+  try {
+    const team = e.app.findRecordById("teams", teamId);
+    const existing = String(team.get("captain") || "").trim();
+    if (existing) return;
+    team.set("captain", participantId);
+    e.app.save(team);
+    console.log(
+      "[sk-guard] assigned create-team captain",
+      teamId,
+      participantId,
+    );
+  } catch (err) {
+    console.log("[sk-guard] captain assign failed", err);
+  }
 }
 
 function emailAvailable(app, tournamentId, email) {
@@ -568,6 +601,7 @@ module.exports = {
   enforceCreateGuards,
   enforceEligibilityGuards,
   ensureFormingTeamForCreateIntent,
+  assignCreateTeamCaptainAfterCreate,
   emailAvailable,
   listedJoinableTeams,
   lookupByStatusCode,
