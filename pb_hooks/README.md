@@ -63,7 +63,7 @@ Public pre-checks (used by the Vite form):
 
 `GET /sk/registration/email-available?tournament=ID&email=you@example.com` → `{ available: boolean }`
 
-`GET /sk/registration/status?code=123456` → `{ found: false }` or `{ found: true, receipt: { … } }` (no document file fields)
+`GET /sk/registration/status?code=123456` → `{ found: false }` or `{ found: true, receipt: { …, has_purok_endorsement } }` (no document file fields)
 
 `GET /sk/registration/listed-teams?tournament=ID` → `{ items: [{ id, name }, …] }` (joinable teams only; hides create-team forming placeholders until members are assigned)
 

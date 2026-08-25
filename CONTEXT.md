@@ -55,7 +55,7 @@ The period when public sign-up is allowed for a tournament.
 _Avoid_: Open season, enrollment, intake
 
 **Purok endorsement**:
-A required residency document uploaded with a valid ID or school ID.
+A residency document. Optional at sign-up. Missing file means **conditional approval**: they present it at the tournament.
 _Avoid_: Barangay clearance (when meaning this upload), proof of address (generic)
 
 ## Teams

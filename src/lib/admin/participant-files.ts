@@ -11,7 +11,7 @@ export type ParticipantDocField = (typeof PARTICIPANT_DOC_FIELDS)[number];
 export const PARTICIPANT_DOC_LABELS: Record<ParticipantDocField, string> = {
   school_id_front: "Valid ID / School ID (front)",
   school_id_back: "Valid ID / School ID (back)",
-  purok_endorsement: "Purok endorsement",
+  purok_endorsement: "Purok endorsement (optional)",
 };
 
 /** PocketBase record shape needed for `pb.files.getURL`. */

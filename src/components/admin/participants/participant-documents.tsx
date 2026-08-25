@@ -63,7 +63,11 @@ export function ParticipantDocuments({
                     {PARTICIPANT_DOC_LABELS[field]}
                   </p>
                   <p className="truncate text-muted-foreground text-xs">
-                    {filename ?? "Not uploaded"}
+                    {filename
+                      ? filename
+                      : field === "purok_endorsement"
+                        ? "Present at tournament"
+                        : "Not uploaded"}
                   </p>
                 </div>
               </div>

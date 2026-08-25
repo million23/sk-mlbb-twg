@@ -133,7 +133,8 @@ Start from the test website → registration page.
 - [ ] Required fields work: name, birthdate, home address (Phase / Package / Block / Lot), IGN, server ID, user ID, preferred lane, registration email
 - [ ] Home address only allows Phase **4**, **9**, or **10**
 - [ ] Under 15 by tournament day is rejected with a clear message
-- [ ] Document uploads work: school ID (front and back), purok endorsement
+- [ ] Document uploads work: school ID (front and back). Purok endorsement is optional. Skipping it still submits.
+- [ ] After approve without endorsement, admin shows Conditional. Verify page says present it at the tournament.
 - [ ] Create-team: can register 2–6 players (within tournament min/max), each with credentials + documents; pending shows all status codes
 - [ ] Phase-9 team rule is **not** blocking submit or approve (deferred)
 - [ ] Same registration email cannot hold another pending or approved registration for the same tournament (clear error)

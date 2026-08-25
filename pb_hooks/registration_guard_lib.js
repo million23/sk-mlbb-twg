@@ -560,6 +560,7 @@ function lookupByStatusCode(app, rawCode) {
     consent_version: String(r.get("consent_version") || ""),
     consent_accepted_at: String(r.get("consent_accepted_at") || ""),
     created: String(r.get("created") || ""),
+    has_purok_endorsement: Boolean(String(r.get("purok_endorsement") || "").trim()),
   };
 }
 

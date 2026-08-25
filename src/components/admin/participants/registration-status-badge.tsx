@@ -17,17 +17,29 @@ const CLASSES: Record<ParticipantsRecordRegistrationStatus, string> = {
 export function RegistrationStatusBadge({
   status,
   className,
+  hasPurokEndorsement = true,
 }: {
   status: ParticipantsRecordRegistrationStatus | string | undefined;
   className?: string;
+  /** When false and status is approved, show conditional approval. */
+  hasPurokEndorsement?: boolean;
 }) {
   const key = (
     status && status in LABELS ? status : "pending"
   ) as ParticipantsRecordRegistrationStatus;
+  const conditional = key === "approved" && !hasPurokEndorsement;
 
   return (
-    <Badge variant="outline" className={cn(CLASSES[key], className)}>
-      {LABELS[key]}
+    <Badge
+      variant="outline"
+      className={cn(
+        conditional
+          ? "border-warning/30 bg-warning/10 text-warning"
+          : CLASSES[key],
+        className,
+      )}
+    >
+      {conditional ? "Conditional" : LABELS[key]}
     </Badge>
   );
 }

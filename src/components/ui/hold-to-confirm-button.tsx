@@ -155,7 +155,9 @@ export function HoldToConfirmButton({
             : `clip-path ${SNAP_MS}ms ${EASE_OUT}`,
         }}
       />
-      <span className="relative z-10">{holding ? holdLabel : children}</span>
+      <span className="relative z-10 inline-flex items-center gap-2">
+        {holding ? holdLabel : children}
+      </span>
     </Button>
   );
 }

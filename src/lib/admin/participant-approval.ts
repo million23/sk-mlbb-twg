@@ -6,6 +6,19 @@ import {
   type TeamIntent,
 } from "@/lib/registration/flow";
 
+export function hasPurokEndorsement(
+  record: Pick<ParticipantsRecord, "purok_endorsement">,
+): boolean {
+  return Boolean(record.purok_endorsement?.trim());
+}
+
+/** Approved without a purok endorsement file. They present it at the tournament. */
+export function isConditionalApproval(
+  record: Pick<ParticipantsRecord, "registration_status" | "purok_endorsement">,
+): boolean {
+  return record.registration_status === "approved" && !hasPurokEndorsement(record);
+}
+
 /** Committee checks before approving a pending registrant. Phase-9 deferred. */
 export function committeeApproveBlockReason(
   participant: ParticipantsRecord,
