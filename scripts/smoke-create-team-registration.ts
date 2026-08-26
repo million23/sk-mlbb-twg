@@ -182,7 +182,17 @@ if (!team?.id) {
 		`Expected forming team "${teamName}" in teams table after register (redeploy pb_hooks?).`,
 	);
 }
-console.log(`  ✓ team row: ${team.id} status=${team.status} name="${team.name}"`);
+console.log(`  ✓ team row: ${team.id} status=${team.status} captain=${team.captain || "—"} name="${team.name}"`);
+if (!team.captain) {
+	throw new Error(
+		`Expected forming team captain = first registrant (got empty). Redeploy pb_hooks and restart PocketHost.`,
+	);
+}
+if (team.captain !== results[0]?.id) {
+	throw new Error(
+		`Expected captain ${results[0]?.id}, got ${team.captain}`,
+	);
+}
 
 const linked = results.every(
 	(r) => r.preferredTeam && r.preferredTeam === team.id,

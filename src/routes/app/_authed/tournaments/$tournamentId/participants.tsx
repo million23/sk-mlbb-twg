@@ -47,7 +47,11 @@ import { useInView } from "@/hooks/legacy/use-in-view";
 import type { ParticipantsRecord } from "@/hooks/orval/model/participantsRecord";
 import { useListedTeams } from "@/hooks/registration/use-listed-teams";
 import { useTournaments } from "@/hooks/legacy/use-tournaments";
-import { TEAM_INTENT_LABELS, hasPurokEndorsement, isConditionalApproval } from "@/lib/admin/participant-approval";
+import {
+  TEAM_INTENT_LABELS,
+  hasPurokEndorsement,
+  isConditionalApproval,
+} from "@/lib/admin/participant-approval";
 import type { ParticipantListStatusTab } from "@/lib/admin/participant-list-query";
 import { formatParticipantNameDisplay } from "@/lib/legacy/participant-normalize";
 import * as XLSX from "xlsx";
@@ -70,6 +74,7 @@ const STATUS_TAB_OPTIONS: {
   { value: "pending", label: (c) => `Pending (${c.pending})` },
   { value: "approved", label: (c) => `Approved (${c.approved})` },
   { value: "rejected", label: (c) => `Rejected (${c.rejected})` },
+  { value: "archived", label: (c) => `Archived (${c.archived})` },
   { value: "all", label: (c) => `All (${c.all})` },
 ];
 
@@ -102,9 +107,9 @@ function createParticipantWorksheet(
       "Preferred Team":
         p.preferred_team_name ??
         (p.preferred_team
-          ? teamNameById.get(p.preferred_team) ?? p.preferred_team
+          ? (teamNameById.get(p.preferred_team) ?? p.preferred_team)
           : ""),
-      Team: p.team ? teamNameById.get(p.team) ?? p.team : "",
+      Team: p.team ? (teamNameById.get(p.team) ?? p.team) : "",
       Status: isConditionalApproval(p)
         ? "conditionally approved"
         : (p.registration_status ?? ""),
@@ -145,7 +150,10 @@ function createParticipantWorksheet(
     : null;
   if (headerRange && worksheetRef) {
     for (let column = headerRange.s.c; column <= headerRange.e.c; column += 1) {
-      const cellAddress = XLSX.utils.encode_cell({ r: headerRange.s.r, c: column });
+      const cellAddress = XLSX.utils.encode_cell({
+        r: headerRange.s.r,
+        c: column,
+      });
       const headerCell = worksheet[cellAddress];
       if (!headerCell) continue;
       headerCell.s = {
@@ -218,10 +226,11 @@ function exportParticipants(
     );
   }
 
-  const safeTournamentName = tournamentName
-    .trim()
-    .replace(/[^a-z0-9]+/gi, "-")
-    .replace(/^-|-$/g, "") || "tournament";
+  const safeTournamentName =
+    tournamentName
+      .trim()
+      .replace(/[^a-z0-9]+/gi, "-")
+      .replace(/^-|-$/g, "") || "tournament";
   XLSX.writeFile(
     workbook,
     `${safeTournamentName}-participants-${new Date().toISOString().slice(0, 10)}.xlsx`,
@@ -269,6 +278,7 @@ function TournamentParticipantsPage() {
     pending: 0,
     approved: 0,
     rejected: 0,
+    archived: 0,
     all: 0,
   };
 
@@ -311,8 +321,12 @@ function TournamentParticipantsPage() {
     };
     return (
       tournamentDayFromStartAt(t.start_at || t.startAt) ||
-      tournamentDayFromStartAt(t.registration_close_at || t.registrationCloseAt) ||
-      tournamentDayFromStartAt(t.registration_open_at || t.registrationOpenAt) ||
+      tournamentDayFromStartAt(
+        t.registration_close_at || t.registrationCloseAt,
+      ) ||
+      tournamentDayFromStartAt(
+        t.registration_open_at || t.registrationOpenAt,
+      ) ||
       ""
     );
   }, [tournament]);
@@ -419,7 +433,9 @@ function TournamentParticipantsPage() {
               <SelectTrigger className="w-full md:hidden">
                 <SelectValue>
                   {(value) => {
-                    const opt = STATUS_TAB_OPTIONS.find((o) => o.value === value);
+                    const opt = STATUS_TAB_OPTIONS.find(
+                      (o) => o.value === value,
+                    );
                     return opt ? opt.label(tabCounts) : "Filter participants";
                   }}
                 </SelectValue>
@@ -589,7 +605,6 @@ function TournamentParticipantsPage() {
         </Tabs>
       </AdminStagger>
 
-
       <ParticipantDetailSheet
         record={selected}
         open={Boolean(selected)}
@@ -607,6 +622,7 @@ function TournamentParticipantsPage() {
         approvePending={mutations.approve.isPending}
         rejectPending={mutations.reject.isPending}
         archivePending={mutations.archive.isPending}
+        restorePending={mutations.restore.isPending}
         formTeamPending={
           mutations.formCreateTeam.isPending || mutations.formJoinTeam.isPending
         }
@@ -657,18 +673,20 @@ function TournamentParticipantsPage() {
             if (selected.team_intent === "join_team") {
               const joinResult =
                 await mutations.formJoinTeam.mutateAsync(selected);
-              if (joinResult.assigned && !joinResult.alreadyAssigned) {
+              if (!joinResult.assigned) {
+                if (joinResult.reason === "team_not_found") {
+                  toast.error("Preferred team not found or archived");
+                } else if (joinResult.reason === "missing_team") {
+                  toast.error("No preferred team on this registrant");
+                } else {
+                  toast.error("Could not assign to preferred team");
+                }
+              } else if (joinResult.alreadyAssigned) {
+                toast.success("Already on preferred team");
+              } else {
                 toast.success(
                   `Joined team "${joinResult.teamName || "preferred team"}"`,
                 );
-              } else if (joinResult.assigned && joinResult.alreadyAssigned) {
-                toast.success("Already on preferred team");
-              } else if (joinResult.reason === "team_not_found") {
-                toast.error("Preferred team not found or archived");
-              } else if (joinResult.reason === "missing_team") {
-                toast.error("No preferred team on this registrant");
-              } else {
-                toast.error("Could not assign to preferred team");
               }
               return;
             }
@@ -712,6 +730,17 @@ function TournamentParticipantsPage() {
             setSelectedId(null);
             setSelectedRecord(null);
             toast.success("Participant archived");
+          } catch (err) {
+            toast.error(participantMutationErrorMessage(err));
+          }
+        }}
+        onRestore={async () => {
+          if (!selected?.id || !canManageParticipants) return;
+          try {
+            await mutations.restore.mutateAsync(selected.id);
+            setSelectedId(null);
+            setSelectedRecord(null);
+            toast.success("Participant restored");
           } catch (err) {
             toast.error(participantMutationErrorMessage(err));
           }

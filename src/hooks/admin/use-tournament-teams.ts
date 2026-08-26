@@ -14,6 +14,10 @@ import {
 } from "@/hooks/orval/teams-collection/teams-collection";
 import type { PlannedOpenTeam } from "@/lib/admin/auto-open-teams";
 import {
+  nextTeamRosterPatch,
+  resolveTeamStatus,
+} from "@/lib/admin/team-roster-meta";
+import {
   assertPermission,
   canManageTeams,
   type AdminAuthRecord,
@@ -63,21 +67,7 @@ function withAuditUpdate(
   return { ...data, updated_by: uid };
 }
 
-/** Derive status from roster size. Returns null when inactive should be left alone / no change. */
-export function resolveTeamStatus(
-  memberCount: number,
-  current: TeamsRecordStatus | undefined,
-  minReady = 5,
-): TeamsRecordStatus | null {
-  if (current === "inactive") return null;
-  if (memberCount >= minReady) {
-    return current === "ready" ? null : "ready";
-  }
-  if (memberCount === 0) {
-    return current === "incomplete" ? null : "incomplete";
-  }
-  return current === "forming" ? null : "forming";
-}
+export { resolveTeamStatus };
 
 export function tournamentTeamsQueryOptions(tournamentId: string) {
   return queryOptions({
@@ -178,17 +168,15 @@ export function useTeamMutations(tournamentId: string) {
     memberIds: string[];
     minReady?: number;
   }): Promise<boolean> => {
-    const nextStatus = resolveTeamStatus(memberCount, currentStatus, minReady);
-    const captainStillMember =
-      captainId && memberIds.includes(captainId) ? captainId : "";
-    const needsCaptainClear = Boolean(captainId) && !captainStillMember;
-
-    if (!nextStatus && !needsCaptainClear) return false;
-
-    await patchTeam(teamId, {
-      ...(nextStatus ? { status: nextStatus } : {}),
-      ...(needsCaptainClear ? { captain: "" } : {}),
+    const patch = nextTeamRosterPatch({
+      memberCount,
+      currentStatus,
+      captainId,
+      memberIds,
+      minReady,
     });
+    if (!patch) return false;
+    await patchTeam(teamId, patch);
     return true;
   };
 

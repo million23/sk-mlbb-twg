@@ -89,10 +89,7 @@ function withAuditUpdate(
   return { ...data, updated_by: uid };
 }
 
-function appendFormFields(
-  form: FormData,
-  fields: Record<string, unknown>,
-) {
+function appendFormFields(form: FormData, fields: Record<string, unknown>) {
   for (const [key, value] of Object.entries(fields)) {
     if (value === undefined || value === null) continue;
     if (typeof value === "boolean") {
@@ -196,7 +193,13 @@ export function tournamentParticipantCountsQueryOptions(tournamentId: string) {
   return queryOptions({
     queryKey: adminParticipantKeys.counts(tournamentId),
     queryFn: async () => {
-      const tabs = ["all", "pending", "approved", "rejected"] as const;
+      const tabs = [
+        "all",
+        "pending",
+        "approved",
+        "rejected",
+        "archived",
+      ] as const;
       const pages = await Promise.all(
         tabs.map((tab) =>
           fetchParticipantListPage({
@@ -213,6 +216,7 @@ export function tournamentParticipantCountsQueryOptions(tournamentId: string) {
         pending: pages[1].totalItems,
         approved: pages[2].totalItems,
         rejected: pages[3].totalItems,
+        archived: pages[4].totalItems,
       };
     },
     enabled: Boolean(tournamentId),
@@ -331,6 +335,18 @@ export function useParticipantMutations(tournamentId: string) {
     onSuccess: invalidate,
   });
 
+  const restore = useMutation({
+    mutationFn: async (id: string) => {
+      assertCanManageParticipants();
+      const res = await patchCollectionsParticipantsRecordsId(
+        id,
+        withAuditUpdate({ archived: false }) as unknown as ParticipantsRecord,
+      );
+      return unwrapOrvalRecord<ParticipantsRecord>(res);
+    },
+    onSuccess: invalidate,
+  });
+
   const hardDelete = useMutation({
     mutationFn: async (id: string) => {
       assertCanManageParticipants();
@@ -361,13 +377,12 @@ export function useParticipantMutations(tournamentId: string) {
         address_package: values.address_package.trim(),
         address_block: values.address_block.trim(),
         address_lot: values.address_lot.trim(),
-        preferred_lane: (values.preferred_lane[0] ?? "mid") as (
+        preferred_lane: (values.preferred_lane[0] ?? "mid") as
           | "mid"
           | "gold"
           | "exp"
           | "support"
-          | "jungle"
-        ),
+          | "jungle",
         preferred_roles: values.preferred_lane,
         team_intent: values.team_intent,
         ...(values.team_intent === "join_team" && values.preferred_team
@@ -436,13 +451,12 @@ export function useParticipantMutations(tournamentId: string) {
         address_package: values.address_package.trim(),
         address_block: values.address_block.trim(),
         address_lot: values.address_lot.trim(),
-        preferred_lane: (values.preferred_lane[0] ?? "mid") as (
+        preferred_lane: (values.preferred_lane[0] ?? "mid") as
           | "mid"
           | "gold"
           | "exp"
           | "support"
-          | "jungle"
-        ),
+          | "jungle",
         preferred_roles: values.preferred_lane,
         team_intent: values.team_intent,
         // Clear relation when leaving join_team (PocketBase accepts "").
@@ -506,6 +520,7 @@ export function useParticipantMutations(tournamentId: string) {
     approve,
     reject,
     archive,
+    restore,
     hardDelete,
     create,
     update,

@@ -33,7 +33,14 @@ import { ageOnTournamentDay, type ListedTeam } from "@/lib/registration/flow";
 import { LANE_ROLE_LABELS } from "@/lib/legacy/lane-role-icons";
 import { formatParticipantNameDisplay } from "@/lib/legacy/participant-normalize";
 import type { TeamIntent } from "@/lib/registration/flow";
-import { Check, Pencil, Trash2, UsersRound, X } from "lucide-react";
+import {
+  ArchiveRestore,
+  Check,
+  Pencil,
+  Trash2,
+  UsersRound,
+  X,
+} from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
 function DetailRow({ label, value }: { label: string; value: ReactNode }) {
@@ -57,12 +64,14 @@ export function ParticipantDetailSheet({
   approvePending,
   rejectPending,
   archivePending,
+  restorePending,
   formTeamPending,
   onApprove,
   onReject,
   onFormCreateTeam,
   onEdit,
   onArchive,
+  onRestore,
 }: {
   record: ParticipantsRecord | null;
   open: boolean;
@@ -75,12 +84,14 @@ export function ParticipantDetailSheet({
   approvePending?: boolean;
   rejectPending?: boolean;
   archivePending?: boolean;
+  restorePending?: boolean;
   formTeamPending?: boolean;
   onApprove: () => void;
   onReject: (reason: string) => void;
   onFormCreateTeam?: () => void;
   onEdit: () => void;
   onArchive: () => void;
+  onRestore: () => void;
 }) {
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
@@ -93,6 +104,7 @@ export function ParticipantDetailSheet({
 
   if (!cached) return null;
   const view = cached;
+  const isArchived = Boolean(view.archived);
 
   const isPending = view.registration_status === "pending";
   const endorsementOnFile = hasPurokEndorsement(view);
@@ -113,12 +125,7 @@ export function ParticipantDetailSheet({
     !view.team &&
     Boolean(onFormCreateTeam);
   const blockReason = isPending
-    ? committeeApproveBlockReason(
-        view,
-        listedTeams,
-        peers,
-        tournamentDay,
-      )
+    ? committeeApproveBlockReason(view, listedTeams, peers, tournamentDay)
     : null;
   const age = ageOnTournamentDay(view.birthdate, tournamentDay);
   const preferredTeamLabel =
@@ -146,9 +153,7 @@ export function ParticipantDetailSheet({
                 status={view.registration_status}
                 hasPurokEndorsement={endorsementOnFile}
               />
-              <span className="text-muted-foreground">
-                IGN {view.ign}
-              </span>
+              <span className="text-muted-foreground">IGN {view.ign}</span>
             </SheetDescription>
           </SheetHeader>
 
@@ -179,18 +184,18 @@ export function ParticipantDetailSheet({
               <DetailRow
                 label="Preferred lane"
                 value={(() => {
-                  const lanes: string[] =
-                    view.preferred_roles?.length
-                      ? (view.preferred_roles as unknown as string[])
-                      : view.preferred_lane
-                        ? [view.preferred_lane as unknown as string]
-                        : [];
+                  const lanes: string[] = view.preferred_roles?.length
+                    ? (view.preferred_roles as unknown as string[])
+                    : view.preferred_lane
+                      ? [view.preferred_lane as unknown as string]
+                      : [];
                   return lanes.length
                     ? lanes
                         .map(
                           (l) =>
-                            (LANE_ROLE_LABELS[l as keyof typeof LANE_ROLE_LABELS] ??
-                              l),
+                            LANE_ROLE_LABELS[
+                              l as keyof typeof LANE_ROLE_LABELS
+                            ] ?? l,
                         )
                         .join(", ")
                     : "—";
@@ -255,7 +260,17 @@ export function ParticipantDetailSheet({
 
           {canManage ? (
             <SheetFooter className="border-t border-border sm:flex-col">
-              {isPending ? (
+              {isArchived ? (
+                <Button
+                  type="button"
+                  disabled={restorePending}
+                  onClick={onRestore}
+                >
+                  <ArchiveRestore className="size-4" />
+                  {restorePending ? "Restoring…" : "Restore participant"}
+                </Button>
+              ) : null}
+              {!isArchived && isPending ? (
                 <div className="flex w-full flex-col gap-2">
                   {approveWithoutEndorsement ? (
                     <HoldToConfirmButton
@@ -291,19 +306,17 @@ export function ParticipantDetailSheet({
                   </Button>
                 </div>
               ) : null}
-              {canAssignJoinTeam ? (
+              {!isArchived && canAssignJoinTeam ? (
                 <Button
                   type="button"
                   disabled={formTeamPending}
                   onClick={onFormCreateTeam}
                 >
                   <UsersRound className="size-4" />
-                  {formTeamPending
-                    ? "Assigning…"
-                    : "Assign to preferred team"}
+                  {formTeamPending ? "Assigning…" : "Assign to preferred team"}
                 </Button>
               ) : null}
-              {canFormCreateTeam ? (
+              {!isArchived && canFormCreateTeam ? (
                 <Button
                   type="button"
                   disabled={formTeamPending}
@@ -315,27 +328,29 @@ export function ParticipantDetailSheet({
                     : "Form team from preferred name"}
                 </Button>
               ) : null}
-              <div className="flex w-full gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1"
-                  onClick={onEdit}
-                >
-                  <Pencil className="size-4" />
-                  Edit
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1"
-                  disabled={archivePending}
-                  onClick={() => setArchiveOpen(true)}
-                >
-                  <Trash2 className="size-4" />
-                  Archive
-                </Button>
-              </div>
+              {!isArchived ? (
+                <div className="flex w-full gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={onEdit}
+                  >
+                    <Pencil className="size-4" />
+                    Edit
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1"
+                    disabled={archivePending}
+                    onClick={() => setArchiveOpen(true)}
+                  >
+                    <Trash2 className="size-4" />
+                    Archive
+                  </Button>
+                </div>
+              ) : null}
             </SheetFooter>
           ) : null}
         </SheetContent>
