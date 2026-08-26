@@ -2,6 +2,7 @@ export type ParticipantListStatusTab =
   | "pending"
   | "approved"
   | "rejected"
+  | "archived"
   | "all";
 
 export function escapePocketBaseFilterValue(value: string): string {
@@ -14,8 +15,11 @@ export function participantListFilter(
   search: string,
 ): string {
   const id = escapePocketBaseFilterValue(tournamentId);
-  const parts = [`tournament = "${id}"`, "archived != true"];
-  if (tab !== "all") {
+  const parts = [
+    `tournament = "${id}"`,
+    tab === "archived" ? "archived = true" : "archived != true",
+  ];
+  if (tab !== "all" && tab !== "archived") {
     parts.push(`registration_status = "${tab}"`);
   }
   const q = search.trim();

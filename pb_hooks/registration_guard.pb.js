@@ -12,14 +12,10 @@
 onRecordCreateRequest((e) => {
   const guard = require(`${__hooks}/registration_guard_lib.js`);
   guard.enforceCreateGuards(e);
+  // Participant row is committed after next(). Captain is a relation to
+  // that row — setting it on the team before this fails / gets dropped.
   e.next();
-}, "participants");
-
-/** Captain needs a saved participant id; team create may run before that. */
-onRecordAfterCreateSuccess((e) => {
-  const guard = require(`${__hooks}/registration_guard_lib.js`);
   guard.assignCreateTeamCaptainAfterCreate(e);
-  e.next();
 }, "participants");
 
 routerAdd("GET", "/sk/registration/email-available", (e) => {

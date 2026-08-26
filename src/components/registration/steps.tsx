@@ -20,7 +20,6 @@ import {
 	DrawerTitle,
 } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
 	Select,
 	SelectContent,
@@ -251,7 +250,7 @@ export function ConsentStep({ state, dispatch }: Props) {
 			window.cancelAnimationFrame(raf);
 			ro?.disconnect();
 		};
-	}, [open, syncScrollEnd, isMobile]);
+	}, [open, syncScrollEnd]);
 
 	const onConsentScroll = (event: UIEvent<HTMLDivElement>) => {
 		setScrolledToEnd(isScrolledToBottom(event.currentTarget));
@@ -605,21 +604,30 @@ export function CredentialsStep({ state, dispatch }: Props) {
 												: "border-border hover:bg-muted/60",
 									)}
 								>
-									<input 
+									<input
 										type="checkbox"
-										id={inputId} 
-										value={l} 
+										id={inputId}
+										value={l}
 										checked={on}
-										disabled={!on && c.preferred_lane.length >= MAX_UI_PREFERRED_LANES}
+										disabled={
+											!on && c.preferred_lane.length >= MAX_UI_PREFERRED_LANES
+										}
 										onChange={(e) => {
 											if (e.target.checked) {
-												if (c.preferred_lane.length >= MAX_UI_PREFERRED_LANES) return;
-												set({ preferred_lane: [...c.preferred_lane, l as Lane] })
+												if (c.preferred_lane.length >= MAX_UI_PREFERRED_LANES)
+													return;
+												set({
+													preferred_lane: [...c.preferred_lane, l as Lane],
+												});
 											} else {
-												set({ preferred_lane: c.preferred_lane.filter((v) => v !== l) })
+												set({
+													preferred_lane: c.preferred_lane.filter(
+														(v) => v !== l,
+													),
+												});
 											}
 										}}
-										className="sr-only" 
+										className="sr-only"
 									/>
 									<LaneRoleIcon
 										role={l as PlayerRole}
@@ -659,11 +667,17 @@ export function TeamIntentStep({ state, dispatch }: Props) {
 		state.max_team_size,
 	);
 	const sizeOptions = Array.from({ length: max - min + 1 }, (_, i) => min + i);
-	const intents: { id: TeamIntent; title: string; blurb: string }[] = [
+	const intents: {
+		id: TeamIntent;
+		title: string;
+		blurb: string;
+		disabled?: boolean;
+	}[] = [
 		{
 			id: "open_matching",
 			title: "Open matching",
 			blurb: "Committee / system fills you with other registrants.",
+			disabled: true,
 		},
 		{
 			id: "join_team",
@@ -674,14 +688,21 @@ export function TeamIntentStep({ state, dispatch }: Props) {
 			id: "create_team",
 			title: "Create / name a team",
 			blurb: `You are the team captain. Register yourself plus ${min - 1}–${max - 1} teammates, then name the squad.`,
+			disabled: true,
 		},
 	];
+
+	useEffect(() => {
+		if (state.team_intent !== "join_team") {
+			dispatch({ type: "SET_TEAM_INTENT", intent: "join_team" });
+		}
+	}, [dispatch, state.team_intent]);
 
 	return (
 		<div className="flex flex-col gap-4">
 			<p className="text-muted-foreground text-sm leading-relaxed">
-				Choose how you want to enter. A Phase 9 resident as team captain is
-				preferred, but not required.
+				Joining a listed team is the only registration option currently
+				available.
 			</p>
 			<div className="grid gap-2">
 				{intents.map((intent) => {
@@ -690,17 +711,26 @@ export function TeamIntentStep({ state, dispatch }: Props) {
 						<button
 							key={intent.id}
 							type="button"
+							disabled={intent.disabled}
 							onClick={() =>
 								dispatch({ type: "SET_TEAM_INTENT", intent: intent.id })
 							}
 							className={cn(
 								"rounded-2xl border px-4 py-3 text-left transition-colors",
+								intent.disabled && "cursor-not-allowed opacity-50",
 								on
 									? "border-primary bg-primary/10"
-									: "border-border hover:bg-muted/60",
+									: "border-border enabled:hover:bg-muted/60",
 							)}
 						>
-							<p className="font-medium text-sm">{intent.title}</p>
+							<div className="flex items-center justify-between gap-3">
+								<p className="font-medium text-sm">{intent.title}</p>
+								{intent.disabled ? (
+									<span className="text-muted-foreground text-xs">
+										Unavailable
+									</span>
+								) : null}
+							</div>
 							<p className="text-muted-foreground text-xs">{intent.blurb}</p>
 						</button>
 					);
@@ -1051,7 +1081,11 @@ export function ReviewStep({ state }: Props) {
 				const c = reg.credentials;
 				const lane =
 					c.preferred_lane && c.preferred_lane.length > 0
-						? c.preferred_lane.map(l => l in LANE_ROLE_LABELS ? LANE_ROLE_LABELS[l as PlayerRole] : l).join(", ")
+						? c.preferred_lane
+								.map((l) =>
+									l in LANE_ROLE_LABELS ? LANE_ROLE_LABELS[l as PlayerRole] : l,
+								)
+								.join(", ")
 						: "—";
 				const key =
 					c.email.trim().toLowerCase() || `player-${c.user_id}-${c.ign}`;
@@ -1253,10 +1287,7 @@ export function OutcomeStep({ state }: Props) {
 											{row.email ? ` · ${row.email}` : ""}
 										</p>
 										{row.statusCode ? (
-											<StatusCodeButton
-												code={row.statusCode}
-												size="md"
-											/>
+											<StatusCodeButton code={row.statusCode} size="md" />
 										) : null}
 									</li>
 								))}
