@@ -27,6 +27,7 @@ export enum MatchDraftStatus {
 
 /** Bracket / schedule row for a tournament (distinct from per-game `match_drafts`). */
 export enum MatchStatus {
+    Draft = "draft",
     Scheduled = "scheduled",
     Live = "live",
     Completed = "completed",
@@ -96,7 +97,7 @@ export interface Collections {
         bestOf: number;
         matchLabel?: string;
         scheduledAt?: string;
-        status?: "scheduled" | "live" | "completed" | "walkover" | "cancelled";
+        status?: "draft" | "scheduled" | "live" | "completed" | "walkover" | "cancelled";
         scoreA?: number;
         scoreB?: number;
         notes?: string;

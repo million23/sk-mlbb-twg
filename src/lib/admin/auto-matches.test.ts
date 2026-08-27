@@ -38,6 +38,18 @@ describe("assignTeamsToBrackets", () => {
 		const ids = result.brackets.flatMap((b) => b.teams.map((t) => t.id));
 		expect(new Set(ids).size).toBe(64);
 	});
+
+	it("splits 16 teams into 2 brackets of 8", () => {
+		const result = assignTeamsToBrackets(teams(16), 2);
+		expect(result.ok).toBe(true);
+		if (!result.ok) return;
+		expect(result.brackets).toHaveLength(2);
+		expect(result.brackets.map((b) => b.teams.length)).toEqual([8, 8]);
+		expect(result.brackets.map((b) => b.label)).toEqual([
+			"Bracket A",
+			"Bracket B",
+		]);
+	});
 });
 
 describe("buildBracketAutoMatchPreview", () => {
@@ -107,6 +119,7 @@ describe("buildBracketAutoMatchPreview", () => {
 		expect(payload.every((row) => row.bracket?.startsWith("Bracket "))).toBe(
 			true,
 		);
+		expect(payload.every((row) => row.status === "draft")).toBe(true);
 	});
 });
 

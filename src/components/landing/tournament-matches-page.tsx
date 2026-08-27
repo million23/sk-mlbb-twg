@@ -264,7 +264,7 @@ export function TournamentMatchesPage({ id }: TournamentMatchesPageProps) {
     isLoading: matchesLoading,
     isError,
     error,
-  } = useMatchesForTournament(id, { enabled: eligible });
+  } = useMatchesForTournament(id, { enabled: eligible, publicOnly: true });
 
   const matchesByRound = useMemo(() => {
     const rows = matches ?? [];

@@ -1,5 +1,6 @@
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { AdminStagger } from "@/components/admin/admin-stagger";
+import { AutoMatchBracketDialog } from "@/components/admin/matches/auto-match-bracket-dialog";
 import { AutoMatchDialog } from "@/components/admin/matches/auto-match-dialog";
 import {
   MatchFormDialog,
@@ -43,6 +44,8 @@ import type { ParticipantsRecord } from "@/hooks/orval/model/participantsRecord"
 import type { MatchRecord } from "@/hooks/legacy/use-matches";
 import {
   buildBracketAutoMatchPreview,
+  defaultAutoMatchBracketCount,
+  type AutoMatchBracketOption,
   type AutoMatchPreview,
   type AutoMatchTeam,
 } from "@/lib/admin/auto-matches";
@@ -51,12 +54,13 @@ import {
   findAdvanceSourceRound,
   toBracketMatchInput,
 } from "@/lib/admin/bracket-rounds";
-import { getMatchStatusStyle } from "@/lib/legacy/match-status";
+import { getMatchStatusStyle, isDraftMatchStatus } from "@/lib/legacy/match-status";
 import { cn } from "@/lib/utils";
 import {
   Archive,
   BarChart3,
   ChevronRight,
+  Globe,
   Medal,
   Pencil,
   Plus,
@@ -90,6 +94,8 @@ export type MatchesPageProps = {
   onSaveResults: (id: string, values: MatchResultsValues) => Promise<void>;
   onArchive: (id: string) => Promise<void>;
   onAutoGenerate: (preview: AutoMatchPreview) => Promise<void>;
+  onPublishDrafts?: (ids: string[]) => Promise<void>;
+  publishPending?: boolean;
 };
 
 function teamName(m: MatchRecord, side: "A" | "B"): string {
@@ -223,13 +229,21 @@ export function MatchesPage({
   onSaveResults,
   onArchive,
   onAutoGenerate,
+  onPublishDrafts,
+  publishPending,
 }: MatchesPageProps) {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<MatchRecord | null>(null);
   const [resultsMatch, setResultsMatch] = useState<MatchRecord | null>(null);
   const [statsMatch, setStatsMatch] = useState<MatchRecord | null>(null);
   const [archiveId, setArchiveId] = useState<string | null>(null);
+  const [publishOpen, setPublishOpen] = useState(false);
   const [autoMatchOpen, setAutoMatchOpen] = useState(false);
+  const [bracketPickOpen, setBracketPickOpen] = useState(false);
+  const [autoMatchBracketCount, setAutoMatchBracketCount] =
+    useState<AutoMatchBracketOption>(() =>
+      defaultAutoMatchBracketCount(bracketCount),
+    );
   const [advanceOpen, setAdvanceOpen] = useState(false);
   const [advancePreview, setAdvancePreview] = useState<AutoMatchPreview | null>(
     null,
@@ -254,10 +268,23 @@ export function MatchesPage({
     [matches],
   );
 
+  const draftIds = useMemo(
+    () =>
+      matches.flatMap((m) =>
+        isDraftMatchStatus(m.status) && m.id ? [m.id] : [],
+      ),
+    [matches],
+  );
+
+  const openAutoMatchPicker = () => {
+    setAutoMatchBracketCount(defaultAutoMatchBracketCount(bracketCount));
+    setBracketPickOpen(true);
+  };
+
   const openAutoMatchPreview = () => {
     const check = buildBracketAutoMatchPreview({
       teams: autoMatchTeams,
-      bracketCount,
+      bracketCount: autoMatchBracketCount,
       highestOrder,
       defaultBestOf,
     });
@@ -265,6 +292,7 @@ export function MatchesPage({
       toast.error(check.error);
       return;
     }
+    setBracketPickOpen(false);
     setAutoMatchOpen(true);
   };
 
@@ -315,7 +343,7 @@ export function MatchesPage({
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={openAutoMatchPreview}
+                  onClick={openAutoMatchPicker}
                   disabled={autoMatchPending}
                 >
                   <Shuffle className="size-4" />
@@ -330,6 +358,18 @@ export function MatchesPage({
                   <ChevronRight className="size-4" />
                   Advance winners
                 </Button>
+                {onPublishDrafts && draftIds.length > 0 ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setPublishOpen(true)}
+                    disabled={publishPending}
+                  >
+                    <Globe className="size-4" />
+                    Publish {draftIds.length} draft
+                    {draftIds.length === 1 ? "" : "s"}
+                  </Button>
+                ) : null}
                 <Button
                   type="button"
                   onClick={() => {
@@ -384,7 +424,7 @@ export function MatchesPage({
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={openAutoMatchPreview}
+                  onClick={openAutoMatchPicker}
                 >
                   <Shuffle className="size-4" />
                   Auto matches
@@ -591,13 +631,24 @@ export function MatchesPage({
       ) : null}
 
       {canManage ? (
+        <AutoMatchBracketDialog
+          open={bracketPickOpen}
+          onOpenChange={setBracketPickOpen}
+          teamCount={autoMatchTeams.length}
+          value={autoMatchBracketCount}
+          onValueChange={setAutoMatchBracketCount}
+          onContinue={openAutoMatchPreview}
+        />
+      ) : null}
+
+      {canManage ? (
         <AutoMatchDialog
           open={autoMatchOpen}
           onOpenChange={setAutoMatchOpen}
           teams={autoMatchTeams}
           highestOrder={highestOrder}
           defaultBestOf={defaultBestOf}
-          bracketCount={bracketCount}
+          bracketCount={autoMatchBracketCount}
           pending={autoMatchPending}
           onConfirm={onAutoGenerate}
         />
@@ -668,6 +719,35 @@ export function MatchesPage({
                 }}
               >
                 {archivePending ? "Archiving…" : "Archive"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      ) : null}
+
+      {canManage && onPublishDrafts ? (
+        <AlertDialog open={publishOpen} onOpenChange={setPublishOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Publish drafts to the public site?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {draftIds.length} draft match
+                {draftIds.length === 1 ? "" : "es"} become Scheduled and show
+                on the public tournament page.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={publishPending}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                disabled={publishPending || draftIds.length < 1}
+                onClick={(e) => {
+                  e.preventDefault();
+                  void onPublishDrafts(draftIds).then(() => setPublishOpen(false));
+                }}
+              >
+                {publishPending ? "Publishing…" : "Publish"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

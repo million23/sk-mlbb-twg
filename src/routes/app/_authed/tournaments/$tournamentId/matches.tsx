@@ -150,6 +150,18 @@ function TournamentMatchesPage() {
     }
   };
 
+  const handlePublishDrafts = async (ids: string[]) => {
+    try {
+      await mutations.publishDrafts.mutateAsync(ids);
+      toast.success(
+        `Published ${ids.length} match${ids.length === 1 ? "" : "es"} to the public site.`,
+      );
+    } catch (err) {
+      toast.error(matchMutationErrorMessage(err));
+      throw err;
+    }
+  };
+
   const handleAutoGenerate = async (preview: AutoMatchPreview) => {
     const pairCount = preview.rows.length;
     const leftOutNames = preview.leftOut.map((t) => t.name).join(", ");
@@ -163,10 +175,10 @@ function TournamentMatchesPage() {
       );
       toast.success(
         leftOutNames
-          ? `Created ${pairCount} matches. Unpaired: ${leftOutNames}.`
+          ? `Created ${pairCount} drafts. Unpaired: ${leftOutNames}.`
           : isPlayoffs
-            ? `Created ${pairCount} playoff quarterfinals.`
-            : `Created ${pairCount} matches across brackets.`,
+            ? `Created ${pairCount} playoff drafts.`
+            : `Created ${pairCount} draft matches. Publish when the bracket should go public.`,
       );
     } catch (err) {
       toast.error(matchMutationErrorMessage(err));
@@ -211,6 +223,8 @@ function TournamentMatchesPage() {
       onSaveResults={handleSaveResults}
       onArchive={handleArchive}
       onAutoGenerate={handleAutoGenerate}
+      onPublishDrafts={handlePublishDrafts}
+      publishPending={mutations.publishDrafts.isPending}
     />
   );
 }

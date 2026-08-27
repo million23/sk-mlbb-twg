@@ -3280,6 +3280,7 @@
           "status": {
             "type": "string",
             "enum": [
+              "draft",
               "scheduled",
               "live",
               "completed",
