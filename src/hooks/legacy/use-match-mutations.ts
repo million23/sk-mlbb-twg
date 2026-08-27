@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toMatchWritePayload } from "@/lib/admin/match-write";
 import { withCreatedAuditFields, withUpdatedAuditField } from "@/lib/legacy/mutation-authors";
 import { getCollection } from "@/lib/pocketbase";
 import { queryKeys } from "@/lib/legacy/query-keys";
@@ -33,7 +34,9 @@ export function useMatchMutations() {
     mutationFn: async (data: MatchInput) => {
       return rateLimited(async () => {
         const col = getCollection("matches");
-        return col.create(withCreatedAuditFields(data));
+        return col.create(
+          withCreatedAuditFields(toMatchWritePayload(data, "create")),
+        );
       });
     },
     onMutate: async (data) => {
@@ -96,7 +99,10 @@ export function useMatchMutations() {
       const { id, ...patch } = data;
       return rateLimited(async () => {
         const col = getCollection("matches");
-        return col.update(id, withUpdatedAuditField(patch));
+        return col.update(
+          id,
+          withUpdatedAuditField(toMatchWritePayload(patch, "update")),
+        );
       });
     },
     onMutate: async (data) => {
@@ -202,10 +208,15 @@ export function useMatchMutations() {
         const created: MatchRecord[] = [];
         for (const payload of matches) {
           const row = await col.create(
-            withCreatedAuditFields({
-              ...payload,
-              tournament: tournamentId,
-            }),
+            withCreatedAuditFields(
+              toMatchWritePayload(
+                {
+                  ...payload,
+                  tournament: tournamentId,
+                },
+                "create",
+              ),
+            ),
           );
           created.push(row as MatchRecord);
         }
