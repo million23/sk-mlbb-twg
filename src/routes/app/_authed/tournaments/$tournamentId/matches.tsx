@@ -5,7 +5,10 @@ import { useAdminRbac } from "@/hooks/admin/use-admin-rbac";
 import { useTournamentParticipants } from "@/hooks/admin/use-tournament-participants";
 import { useTournamentTeams } from "@/hooks/admin/use-tournament-teams";
 import { useMatchMutations } from "@/hooks/legacy/use-match-mutations";
-import { useMatchesForTournament } from "@/hooks/legacy/use-matches";
+import {
+  useArchivedMatchesForTournament,
+  useMatchesForTournament,
+} from "@/hooks/legacy/use-matches";
 import { useTournaments } from "@/hooks/legacy/use-tournaments";
 import {
   SK_BRACKET_COUNT,
@@ -36,6 +39,7 @@ function TournamentMatchesPage() {
   const { tournamentId } = Route.useParams();
   const { canManageMatches } = useAdminRbac();
   const matchesQuery = useMatchesForTournament(tournamentId);
+  const archivedMatchesQuery = useArchivedMatchesForTournament(tournamentId);
   const teamsQuery = useTournamentTeams(tournamentId);
   const participantsQuery = useTournamentParticipants(tournamentId);
   const tournamentsQuery = useTournaments();
@@ -76,10 +80,14 @@ function TournamentMatchesPage() {
 
   const isLoading =
     matchesQuery.isLoading ||
+    archivedMatchesQuery.isLoading ||
     teamsQuery.isLoading ||
     participantsQuery.isLoading;
   const isError =
-    matchesQuery.isError || teamsQuery.isError || participantsQuery.isError;
+    matchesQuery.isError ||
+    archivedMatchesQuery.isError ||
+    teamsQuery.isError ||
+    participantsQuery.isError;
 
   const handleCreate = async (values: MatchFormValues) => {
     try {
@@ -150,6 +158,16 @@ function TournamentMatchesPage() {
     }
   };
 
+  const handleRestore = async (id: string) => {
+    try {
+      await mutations.restore.mutateAsync(id);
+      toast.success("Match restored");
+    } catch (err) {
+      toast.error(matchMutationErrorMessage(err));
+      throw err;
+    }
+  };
+
   const handlePublishDrafts = async (ids: string[]) => {
     try {
       await mutations.publishDrafts.mutateAsync(ids);
@@ -191,6 +209,7 @@ function TournamentMatchesPage() {
       tournamentTitle={tournamentTitle}
       canManage={canManageMatches}
       matches={matchesQuery.data ?? []}
+      archivedMatches={archivedMatchesQuery.data ?? []}
       teams={teams}
       autoMatchTeams={autoMatchTeams}
       participants={participantsQuery.data ?? []}
@@ -201,14 +220,17 @@ function TournamentMatchesPage() {
       errorMessage={
         matchesQuery.error instanceof Error
           ? matchesQuery.error.message
-          : teamsQuery.error instanceof Error
-            ? teamsQuery.error.message
-            : participantsQuery.error instanceof Error
-              ? participantsQuery.error.message
-              : undefined
+          : archivedMatchesQuery.error instanceof Error
+            ? archivedMatchesQuery.error.message
+            : teamsQuery.error instanceof Error
+              ? teamsQuery.error.message
+              : participantsQuery.error instanceof Error
+                ? participantsQuery.error.message
+                : undefined
       }
       onRetry={() => {
         void matchesQuery.refetch();
+        void archivedMatchesQuery.refetch();
         void teamsQuery.refetch();
         void participantsQuery.refetch();
       }}
@@ -217,11 +239,13 @@ function TournamentMatchesPage() {
       }
       resultsPending={mutations.update.isPending}
       archivePending={mutations.archive.isPending}
+      restorePending={mutations.restore.isPending}
       autoMatchPending={mutations.createMany.isPending}
       onCreateMatch={handleCreate}
       onUpdateMatch={handleUpdate}
       onSaveResults={handleSaveResults}
       onArchive={handleArchive}
+      onRestore={handleRestore}
       onAutoGenerate={handleAutoGenerate}
       onPublishDrafts={handlePublishDrafts}
       publishPending={mutations.publishDrafts.isPending}
