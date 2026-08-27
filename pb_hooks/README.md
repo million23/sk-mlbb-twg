@@ -44,6 +44,7 @@ sk-mlbb-twg/
     admins_mail.pb.js
     sk_ops.pb.js
     sk_matches.pb.js
+    sk_matches_lib.js
     sk_mail.js
     sk_discord.js
     views/emails/
@@ -96,9 +97,9 @@ Set `DISCORD_WEBHOOK_URL` on the PocketHost instance (Channel â†’ Integrations â
 
 ### Draft matches
 
-[`sk_matches.pb.js`](./sk_matches.pb.js) hides `status = draft` from guests on list and view. Staff auth still sees drafts.
+[`sk_matches.pb.js`](./sk_matches.pb.js) + [`sk_matches_lib.js`](./sk_matches_lib.js) strip `status = draft` from guest list/view responses after the query runs. Helpers are `require`d inside handlers because PocketHost isolates top-level functions in `*.pb.js`. Staff auth still sees drafts.
 
-In PocketBase, add `draft` to the `matches.status` select values, then restart after deploying the hook.
+Redeploy **both** files and restart.
 
 Cloudflare always-pass test keys: [Turnstile testing](https://developers.cloudflare.com/turnstile/troubleshooting/testing/).
 

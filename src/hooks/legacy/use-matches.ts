@@ -10,9 +10,8 @@ export function matchesActiveFilter(tournamentId: string) {
   return `tournament = "${tournamentId}" && archived != true`;
 }
 
-/** Public list: hide drafts until staff publish them as scheduled. */
-export function matchesPublicFilter(tournamentId: string) {
-  return `${matchesActiveFilter(tournamentId)} && status != "draft"`;
+export function isPublicMatchRecord(match: { status?: string }): boolean {
+  return match.status !== "draft";
 }
 
 /** PocketBase filter: archived matches for a tournament. */
@@ -47,13 +46,12 @@ export function useMatchesForTournament(
         if (!tournamentId) return [];
         const col = getCollection("matches");
         const list = await col.getFullList({
-          filter: publicOnly
-            ? matchesPublicFilter(tournamentId)
-            : matchesActiveFilter(tournamentId),
+          filter: matchesActiveFilter(tournamentId),
           sort: "+round,+order",
           expand: "teamA,teamB,winner",
         });
-        return list as MatchRecord[];
+        const rows = list as MatchRecord[];
+        return publicOnly ? rows.filter(isPublicMatchRecord) : rows;
       }),
   });
 }
