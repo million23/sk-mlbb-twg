@@ -20,6 +20,7 @@ export interface MatchResultRecord {
   assists?: number;
   game_performance_rating?: number;
   accumulated_gold?: number;
+  game_number?: number;
   archived: boolean;
   /** Relation field. When expanded, this becomes the related record object. Use the 'expand' query parameter to expand relations. */
   created_by?: string;
