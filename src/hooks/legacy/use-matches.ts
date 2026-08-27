@@ -3,6 +3,7 @@ import { pocketbaseListQueryOptions } from "@/lib/legacy/pocketbase-list-query-o
 import { getCollection } from "@/lib/pocketbase";
 import { rateLimited } from "@/lib/rate-limited-api";
 import { queryKeys } from "@/lib/legacy/query-keys";
+import { fromMatchApiRecord } from "@/lib/admin/match-write";
 import type { Collections } from "@/types/__pocketbase-types";
 
 /** PocketBase filter: match belongs to tournament and is not soft-deleted. */
@@ -48,9 +49,11 @@ export function useMatchesForTournament(
         const list = await col.getFullList({
           filter: matchesActiveFilter(tournamentId),
           sort: "+round,+order",
-          expand: "teamA,teamB,winner",
+          expand: "team_a,team_b,winner",
         });
-        const rows = list as MatchRecord[];
+        const rows = (list as MatchRecord[]).map((row) =>
+          fromMatchApiRecord(row),
+        );
         return publicOnly ? rows.filter(isPublicMatchRecord) : rows;
       }),
   });
@@ -72,9 +75,9 @@ export function useArchivedMatchesForTournament(
         const list = await col.getFullList({
           filter: matchesArchivedFilter(tournamentId),
           sort: "+round,+order",
-          expand: "teamA,teamB,winner",
+          expand: "team_a,team_b,winner",
         });
-        return list as MatchRecord[];
+        return (list as MatchRecord[]).map((row) => fromMatchApiRecord(row));
       }),
   });
 }
