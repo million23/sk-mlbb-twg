@@ -40,6 +40,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { ParticipantsRecord } from "@/hooks/orval/model/participantsRecord";
 import type { MatchRecord } from "@/hooks/legacy/use-matches";
 import {
@@ -64,6 +65,7 @@ import {
   Medal,
   Pencil,
   Plus,
+  RotateCcw,
   Shuffle,
   Swords,
 } from "lucide-react";
@@ -74,6 +76,7 @@ export type MatchesPageProps = {
   tournamentTitle?: string;
   canManage?: boolean;
   matches: MatchRecord[];
+  archivedMatches: MatchRecord[];
   teams: TeamOption[];
   /** Active teams eligible for auto-pairing (non-archived, non-inactive). */
   autoMatchTeams: AutoMatchTeam[];
@@ -93,6 +96,8 @@ export type MatchesPageProps = {
   onUpdateMatch: (id: string, values: MatchFormValues) => Promise<void>;
   onSaveResults: (id: string, values: MatchResultsValues) => Promise<void>;
   onArchive: (id: string) => Promise<void>;
+  onRestore: (id: string) => Promise<void>;
+  restorePending?: boolean;
   onAutoGenerate: (preview: AutoMatchPreview) => Promise<void>;
   onPublishDrafts?: (ids: string[]) => Promise<void>;
   publishPending?: boolean;
@@ -145,22 +150,44 @@ function MatchTeamsCell({ match }: { match: MatchRecord }) {
 
 function MatchActions({
   canManage,
+  listScope,
   resultsPending,
   archivePending,
+  restorePending,
   onResults,
   onStats,
   onEdit,
   onArchive,
+  onRestore,
 }: {
   canManage: boolean;
+  listScope: "active" | "archived";
   resultsPending?: boolean;
   archivePending?: boolean;
+  restorePending?: boolean;
   onResults: () => void;
   onStats: () => void;
   onEdit: () => void;
   onArchive: () => void;
+  onRestore: () => void;
 }) {
   if (!canManage) return null;
+  if (listScope === "archived") {
+    return (
+      <div className="flex flex-wrap items-center justify-end gap-1">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={restorePending}
+          onClick={onRestore}
+        >
+          <RotateCcw className="size-3.5" />
+          Restore
+        </Button>
+      </div>
+    );
+  }
   return (
     <div className="flex flex-wrap items-center justify-end gap-1">
       <Button
@@ -211,6 +238,7 @@ export function MatchesPage({
   tournamentTitle,
   canManage = false,
   matches,
+  archivedMatches,
   teams,
   autoMatchTeams,
   participants,
@@ -228,10 +256,15 @@ export function MatchesPage({
   onUpdateMatch,
   onSaveResults,
   onArchive,
+  onRestore,
+  restorePending,
   onAutoGenerate,
   onPublishDrafts,
   publishPending,
 }: MatchesPageProps) {
+  const [listScope, setListScope] = useState<"active" | "archived">(
+    "active",
+  );
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<MatchRecord | null>(null);
   const [resultsMatch, setResultsMatch] = useState<MatchRecord | null>(null);
@@ -263,9 +296,12 @@ export function MatchesPage({
     [matches],
   );
 
+  const visibleMatches =
+    listScope === "archived" ? archivedMatches : matches;
+
   const groupedMatches = useMemo(
-    () => groupMatchesByRound(matches),
-    [matches],
+    () => groupMatchesByRound(visibleMatches),
+    [visibleMatches],
   );
 
   const draftIds = useMemo(
@@ -387,94 +423,196 @@ export function MatchesPage({
       </AdminStagger>
 
       <AdminStagger index={1}>
-        {isLoading ? (
-          <div className="space-y-4">
-            <Skeleton className="h-6 w-32" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-          </div>
-        ) : isError ? (
-          <Empty className="border border-border">
-            <EmptyHeader>
-              <EmptyTitle>Could not load matches</EmptyTitle>
-              <EmptyDescription>
-                {errorMessage || "Unknown error"}
-              </EmptyDescription>
-            </EmptyHeader>
-            <Button type="button" variant="outline" onClick={onRetry}>
-              Retry
-            </Button>
-          </Empty>
-        ) : groupedMatches.length === 0 ? (
-          <Empty className="border border-border">
-            <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <Swords />
-              </EmptyMedia>
-              <EmptyTitle>No matches yet</EmptyTitle>
-              <EmptyDescription>
-                {canManage
-                  ? "Add a match manually or generate Round 1 pairings."
-                  : "Matches will appear here once staff add them."}
-              </EmptyDescription>
-            </EmptyHeader>
-            {canManage && matches.length === 0 ? (
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={openAutoMatchPicker}
-                >
-                  <Shuffle className="size-4" />
-                  Auto matches
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setEditing(null);
-                    setFormOpen(true);
-                  }}
-                >
-                  <Plus className="size-4" />
-                  Add first match
-                </Button>
-              </div>
-            ) : null}
-          </Empty>
-        ) : (
-          <div className="flex flex-col gap-8">
-            {groupedMatches.map(([round, rows]) => (
-              <section key={round}>
-                <h2 className="mb-3 font-medium text-muted-foreground text-sm">
-                  {round}
-                </h2>
+        <Tabs
+          value={listScope}
+          onValueChange={(v) =>
+            setListScope(v === "archived" ? "archived" : "active")
+          }
+          className="gap-4"
+        >
+          <TabsList>
+            <TabsTrigger value="active">
+              Active
+              <span className="ml-1.5 font-mono text-[0.65rem] tabular-nums text-muted-foreground">
+                {matches.length}
+              </span>
+            </TabsTrigger>
+            <TabsTrigger value="archived">
+              Archived
+              <span className="ml-1.5 font-mono text-[0.65rem] tabular-nums text-muted-foreground">
+                {archivedMatches.length}
+              </span>
+            </TabsTrigger>
+          </TabsList>
 
-                <div className="hidden overflow-x-auto rounded-lg border border-border md:block">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Label</TableHead>
-                        <TableHead>Teams</TableHead>
-                        <TableHead>Score</TableHead>
-                        <TableHead>Status</TableHead>
-                        {canManage ? (
-                          <TableHead className="text-right">Actions</TableHead>
-                        ) : null}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
+          <TabsContent value={listScope} className="mt-0">
+            {isLoading ? (
+              <div className="space-y-4">
+                <Skeleton className="h-6 w-32" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            ) : isError ? (
+              <Empty className="border border-border">
+                <EmptyHeader>
+                  <EmptyTitle>Could not load matches</EmptyTitle>
+                  <EmptyDescription>
+                    {errorMessage || "Unknown error"}
+                  </EmptyDescription>
+                </EmptyHeader>
+                <Button type="button" variant="outline" onClick={onRetry}>
+                  Retry
+                </Button>
+              </Empty>
+            ) : groupedMatches.length === 0 ? (
+              <Empty className="border border-border">
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    {listScope === "archived" ? <Archive /> : <Swords />}
+                  </EmptyMedia>
+                  <EmptyTitle>
+                    {listScope === "archived"
+                      ? "No archived matches"
+                      : "No matches yet"}
+                  </EmptyTitle>
+                  <EmptyDescription>
+                    {listScope === "archived"
+                      ? "Archived matches show here so you can restore them."
+                      : canManage
+                        ? "Add a match manually or generate Round 1 pairings."
+                        : "Matches will appear here once staff add them."}
+                  </EmptyDescription>
+                </EmptyHeader>
+                {canManage && listScope === "active" && matches.length === 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={openAutoMatchPicker}
+                    >
+                      <Shuffle className="size-4" />
+                      Auto matches
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setEditing(null);
+                        setFormOpen(true);
+                      }}
+                    >
+                      <Plus className="size-4" />
+                      Add first match
+                    </Button>
+                  </div>
+                ) : null}
+              </Empty>
+            ) : (
+              <div className="flex flex-col gap-8">
+                {groupedMatches.map(([round, rows]) => (
+                  <section key={round}>
+                    <h2 className="mb-3 font-medium text-muted-foreground text-sm">
+                      {round}
+                    </h2>
+
+                    <div className="hidden overflow-x-auto rounded-lg border border-border md:block">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Label</TableHead>
+                            <TableHead>Teams</TableHead>
+                            <TableHead>Score</TableHead>
+                            <TableHead>Status</TableHead>
+                            {canManage ? (
+                              <TableHead className="text-right">
+                                Actions
+                              </TableHead>
+                            ) : null}
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {rows.map((m) => {
+                            const st = getMatchStatusStyle(m.status);
+                            const label =
+                              m.matchLabel?.trim() ||
+                              `${teamName(m, "A")} vs ${teamName(m, "B")}`;
+                            return (
+                              <TableRow key={m.id}>
+                                <TableCell className="max-w-[200px]">
+                                  <div className="min-w-0">
+                                    <p className="truncate font-medium">
+                                      {label}
+                                    </p>
+                                    <p className="text-muted-foreground text-xs">
+                                      {m.bracket?.trim()
+                                        ? `${m.bracket.trim()} · `
+                                        : ""}
+                                      Order {m.order ?? 0}
+                                      {m.bestOf != null
+                                        ? ` · Bo${m.bestOf}`
+                                        : ""}
+                                    </p>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <MatchTeamsCell match={m} />
+                                </TableCell>
+                                <TableCell className="font-mono tabular-nums">
+                                  {m.scoreA ?? 0} – {m.scoreB ?? 0}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge
+                                    variant="outline"
+                                    className={cn("font-normal", st.className)}
+                                  >
+                                    {st.label}
+                                  </Badge>
+                                </TableCell>
+                                {canManage ? (
+                                  <TableCell className="text-right">
+                                    <MatchActions
+                                      canManage={canManage}
+                                      listScope={listScope}
+                                      resultsPending={resultsPending}
+                                      archivePending={archivePending}
+                                      restorePending={restorePending}
+                                      onResults={() => setResultsMatch(m)}
+                                      onStats={() => setStatsMatch(m)}
+                                      onEdit={() => {
+                                        setEditing(m);
+                                        setFormOpen(true);
+                                      }}
+                                      onArchive={() =>
+                                        m.id && setArchiveId(m.id)
+                                      }
+                                      onRestore={() => {
+                                        if (m.id) void onRestore(m.id);
+                                      }}
+                                    />
+                                  </TableCell>
+                                ) : null}
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+
+                    <div className="divide-y divide-border overflow-hidden rounded-lg border border-border md:hidden">
                       {rows.map((m) => {
                         const st = getMatchStatusStyle(m.status);
                         const label =
                           m.matchLabel?.trim() ||
                           `${teamName(m, "A")} vs ${teamName(m, "B")}`;
                         return (
-                          <TableRow key={m.id}>
-                            <TableCell className="max-w-[200px]">
-                              <div className="min-w-0">
-                                <p className="truncate font-medium">{label}</p>
+                          <div
+                            key={m.id}
+                            className="flex flex-col gap-3 px-3 py-3"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0 flex-1">
+                                <p className="font-medium text-sm">{label}</p>
                                 <p className="text-muted-foreground text-xs">
                                   {m.bracket?.trim()
                                     ? `${m.bracket.trim()} · `
@@ -483,101 +621,49 @@ export function MatchesPage({
                                   {m.bestOf != null ? ` · Bo${m.bestOf}` : ""}
                                 </p>
                               </div>
-                            </TableCell>
-                            <TableCell>
-                              <MatchTeamsCell match={m} />
-                            </TableCell>
-                            <TableCell className="font-mono tabular-nums">
-                              {m.scoreA ?? 0} – {m.scoreB ?? 0}
-                            </TableCell>
-                            <TableCell>
                               <Badge
                                 variant="outline"
-                                className={cn("font-normal", st.className)}
+                                className={cn(
+                                  "shrink-0 font-normal",
+                                  st.className,
+                                )}
                               >
                                 {st.label}
                               </Badge>
-                            </TableCell>
-                            {canManage ? (
-                              <TableCell className="text-right">
-                                <MatchActions
-                                  canManage={canManage}
-                                  resultsPending={resultsPending}
-                                  archivePending={archivePending}
-                                  onResults={() => setResultsMatch(m)}
-                                  onStats={() => setStatsMatch(m)}
-                                  onEdit={() => {
-                                    setEditing(m);
-                                    setFormOpen(true);
-                                  }}
-                                  onArchive={() =>
-                                    m.id && setArchiveId(m.id)
-                                  }
-                                />
-                              </TableCell>
-                            ) : null}
-                          </TableRow>
+                            </div>
+                            <MatchTeamsCell match={m} />
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-mono text-sm tabular-nums">
+                                {m.scoreA ?? 0} – {m.scoreB ?? 0}
+                              </span>
+                              <MatchActions
+                                canManage={canManage}
+                                listScope={listScope}
+                                resultsPending={resultsPending}
+                                archivePending={archivePending}
+                                restorePending={restorePending}
+                                onResults={() => setResultsMatch(m)}
+                                onStats={() => setStatsMatch(m)}
+                                onEdit={() => {
+                                  setEditing(m);
+                                  setFormOpen(true);
+                                }}
+                                onArchive={() => m.id && setArchiveId(m.id)}
+                                onRestore={() => {
+                                  if (m.id) void onRestore(m.id);
+                                }}
+                              />
+                            </div>
+                          </div>
                         );
                       })}
-                    </TableBody>
-                  </Table>
-                </div>
-
-                <div className="divide-y divide-border overflow-hidden rounded-lg border border-border md:hidden">
-                  {rows.map((m) => {
-                    const st = getMatchStatusStyle(m.status);
-                    const label =
-                      m.matchLabel?.trim() ||
-                      `${teamName(m, "A")} vs ${teamName(m, "B")}`;
-                    return (
-                      <div
-                        key={m.id}
-                        className="flex flex-col gap-3 px-3 py-3"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0 flex-1">
-                            <p className="font-medium text-sm">{label}</p>
-                            <p className="text-muted-foreground text-xs">
-                              {m.bracket?.trim()
-                                ? `${m.bracket.trim()} · `
-                                : ""}
-                              Order {m.order ?? 0}
-                              {m.bestOf != null ? ` · Bo${m.bestOf}` : ""}
-                            </p>
-                          </div>
-                          <Badge
-                            variant="outline"
-                            className={cn("shrink-0 font-normal", st.className)}
-                          >
-                            {st.label}
-                          </Badge>
-                        </div>
-                        <MatchTeamsCell match={m} />
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="font-mono text-sm tabular-nums">
-                            {m.scoreA ?? 0} – {m.scoreB ?? 0}
-                          </span>
-                          <MatchActions
-                            canManage={canManage}
-                            resultsPending={resultsPending}
-                            archivePending={archivePending}
-                            onResults={() => setResultsMatch(m)}
-                            onStats={() => setStatsMatch(m)}
-                            onEdit={() => {
-                              setEditing(m);
-                              setFormOpen(true);
-                            }}
-                            onArchive={() => m.id && setArchiveId(m.id)}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            ))}
-          </div>
-        )}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </AdminStagger>
 
       {canManage ? (

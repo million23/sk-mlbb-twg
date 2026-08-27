@@ -50,7 +50,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { ParticipantsRecord } from "@/hooks/orval/model/participantsRecord";
 import type { TeamsRecord } from "@/hooks/orval/model/teamsRecord";
 import type { TeamsRecordStatus } from "@/hooks/orval/model/teamsRecordStatus";
@@ -73,13 +73,8 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
-type StatusTab =
-  | "forming"
-  | "ready"
-  | "incomplete"
-  | "inactive"
-  | "all"
-  | "archived";
+type StatusTab = "forming" | "ready" | "incomplete" | "inactive" | "all";
+type ListScope = "active" | "archived";
 
 const STATUS_TAB_OPTIONS: {
   value: StatusTab;
@@ -90,7 +85,6 @@ const STATUS_TAB_OPTIONS: {
   { value: "ready", label: (c) => `Ready (${c.ready})` },
   { value: "incomplete", label: (c) => `Incomplete (${c.incomplete})` },
   { value: "inactive", label: (c) => `Inactive (${c.inactive})` },
-  { value: "archived", label: (c) => `Archived (${c.archived})` },
 ];
 
 type ExportRow = {
@@ -205,6 +199,7 @@ export function TeamsPage({
   onArchive,
   onRestore,
 }: TeamsPageProps) {
+  const [listScope, setListScope] = useState<ListScope>("active");
   const [tab, setTab] = useState<StatusTab>("all");
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -268,12 +263,12 @@ export function TeamsPage({
     : [];
 
   const filtered = useMemo(() => {
-    const source = tab === "archived" ? archivedTeams : teams;
+    const source = listScope === "archived" ? archivedTeams : teams;
     const q = search.trim().toLowerCase();
     const list = source.filter((t) => {
       if (
+        listScope !== "archived" &&
         tab !== "all" &&
-        tab !== "archived" &&
         (t.status as StatusTab) !== tab
       ) {
         return false;
@@ -291,7 +286,7 @@ export function TeamsPage({
       return name.includes(q) || captain.includes(q) || memberHit;
     });
     return [...list].sort(compareRegisteredDesc);
-  }, [tab, teams, archivedTeams, search, participants]);
+  }, [listScope, tab, teams, archivedTeams, search, participants]);
 
   const addMembersTeam = addMembersTeamId
     ? teams.find((t) => t.id === addMembersTeamId)
@@ -321,11 +316,11 @@ export function TeamsPage({
     };
 
     let rows: ExportRow[] =
-      tab === "archived"
+      listScope === "archived"
         ? filtered.map((t) => toRow(t, true))
         : filtered.map((t) => toRow(t, false));
 
-    if (exportIncludeArchived && tab !== "archived") {
+    if (exportIncludeArchived && listScope !== "archived") {
       rows = [
         ...rows,
         ...archivedTeams.map((t) => toRow(t, true)),
@@ -360,12 +355,12 @@ export function TeamsPage({
         get: (r) => r.members,
       },
     ];
-    if (exportIncludeArchived || tab === "archived") {
+    if (exportIncludeArchived || listScope === "archived") {
       columns.push({
         header: "Archived",
         widthChars: 10,
         type: "text",
-        get: (r) => r.archived ?? (tab === "archived" ? "Yes" : "No"),
+        get: (r) => r.archived ?? (listScope === "archived" ? "Yes" : "No"),
       });
     }
 
@@ -435,6 +430,43 @@ export function TeamsPage({
       </AdminStagger>
 
       <AdminStagger index={1}>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <Tabs
+              value={listScope}
+              onValueChange={(v) =>
+                setListScope(v === "archived" ? "archived" : "active")
+              }
+            >
+              <TabsList>
+                <TabsTrigger value="active">
+                  Active
+                  <span className="ml-1.5 font-mono text-[0.65rem] tabular-nums text-muted-foreground">
+                    {counts.all}
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger value="archived">
+                  Archived
+                  <span className="ml-1.5 font-mono text-[0.65rem] tabular-nums text-muted-foreground">
+                    {counts.archived}
+                  </span>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            <InputGroup className="w-full lg:max-w-xs">
+              <InputGroupAddon>
+                <Search className="size-4" />
+              </InputGroupAddon>
+              <InputGroupInput
+                placeholder="Search team, captain, member…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </InputGroup>
+          </div>
+
+          {listScope === "active" ? (
         <Tabs
           value={tab}
           onValueChange={(v) => setTab((v as StatusTab) ?? "all")}
@@ -470,20 +502,11 @@ export function TeamsPage({
                 </TabsTrigger>
               ))}
             </TabsList>
-
-            <InputGroup className="w-full lg:max-w-xs">
-              <InputGroupAddon>
-                <Search className="size-4" />
-              </InputGroupAddon>
-              <InputGroupInput
-                placeholder="Search team, captain, member…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </InputGroup>
           </div>
+          </Tabs>
+          ) : null}
 
-          <TabsContent value={tab} className="mt-4">
+          <div className="mt-0">
             {isLoading ? (
               <div className="space-y-2">
                 <Skeleton className="h-10 w-full" />
@@ -511,19 +534,19 @@ export function TeamsPage({
                   <EmptyTitle>
                     {search.trim()
                       ? "No teams match"
-                      : tab === "archived"
+                      : listScope === "archived"
                         ? "No archived teams"
                         : "No teams yet"}
                   </EmptyTitle>
                   <EmptyDescription>
                     {search.trim()
                       ? "Try a different search."
-                      : tab === "archived"
-                        ? "Archived teams show up here for restore."
+                      : listScope === "archived"
+                        ? "Archived teams show here so you can restore them."
                         : "Add a team or use Quick team to assemble from unassigned players."}
                   </EmptyDescription>
                 </EmptyHeader>
-                {!search.trim() && tab !== "archived" && canManage ? (
+                {!search.trim() && listScope !== "archived" && canManage ? (
                   <div className="flex flex-wrap gap-2">
                     <Button
                       type="button"
@@ -561,7 +584,7 @@ export function TeamsPage({
                       <TableHead className="hidden sm:table-cell">
                         Registered
                       </TableHead>
-                      {tab === "archived" && canManage ? (
+                      {listScope === "archived" && canManage ? (
                         <TableHead className="text-right">Actions</TableHead>
                       ) : null}
                     </TableRow>
@@ -573,10 +596,10 @@ export function TeamsPage({
                         <TableRow
                           key={t.id}
                           className={
-                            tab === "archived" ? undefined : "cursor-pointer"
+                            listScope === "archived" ? undefined : "cursor-pointer"
                           }
                           onClick={() => {
-                            if (tab === "archived") return;
+                            if (listScope === "archived") return;
                             setSelectedId(t.id ?? null);
                           }}
                         >
@@ -600,7 +623,7 @@ export function TeamsPage({
                           <TableCell className="hidden text-muted-foreground text-sm sm:table-cell">
                             {formatDate(t.created)}
                           </TableCell>
-                          {tab === "archived" && canManage ? (
+                          {listScope === "archived" && canManage ? (
                             <TableCell className="text-right">
                               <Button
                                 type="button"
@@ -624,14 +647,14 @@ export function TeamsPage({
                 </Table>
               </div>
             )}
-          </TabsContent>
-        </Tabs>
+          </div>
+        </div>
       </AdminStagger>
 
       <TeamDetailSheet
         team={selectedTeam}
         members={selectedMembers}
-        open={Boolean(selectedTeam) && tab !== "archived"}
+        open={Boolean(selectedTeam) && listScope !== "archived"}
         onOpenChange={(open) => {
           if (!open) setSelectedId(null);
         }}
@@ -734,13 +757,13 @@ export function TeamsPage({
             <DialogTitle>Export teams</DialogTitle>
             <DialogDescription>
               Downloads a spreadsheet using the current search
-              {tab !== "all" && tab !== "archived"
+              {tab !== "all" && listScope !== "archived"
                 ? ` and “${getTeamStatusStyle(tab as TeamsRecordStatus).label}” filter`
                 : ""}
               .
             </DialogDescription>
           </DialogHeader>
-          {tab !== "archived" ? (
+          {listScope !== "archived" ? (
             <label
               htmlFor="export-include-archived"
               className="flex items-center gap-2 text-sm"
