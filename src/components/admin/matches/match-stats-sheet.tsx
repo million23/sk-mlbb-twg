@@ -16,6 +16,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -29,6 +30,10 @@ import type { ParticipantsRecord } from "@/hooks/orval/model/participantsRecord"
 import { useMatchResultMutations } from "@/hooks/legacy/use-match-result-mutations";
 import { useMatchResultsForMatch } from "@/hooks/legacy/use-match-results";
 import type { MatchRecord } from "@/hooks/legacy/use-matches";
+import {
+  resultGameNumber,
+  seriesGameNumbers,
+} from "@/lib/legacy/match-result-game";
 import { formatParticipantNameDisplay } from "@/lib/legacy/participant-normalize";
 import type { Collections } from "@/types/__pocketbase-types";
 import { Check, Pencil } from "lucide-react";
@@ -48,6 +53,7 @@ const MATCH_RESULT_LANES: {
 
 type StatsRow = {
   playerId: string;
+  gameNumber: number;
   playerLabel: string;
   teamLabel: string;
   resultId?: string;
@@ -58,6 +64,10 @@ type StatsRow = {
   isEditing: boolean;
   dirty: boolean;
 };
+
+function statsRowKey(playerId: string, gameNumber: number) {
+  return `${playerId}:${gameNumber}`;
+}
 
 function teamName(m: MatchRecord, side: "A" | "B"): string {
   const key = side === "A" ? "teamA" : "teamB";
@@ -108,6 +118,184 @@ function normalizeDecimalInput(value: string) {
   return `${whole}.${rest.join("")}`;
 }
 
+function MatchStatsTable({
+  groupedRows,
+  laneLabelByValue,
+  updateRow,
+}: {
+  groupedRows: Array<{ team: string; players: StatsRow[] }>;
+  laneLabelByValue: Map<string, string>;
+  updateRow: (
+    playerId: string,
+    gameNumber: number,
+    patch: Partial<StatsRow>,
+    markDirty?: boolean,
+  ) => void;
+}) {
+  return (
+    <Table className="min-w-[900px]">
+      <TableHeader>
+        <TableRow className="hover:bg-transparent">
+          <TableHead>Player</TableHead>
+          <TableHead>Team</TableHead>
+          <TableHead>Lane</TableHead>
+          <TableHead>KDA</TableHead>
+          <TableHead>Perf rating</TableHead>
+          <TableHead>Gold</TableHead>
+          <TableHead className="w-[110px] text-right">Action</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {groupedRows.map((group, groupIdx) => (
+          <Fragment key={`team-group-${group.team}`}>
+            {groupIdx > 0 ? (
+              <TableRow className="hover:bg-transparent">
+                <TableCell colSpan={7} className="h-3 bg-transparent p-0">
+                  <div className="h-px w-full bg-border/70" />
+                </TableCell>
+              </TableRow>
+            ) : null}
+            <TableRow className="bg-muted/20 hover:bg-muted/20">
+              <TableCell
+                colSpan={7}
+                className="py-2 font-semibold text-muted-foreground text-xs tracking-wide uppercase"
+              >
+                {group.team}
+              </TableCell>
+            </TableRow>
+            {group.players.map((row) => (
+              <TableRow key={statsRowKey(row.playerId, row.gameNumber)}>
+                <TableCell className="font-medium">{row.playerLabel}</TableCell>
+                <TableCell>{row.teamLabel}</TableCell>
+                <TableCell>
+                  <Select
+                    value={row.lane || "__none__"}
+                    onValueChange={(value) =>
+                      updateRow(row.playerId, row.gameNumber, {
+                        lane:
+                          value === "__none__" || value == null ? "" : value,
+                      })
+                    }
+                    disabled={!row.isEditing}
+                  >
+                    <SelectTrigger className="h-8 min-w-[124px]">
+                      <SelectValue placeholder="Lane">
+                        {(value) =>
+                          value && value !== "__none__"
+                            ? (laneLabelByValue.get(value) ?? value)
+                            : "None"
+                        }
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectItem value="__none__">None</SelectItem>
+                        {MATCH_RESULT_LANES.map((laneOption) => (
+                          <SelectItem
+                            key={laneOption.value}
+                            value={laneOption.value}
+                          >
+                            {laneOption.label}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </TableCell>
+                <TableCell>
+                  <Input
+                    value={row.kda}
+                    onChange={(e) =>
+                      updateRow(row.playerId, row.gameNumber, {
+                        kda: normalizeKdaInput(e.target.value),
+                      })
+                    }
+                    onKeyDown={(e) => {
+                      if (e.key !== " " && e.code !== "Space") return;
+                      e.preventDefault();
+                      const input = e.currentTarget;
+                      const start = input.selectionStart ?? input.value.length;
+                      const end = input.selectionEnd ?? input.value.length;
+                      const nextValue = normalizeKdaInput(
+                        `${input.value.slice(0, start)}/${input.value.slice(end)}`,
+                      );
+                      updateRow(row.playerId, row.gameNumber, {
+                        kda: nextValue,
+                      });
+                    }}
+                    placeholder="0/0/0"
+                    className="h-8 min-w-[112px]"
+                    disabled={!row.isEditing}
+                  />
+                </TableCell>
+                <TableCell>
+                  <Input
+                    value={row.rating}
+                    onChange={(e) =>
+                      updateRow(row.playerId, row.gameNumber, {
+                        rating: normalizeDecimalInput(e.target.value),
+                      })
+                    }
+                    placeholder="e.g. 7.8"
+                    type="number"
+                    step="0.01"
+                    min={0}
+                    className="h-8 min-w-[112px]"
+                    disabled={!row.isEditing}
+                  />
+                </TableCell>
+                <TableCell>
+                  <Input
+                    value={row.gold}
+                    onChange={(e) =>
+                      updateRow(row.playerId, row.gameNumber, {
+                        gold: normalizeIntegerInput(e.target.value),
+                      })
+                    }
+                    placeholder="e.g. 12000"
+                    type="number"
+                    min={0}
+                    className="h-8 min-w-[112px]"
+                    disabled={!row.isEditing}
+                  />
+                </TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() =>
+                      updateRow(
+                        row.playerId,
+                        row.gameNumber,
+                        { isEditing: !row.isEditing },
+                        false,
+                      )
+                    }
+                  >
+                    {row.isEditing ? (
+                      <>
+                        <Check className="size-3.5" />
+                        Done
+                      </>
+                    ) : (
+                      <>
+                        <Pencil className="size-3.5" />
+                        Edit
+                      </>
+                    )}
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </Fragment>
+        ))}
+      </TableBody>
+    </Table>
+  );
+}
+
 export function MatchStatsSheet({
   open,
   onOpenChange,
@@ -128,6 +316,9 @@ export function MatchStatsSheet({
     (match ? `${teamName(match, "A")} vs ${teamName(match, "B")}` : "");
   const [rows, setRows] = useState<StatsRow[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [activeGame, setActiveGame] = useState("1");
+  const gameNumbers = seriesGameNumbers(match?.bestOf);
+  const selectedGame = Number.parseInt(activeGame, 10) || 1;
 
   const laneLabelByValue = useMemo(
     () =>
@@ -145,13 +336,16 @@ export function MatchStatsSheet({
     const matchedTeamIds = new Set(
       [match.teamA, match.teamB].filter(Boolean) as string[],
     );
-    const resultsByPlayer = new Map(
+    const resultsByPlayerGame = new Map(
       (matchResults ?? [])
         .filter((result) => Boolean(result.player))
-        .map((result) => [result.player as string, result]),
+        .map((result) => [
+          statsRowKey(result.player as string, resultGameNumber(result)),
+          result,
+        ]),
     );
 
-    return [...participants]
+    const roster = [...participants]
       .filter(
         (p) =>
           p.archived !== true &&
@@ -166,15 +360,20 @@ export function MatchStatsSheet({
         const byIgn = ignA.localeCompare(ignB);
         if (byIgn !== 0) return byIgn;
         return (a.name?.trim() ?? "").localeCompare(b.name?.trim() ?? "");
-      })
-      .map((participant) => {
-        const existing = resultsByPlayer.get(participant.id as string);
+      });
+
+    return seriesGameNumbers(match.bestOf).flatMap((gameNumber) =>
+      roster.map((participant) => {
+        const existing = resultsByPlayerGame.get(
+          statsRowKey(participant.id as string, gameNumber),
+        );
         const ign = participant.ign?.trim();
         const name = formatParticipantNameDisplay(participant.name);
         const playerLabel =
           ign && name ? `${ign} - ${name}` : ign || name || participant.id || "";
         return {
           playerId: participant.id as string,
+          gameNumber,
           playerLabel,
           teamLabel:
             participant.team === match.teamA
@@ -201,7 +400,8 @@ export function MatchStatsSheet({
           isEditing: false,
           dirty: false,
         } satisfies StatsRow;
-      });
+      }),
+    );
   }, [match, matchResults, participants]);
 
   useEffect(() => {
@@ -209,10 +409,19 @@ export function MatchStatsSheet({
     setRows(initialRows);
   }, [open, initialRows]);
 
+  useEffect(() => {
+    if (!open) return;
+    setActiveGame("1");
+  }, [open]);
+
   const hasDirtyRows = rows.some((row) => row.dirty);
+  const visibleRows = useMemo(
+    () => rows.filter((row) => row.gameNumber === selectedGame),
+    [rows, selectedGame],
+  );
   const groupedRows = useMemo(() => {
     const grouped = new Map<string, StatsRow[]>();
-    for (const row of rows) {
+    for (const row of visibleRows) {
       const key = row.teamLabel || "Unassigned";
       const list = grouped.get(key) ?? [];
       list.push(row);
@@ -233,16 +442,17 @@ export function MatchStatsSheet({
         return teamA.localeCompare(teamB);
       })
       .map(([team, players]) => ({ team, players }));
-  }, [rows, match]);
+  }, [visibleRows, match]);
 
   const updateRow = (
     playerId: string,
+    gameNumber: number,
     patch: Partial<StatsRow>,
     markDirty = true,
   ) => {
     setRows((prev) =>
       prev.map((row) =>
-        row.playerId === playerId
+        row.playerId === playerId && row.gameNumber === gameNumber
           ? { ...row, ...patch, dirty: markDirty ? true : row.dirty }
           : row,
       ),
@@ -251,13 +461,7 @@ export function MatchStatsSheet({
 
   const handleSubmit = async () => {
     if (!match || isSaving) return;
-    const changedRowsByTeam = groupedRows
-      .map((group) => ({
-        team: group.team,
-        rows: group.players.filter((row) => row.dirty),
-      }))
-      .filter((group) => group.rows.length > 0);
-    const changedRows = changedRowsByTeam.flatMap((group) => group.rows);
+    const changedRows = rows.filter((row) => row.dirty);
     if (changedRows.length < 1) {
       toast.message("No edited players to submit");
       return;
@@ -267,8 +471,7 @@ export function MatchStatsSheet({
     let savedCount = 0;
     try {
       const createdIds = new Map<string, string>();
-      for (const group of changedRowsByTeam) {
-        for (const row of group.rows) {
+      for (const row of changedRows) {
           const kda = parseKda(row.kda);
           if (!kda) {
             throw new Error(
@@ -294,6 +497,7 @@ export function MatchStatsSheet({
           const payload: Partial<Collections["match_result"]> = {
             match: match.id,
             player: row.playerId,
+            game_number: row.gameNumber,
             lane: (row.lane || undefined) as
               | Collections["match_result"]["lane"]
               | undefined,
@@ -311,10 +515,9 @@ export function MatchStatsSheet({
             });
           } else {
             const created = await mutations.create.mutateAsync(payload);
-            createdIds.set(row.playerId, created.id);
+            createdIds.set(statsRowKey(row.playerId, row.gameNumber), created.id);
           }
           savedCount += 1;
-        }
       }
 
       setRows((prev) =>
@@ -322,7 +525,9 @@ export function MatchStatsSheet({
           if (!row.dirty) return row;
           return {
             ...row,
-            resultId: row.resultId ?? createdIds.get(row.playerId),
+            resultId:
+              row.resultId ??
+              createdIds.get(statsRowKey(row.playerId, row.gameNumber)),
             isEditing: false,
             dirty: false,
           };
@@ -384,176 +589,46 @@ export function MatchStatsSheet({
               first.
             </div>
           ) : (
-            <Table className="min-w-[900px]">
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead>Player</TableHead>
-                  <TableHead>Team</TableHead>
-                  <TableHead>Lane</TableHead>
-                  <TableHead>KDA</TableHead>
-                  <TableHead>Perf rating</TableHead>
-                  <TableHead>Gold</TableHead>
-                  <TableHead className="w-[110px] text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {groupedRows.map((group, groupIdx) => (
-                  <Fragment key={`team-group-${group.team}`}>
-                    {groupIdx > 0 ? (
-                      <TableRow className="hover:bg-transparent">
-                        <TableCell
-                          colSpan={7}
-                          className="h-3 bg-transparent p-0"
+            <div className="flex flex-col gap-4">
+              {gameNumbers.length > 1 ? (
+                <Tabs
+                  value={activeGame}
+                  onValueChange={(v) => setActiveGame(String(v ?? "1"))}
+                >
+                  <TabsList className="w-fit max-w-full flex-wrap justify-start">
+                    {gameNumbers.map((gameNumber) => {
+                      const dirty = rows.some(
+                        (row) => row.gameNumber === gameNumber && row.dirty,
+                      );
+                      return (
+                        <TabsTrigger
+                          key={gameNumber}
+                          value={String(gameNumber)}
                         >
-                          <div className="h-px w-full bg-border/70" />
-                        </TableCell>
-                      </TableRow>
-                    ) : null}
-                    <TableRow className="bg-muted/20 hover:bg-muted/20">
-                      <TableCell
-                        colSpan={7}
-                        className="py-2 font-semibold text-muted-foreground text-xs tracking-wide uppercase"
-                      >
-                        {group.team}
-                      </TableCell>
-                    </TableRow>
-                    {group.players.map((row) => (
-                      <TableRow key={row.playerId}>
-                        <TableCell className="font-medium">
-                          {row.playerLabel}
-                        </TableCell>
-                        <TableCell>{row.teamLabel}</TableCell>
-                        <TableCell>
-                          <Select
-                            value={row.lane || "__none__"}
-                            onValueChange={(value) =>
-                              updateRow(row.playerId, {
-                                lane:
-                                  value === "__none__" || value == null
-                                    ? ""
-                                    : value,
-                              })
-                            }
-                            disabled={!row.isEditing}
-                          >
-                            <SelectTrigger className="h-8 min-w-[124px]">
-                              <SelectValue placeholder="Lane">
-                                {(value) =>
-                                  value && value !== "__none__"
-                                    ? (laneLabelByValue.get(
-                                        value as NonNullable<
-                                          Collections["match_result"]["lane"]
-                                        >,
-                                      ) ?? value)
-                                    : "None"
-                                }
-                              </SelectValue>
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectGroup>
-                                <SelectItem value="__none__">None</SelectItem>
-                                {MATCH_RESULT_LANES.map((laneOption) => (
-                                  <SelectItem
-                                    key={laneOption.value}
-                                    value={laneOption.value}
-                                  >
-                                    {laneOption.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectGroup>
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            value={row.kda}
-                            onChange={(e) =>
-                              updateRow(row.playerId, {
-                                kda: normalizeKdaInput(e.target.value),
-                              })
-                            }
-                            onKeyDown={(e) => {
-                              if (e.key !== " " && e.code !== "Space") return;
-                              e.preventDefault();
-                              const input = e.currentTarget;
-                              const start =
-                                input.selectionStart ?? input.value.length;
-                              const end =
-                                input.selectionEnd ?? input.value.length;
-                              const nextValue = normalizeKdaInput(
-                                `${input.value.slice(0, start)}/${input.value.slice(end)}`,
-                              );
-                              updateRow(row.playerId, { kda: nextValue });
-                            }}
-                            placeholder="0/0/0"
-                            className="h-8 min-w-[112px]"
-                            disabled={!row.isEditing}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            value={row.rating}
-                            onChange={(e) =>
-                              updateRow(row.playerId, {
-                                rating: normalizeDecimalInput(e.target.value),
-                              })
-                            }
-                            placeholder="e.g. 7.8"
-                            type="number"
-                            step="0.01"
-                            min={0}
-                            className="h-8 min-w-[112px]"
-                            disabled={!row.isEditing}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            value={row.gold}
-                            onChange={(e) =>
-                              updateRow(row.playerId, {
-                                gold: normalizeIntegerInput(e.target.value),
-                              })
-                            }
-                            placeholder="e.g. 12000"
-                            type="number"
-                            min={0}
-                            className="h-8 min-w-[112px]"
-                            disabled={!row.isEditing}
-                          />
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="gap-1.5"
-                            onClick={() =>
-                              updateRow(
-                                row.playerId,
-                                { isEditing: !row.isEditing },
-                                false,
-                              )
-                            }
-                          >
-                            {row.isEditing ? (
-                              <>
-                                <Check className="size-3.5" />
-                                Done
-                              </>
-                            ) : (
-                              <>
-                                <Pencil className="size-3.5" />
-                                Edit
-                              </>
-                            )}
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </Fragment>
-                ))}
-              </TableBody>
-            </Table>
+                          Game {gameNumber}
+                          {dirty ? (
+                            <span className="size-1.5 rounded-full bg-primary" />
+                          ) : null}
+                        </TabsTrigger>
+                      );
+                    })}
+                  </TabsList>
+                  <TabsContent value={activeGame} className="mt-4">
+                    <MatchStatsTable
+                      groupedRows={groupedRows}
+                      laneLabelByValue={laneLabelByValue}
+                      updateRow={updateRow}
+                    />
+                  </TabsContent>
+                </Tabs>
+              ) : (
+                <MatchStatsTable
+                  groupedRows={groupedRows}
+                  laneLabelByValue={laneLabelByValue}
+                  updateRow={updateRow}
+                />
+              )}
+            </div>
           )}
         </div>
 

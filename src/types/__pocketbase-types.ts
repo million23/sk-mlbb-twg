@@ -78,6 +78,7 @@ export interface Collections {
         assists?: number;
         game_performance_rating?: number;
         accumulated_gold?: number;
+        game_number?: number;
         archived?: boolean;
         updated_by?: string; // admin id
         created_by?: string; // admin id

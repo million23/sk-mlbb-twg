@@ -64,6 +64,7 @@ export interface Collections {
     assists?: number
     game_performance_rating?: number
     accumulated_gold?: number
+    game_number?: number
     archived: boolean
     created_by?: string
     updated_by?: string

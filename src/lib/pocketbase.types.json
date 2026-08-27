@@ -3209,6 +3209,9 @@
           "accumulated_gold": {
             "type": "number"
           },
+          "game_number": {
+            "type": "number"
+          },
           "archived": {
             "type": "boolean"
           },

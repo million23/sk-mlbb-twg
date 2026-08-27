@@ -20,26 +20,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { MatchPlayerResultsBody } from "@/components/public/match-player-results";
 import { Spinner } from "@/components/ui/spinner";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  type MatchResultRecord,
-  useMatchResultsForMatch,
-} from "@/hooks/legacy/use-match-results";
+import { useMatchResultsForMatch } from "@/hooks/legacy/use-match-results";
 import {
   type MatchRecord,
   useMatchesForTournament,
 } from "@/hooks/legacy/use-matches";
 import { usePublicTournaments } from "@/hooks/legacy/use-tournaments";
 import { getMatchStatusStyle } from "@/lib/legacy/match-status";
-import { LANE_ICON_SRC, LANE_ROLE_LABELS } from "@/lib/legacy/lane-role-icons";
 import { tournamentLabel } from "@/lib/legacy/tournament-label";
 import { cn } from "@/lib/utils";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -50,13 +39,6 @@ import { useMemo, useState } from "react";
 export const Route = createFileRoute("/legacy/p/tournaments/$id")({
   component: TournamentMatchesPage,
 });
-
-type LaneKey = NonNullable<MatchResultRecord["lane"]>;
-
-const LANE_ORDER: LaneKey[] = ["gold", "exp", "mid", "jungle", "support"];
-const LANE_LABEL: Record<LaneKey, string> = {
-  gold: "Gold", exp: "Exp", mid: "Mid", jungle: "Jungle", support: "Support",
-};
 
 function teamName(m: MatchRecord, side: "A" | "B"): string {
   const key = side === "A" ? "teamA" : "teamB";
@@ -78,25 +60,6 @@ function formatScheduled(iso: string | undefined) {
   }
 }
 
-function kda(r: MatchResultRecord): string {
-  if (r.kills == null && r.deaths == null && r.assists == null) return "—";
-  const k = r.kills ?? 0;
-  const d = Math.max(1, r.deaths ?? 0);
-  const a = r.assists ?? 0;
-  return ((k + a) / d).toFixed(2);
-}
-
-function playerLabel(r: MatchResultRecord): string {
-  const p = r.expand?.player;
-  if (!p) return "Unknown";
-  const gameId = p.gameID?.trim();
-  const name = p.name?.trim();
-  if (gameId && name) return `${gameId} · ${name}`;
-  return gameId || name || "Unknown";
-}
-
-/* ── Match result sheet ──────────────────────────────────────── */
-
 function MatchResultModal({
   match,
   open,
@@ -106,138 +69,61 @@ function MatchResultModal({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
-  const { data: results, isLoading } = useMatchResultsForMatch(
-    match?.id,
-    { enabled: open && Boolean(match?.id) },
-  );
+  const { data: results, isLoading } = useMatchResultsForMatch(match?.id, {
+    enabled: open && Boolean(match?.id),
+  });
 
   const tA = match ? teamName(match, "A") : "";
   const tB = match ? teamName(match, "B") : "";
   const win = match ? winnerName(match) : "";
 
-  const byTeam = useMemo(() => {
-    if (!match || !results) return { a: [] as MatchResultRecord[], b: [] as MatchResultRecord[] };
-    const sort = (rows: MatchResultRecord[]) =>
-      [...rows].sort((x, y) => {
-        const li = LANE_ORDER.indexOf(x.lane as LaneKey);
-        const lj = LANE_ORDER.indexOf(y.lane as LaneKey);
-        return (li === -1 ? 99 : li) - (lj === -1 ? 99 : lj);
-      });
-    const aIds = new Set(
-      results
-        .filter((r) => r.expand?.player?.team === match.teamA)
-        .map((r) => r.id),
-    );
-    const a = sort(results.filter((r) => aIds.has(r.id)));
-    const b = sort(results.filter((r) => !aIds.has(r.id)));
-    return { a, b };
-  }, [results, match]);
-
-  const hasResults = (byTeam.a.length + byTeam.b.length) > 0;
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[90vh] w-full max-w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl">
         <DialogHeader className="border-b border-border/50 px-6 pt-6 pb-4">
-          <DialogTitle className="font-serif text-xl pr-6">
+          <DialogTitle className="pr-6 font-serif text-xl">
             {match?.matchLabel?.trim() || "Match Results"}
           </DialogTitle>
-          {match && (
+          {match ? (
             <DialogDescription className="flex flex-wrap items-center gap-3 pt-1">
-              <span className={cn("font-medium text-sm", win === tA && "text-primary")}>{tA}</span>
+              <span
+                className={cn(
+                  "font-medium text-sm",
+                  win === tA && "text-primary",
+                )}
+              >
+                {tA}
+              </span>
               <span className="font-mono text-muted-foreground text-sm">
                 {match.scoreA ?? 0} : {match.scoreB ?? 0}
               </span>
-              <span className={cn("font-medium text-sm", win === tB && "text-primary")}>{tB}</span>
-              {win && (
+              <span
+                className={cn(
+                  "font-medium text-sm",
+                  win === tB && "text-primary",
+                )}
+              >
+                {tB}
+              </span>
+              {win ? (
                 <span className="flex items-center gap-1.5 text-primary text-xs">
                   <Crown className="size-3" aria-hidden />
                   {win} wins
                 </span>
-              )}
+              ) : null}
             </DialogDescription>
-          )}
+          ) : null}
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto px-6 py-5">
-          {isLoading ? (
-            <div className="flex min-h-[16vh] flex-col items-center justify-center gap-3">
-              <Spinner className="size-6 text-primary" />
-              <p className="text-sm text-muted-foreground">Loading results…</p>
-            </div>
-          ) : !hasResults ? (
-            <div className="flex min-h-[16vh] flex-col items-center justify-center gap-2 text-center">
-              <p className="text-sm text-muted-foreground">No player results recorded for this match yet.</p>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-6">
-              {([["a", tA], ["b", tB]] as const).map(([side, name]) => {
-                const rows = byTeam[side];
-                if (!rows.length) return null;
-                const isWinner = win && win === name;
-                return (
-                  <div key={side} className="flex flex-col gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className={cn("font-serif text-base font-medium", isWinner && "text-primary")}>
-                        {name}
-                      </span>
-                      {isWinner && <Crown className="size-3.5 text-primary" aria-hidden />}
-                      <span className="h-px flex-1 bg-linear-to-r from-border to-transparent" />
-                    </div>
-                    <div className="overflow-x-auto rounded-xl border border-border/60 bg-card/40">
-                      <Table>
-                        <TableHeader>
-                          <TableRow className="border-border/40">
-                            <TableHead className="pl-4">Player</TableHead>
-                            <TableHead>Lane</TableHead>
-                            <TableHead className="text-right">K</TableHead>
-                            <TableHead className="text-right">D</TableHead>
-                            <TableHead className="text-right">A</TableHead>
-                            <TableHead className="text-right">KDA</TableHead>
-                            <TableHead className="text-right">Perf</TableHead>
-                            <TableHead className="text-right pr-4">Gold</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {rows.map((r) => (
-                            <TableRow key={r.id} className="border-border/30">
-                              <TableCell className="pl-4 font-medium text-sm">{playerLabel(r)}</TableCell>
-                              <TableCell>
-                                {r.lane ? (
-                                  <div className="flex items-center gap-1.5">
-                                    <img
-                                      src={LANE_ICON_SRC[r.lane as LaneKey]}
-                                      alt={LANE_ROLE_LABELS[r.lane as LaneKey]}
-                                      className="size-4 shrink-0"
-                                    />
-                                    <span className="font-mono text-xs text-muted-foreground">
-                                      {LANE_LABEL[r.lane as LaneKey]}
-                                    </span>
-                                  </div>
-                                ) : (
-                                  <span className="text-muted-foreground">—</span>
-                                )}
-                              </TableCell>
-                              <TableCell className="text-right tabular-nums">{r.kills ?? "—"}</TableCell>
-                              <TableCell className="text-right tabular-nums">{r.deaths ?? "—"}</TableCell>
-                              <TableCell className="text-right tabular-nums">{r.assists ?? "—"}</TableCell>
-                              <TableCell className="text-right tabular-nums font-mono text-xs">{kda(r)}</TableCell>
-                              <TableCell className="text-right tabular-nums">
-                                {r.game_performance_rating != null ? r.game_performance_rating.toFixed(1) : "—"}
-                              </TableCell>
-                              <TableCell className="text-right tabular-nums pr-4 text-muted-foreground text-xs">
-                                {r.accumulated_gold != null ? Math.round(r.accumulated_gold).toLocaleString() : "—"}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          {match ? (
+            <MatchPlayerResultsBody
+              key={match.id}
+              match={match}
+              results={results}
+              isLoading={isLoading}
+            />
+          ) : null}
         </div>
       </DialogContent>
     </Dialog>
