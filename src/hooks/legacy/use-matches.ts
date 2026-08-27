@@ -10,6 +10,11 @@ export function matchesActiveFilter(tournamentId: string) {
   return `tournament = "${tournamentId}" && archived != true`;
 }
 
+/** Public list: hide drafts until staff publish them as scheduled. */
+export function matchesPublicFilter(tournamentId: string) {
+  return `${matchesActiveFilter(tournamentId)} && status != "draft"`;
+}
+
 /** PocketBase filter: archived matches for a tournament. */
 export function matchesArchivedFilter(tournamentId: string) {
   return `tournament = "${tournamentId}" && archived = true`;
@@ -25,19 +30,26 @@ export type MatchRecord = Collections["matches"] & {
 
 export function useMatchesForTournament(
   tournamentId: string | undefined,
-  options?: { enabled?: boolean },
+  options?: { enabled?: boolean; publicOnly?: boolean },
 ) {
   const eligible = options?.enabled ?? true;
+  const publicOnly = options?.publicOnly ?? false;
   return useQuery({
     ...pocketbaseListQueryOptions,
-    queryKey: [...queryKeys.matches, tournamentId ?? "none"] as const,
+    queryKey: [
+      ...queryKeys.matches,
+      tournamentId ?? "none",
+      publicOnly ? "public" : "admin",
+    ] as const,
     enabled: Boolean(tournamentId) && eligible,
     queryFn: () =>
       rateLimited(async () => {
         if (!tournamentId) return [];
         const col = getCollection("matches");
         const list = await col.getFullList({
-          filter: matchesActiveFilter(tournamentId),
+          filter: publicOnly
+            ? matchesPublicFilter(tournamentId)
+            : matchesActiveFilter(tournamentId),
           sort: "+round,+order",
           expand: "teamA,teamB,winner",
         });

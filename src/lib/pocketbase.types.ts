@@ -83,7 +83,7 @@ export interface Collections {
     best_of: number
     match_label?: string
     scheduled_at?: string
-    status: "scheduled" | "live" | "completed" | "walkover" | "cancelled"
+    status: "draft" | "scheduled" | "live" | "completed" | "walkover" | "cancelled"
     score_a?: number
     score_b?: number
     notes?: string

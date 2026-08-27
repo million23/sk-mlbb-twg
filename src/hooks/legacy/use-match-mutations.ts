@@ -222,6 +222,18 @@ export function useMatchMutations() {
     },
   });
 
+  const publishDraftsMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      return rateLimited(async () => {
+        const col = getCollection("matches");
+        for (const id of ids) {
+          await col.update(id, withUpdatedAuditField({ status: "scheduled" }));
+        }
+      });
+    },
+    onSettled: () => invalidateMatches(queryClient),
+  });
+
   return {
     create: {
       mutate: createMutation.mutate,
@@ -247,6 +259,11 @@ export function useMatchMutations() {
       mutate: createManyMutation.mutate,
       mutateAsync: createManyMutation.mutateAsync,
       isPending: createManyMutation.isPending,
+    },
+    publishDrafts: {
+      mutate: publishDraftsMutation.mutate,
+      mutateAsync: publishDraftsMutation.mutateAsync,
+      isPending: publishDraftsMutation.isPending,
     },
   };
 }

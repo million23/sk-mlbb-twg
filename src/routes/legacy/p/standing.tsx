@@ -162,7 +162,7 @@ function PublicStandingPage() {
 
 	const { data: matches, isLoading: matchesLoading } = useMatchesForTournament(
 		tournamentId || undefined,
-		{ enabled: tournamentEligible },
+		{ enabled: tournamentEligible, publicOnly: true },
 	);
 	const { data: matchResults, isLoading: matchResultsLoading } =
 		useMatchResultsForTournament(tournamentId || undefined, {

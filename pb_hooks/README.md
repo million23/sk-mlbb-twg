@@ -43,6 +43,7 @@ sk-mlbb-twg/
     registration_mail.pb.js
     admins_mail.pb.js
     sk_ops.pb.js
+    sk_matches.pb.js
     sk_mail.js
     sk_discord.js
     views/emails/
@@ -92,6 +93,12 @@ Vite app needs matching `VITE_TURNSTILE_SITE_KEY` in `.env` only (public).
 Not used for normal registration success (that stays email-only).
 
 Set `DISCORD_WEBHOOK_URL` on the PocketHost instance (Channel → Integrations → Webhooks → Copy URL), redeploy `pb_hooks/`, then **restart**.
+
+### Draft matches
+
+[`sk_matches.pb.js`](./sk_matches.pb.js) hides `status = draft` from guests on list and view. Staff auth still sees drafts.
+
+In PocketBase, add `draft` to the `matches.status` select values, then restart after deploying the hook.
 
 Cloudflare always-pass test keys: [Turnstile testing](https://developers.cloudflare.com/turnstile/troubleshooting/testing/).
 

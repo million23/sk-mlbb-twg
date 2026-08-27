@@ -6,6 +6,11 @@ const STYLES: Record<
   MatchStatusValue,
   { className: string; label: string }
 > = {
+  draft: {
+    className:
+      "border-muted-foreground/30 bg-muted/40 text-muted-foreground",
+    label: "Draft",
+  },
   scheduled: {
     className:
       "border-muted-foreground/30 bg-muted/40 text-muted-foreground",
@@ -37,4 +42,10 @@ export function getMatchStatusStyle(
 ): { className: string; label: string } {
   const key = status ?? "scheduled";
   return STYLES[key] ?? STYLES.scheduled;
+}
+
+export function isDraftMatchStatus(
+  status: Collections["matches"]["status"] | undefined,
+): boolean {
+  return status === "draft";
 }

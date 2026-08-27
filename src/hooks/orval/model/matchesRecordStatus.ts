@@ -10,6 +10,7 @@ export type MatchesRecordStatus = typeof MatchesRecordStatus[keyof typeof Matche
 
 
 export const MatchesRecordStatus = {
+  draft: 'draft',
   scheduled: 'scheduled',
   live: 'live',
   completed: 'completed',

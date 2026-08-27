@@ -99,7 +99,7 @@ export function AutoMatchDialog({
 
   const defaultDescription = seeded
     ? "Review pairings before creating matches."
-    : `${teams.length} team${teams.length === 1 ? "" : "s"} → ${bracketCount} brackets${perBracket > 0 ? ` (${perBracket} each)` : ""}. Pairings stay inside each bracket.${perBracket === SK_TEAMS_PER_BRACKET ? " Full SK field (16 per bracket)." : ""}`;
+    : `${teams.length} team${teams.length === 1 ? "" : "s"} → ${bracketCount} brackets${perBracket > 0 ? ` (${perBracket} each)` : ""}. Pairings stay inside each bracket.${perBracket === SK_TEAMS_PER_BRACKET ? " Full SK field (16 per bracket)." : ""} Generated matches stay drafts until you publish them.`;
 
   const updateRow = (
     index: number,

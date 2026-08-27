@@ -25,7 +25,7 @@ export type AutoMatchCreateRow = {
   round: string;
   order: number;
   bestOf: number;
-  status: "scheduled";
+  status: "draft";
   matchLabel: string;
   bracket?: string;
 };
@@ -43,6 +43,16 @@ export type PlayoffAdvancer = {
 /** SK elimination default: four brackets of up to 16. */
 export const SK_BRACKET_COUNT = 4;
 export const SK_TEAMS_PER_BRACKET = 16;
+
+export const AUTO_MATCH_BRACKET_OPTIONS = [2, 4] as const;
+export type AutoMatchBracketOption =
+  (typeof AUTO_MATCH_BRACKET_OPTIONS)[number];
+
+export function defaultAutoMatchBracketCount(
+  count?: number,
+): AutoMatchBracketOption {
+  return count === 2 ? 2 : 4;
+}
 
 const BRACKET_LABELS = ["Bracket A", "Bracket B", "Bracket C", "Bracket D"];
 
@@ -308,7 +318,7 @@ export function autoMatchCreatePayload(
     round: row.round.trim() || "Round 1",
     order: Number.isFinite(row.order) ? row.order : index + 1,
     bestOf: Math.max(1, Number.isFinite(row.bestOf) ? row.bestOf : 3),
-    status: "scheduled" as const,
+    status: "draft" as const,
     matchLabel: `${row.teamA.name || row.teamA.id} vs ${row.teamB.name || row.teamB.id}`,
     ...(row.bracket?.trim() ? { bracket: row.bracket.trim() } : {}),
   }));

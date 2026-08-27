@@ -49,6 +49,7 @@ export type MatchFormValues = {
 };
 
 const MATCH_STATUSES: { value: MatchStatusValue; label: string }[] = [
+  { value: "draft", label: "Draft" },
   { value: "scheduled", label: "Scheduled" },
   { value: "live", label: "Live" },
   { value: "completed", label: "Completed" },
