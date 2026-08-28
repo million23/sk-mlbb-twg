@@ -56,6 +56,7 @@ import {
   findAdvanceSourceRound,
   toBracketMatchInput,
 } from "@/lib/admin/bracket-rounds";
+import { downloadMatchDetailsSpreadsheet } from "@/lib/admin/match-details-xlsx";
 import { downloadMatchRosterSpreadsheet } from "@/lib/admin/match-roster-xlsx";
 import { getMatchStatusStyle, isDraftMatchStatus } from "@/lib/legacy/match-status";
 import { cn } from "@/lib/utils";
@@ -64,6 +65,7 @@ import {
   BarChart3,
   ChevronRight,
   Download,
+  FileSpreadsheet,
   Globe,
   Loader2,
   Medal,
@@ -372,6 +374,27 @@ export function MatchesPage({
     [matches],
   );
 
+  const exportFileBasename = () =>
+    tournamentTitle
+      ?.trim()
+      .replace(/[^a-z0-9]+/gi, "-")
+      .replace(/^-|-$/g, "") || "tournament";
+
+  const exportPlayers = () =>
+    participants.flatMap((p) =>
+      p.id
+        ? [
+            {
+              id: p.id,
+              ign: p.ign,
+              name: p.name,
+              teamId: p.team,
+              archived: p.archived,
+            },
+          ]
+        : [],
+    );
+
   const exportMatchRoster = async () => {
     if (activeMatches.length === 0 || exporting) return;
     setExporting(true);
@@ -379,17 +402,12 @@ export function MatchesPage({
       const stats = await fetchMatchResultsForMatchIds(
         activeMatches.flatMap((m) => (m.id ? [m.id] : [])),
       );
-      const basename =
-        tournamentTitle
-          ?.trim()
-          .replace(/[^a-z0-9]+/gi, "-")
-          .replace(/^-|-$/g, "") || "tournament";
       downloadMatchRosterSpreadsheet({
-        fileBasename: `${basename}-match-roster`,
+        fileBasename: `${exportFileBasename()}-match-checklist`,
         sheetName: "Matches",
         workbookTitle: tournamentTitle
-          ? `${tournamentTitle} match roster`
-          : "Match roster",
+          ? `${tournamentTitle} match checklist`
+          : "Match checklist",
         matches: activeMatches.map((m) => ({
           id: m.id,
           teamAId: m.teamA,
@@ -400,22 +418,10 @@ export function MatchesPage({
           order: m.order,
           archived: m.archived,
         })),
-        players: participants.flatMap((p) =>
-          p.id
-            ? [
-                {
-                  id: p.id,
-                  ign: p.ign,
-                  name: p.name,
-                  teamId: p.team,
-                  archived: p.archived,
-                },
-              ]
-            : [],
-        ),
+        players: exportPlayers(),
         stats,
       });
-      toast.success("Spreadsheet downloaded");
+      toast.success("Match checklist downloaded");
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Could not export spreadsheet",
@@ -423,6 +429,32 @@ export function MatchesPage({
     } finally {
       setExporting(false);
     }
+  };
+
+  const exportMatchDetails = () => {
+    if (activeMatches.length === 0 || exporting) return;
+    downloadMatchDetailsSpreadsheet({
+      fileBasename: `${exportFileBasename()}-match-scores`,
+      workbookTitle: tournamentTitle
+        ? `${tournamentTitle} scores and winners`
+        : "Match scores",
+      matches: activeMatches.map((m) => ({
+        id: m.id,
+        matchLabel: m.matchLabel,
+        round: m.round,
+        order: m.order,
+        teamAId: m.teamA,
+        teamBId: m.teamB,
+        teamAName: teamName(m, "A"),
+        teamBName: teamName(m, "B"),
+        scoreA: m.scoreA,
+        scoreB: m.scoreB,
+        winnerId: m.winner,
+        winnerName: winnerName(m),
+        archived: m.archived,
+      })),
+    });
+    toast.success("Scores and winners downloaded");
   };
 
   return (
@@ -573,11 +605,11 @@ export function MatchesPage({
               </Empty>
             ) : (
               <div className="flex flex-col gap-8">
-                <div>
+                <div className="flex flex-wrap gap-2">
                   <Button
                     type="button"
                     variant="outline"
-                    disabled={exporting || activeMatches.length === 0}
+                    disabled={Boolean(exporting) || activeMatches.length === 0}
                     onClick={() => void exportMatchRoster()}
                   >
                     {exporting ? (
@@ -588,6 +620,15 @@ export function MatchesPage({
                     {exporting
                       ? "Downloading…"
                       : "Download Match Checklist"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={Boolean(exporting) || activeMatches.length === 0}
+                    onClick={exportMatchDetails}
+                  >
+                    <FileSpreadsheet className="size-4" />
+                    Download scores & winners
                   </Button>
                 </div>
                 {groupedMatches.map(([round, rows]) => (
