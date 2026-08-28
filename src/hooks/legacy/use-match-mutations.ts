@@ -1,9 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toMatchWritePayload } from "@/lib/admin/match-write";
 import { withCreatedAuditFields, withUpdatedAuditField } from "@/lib/legacy/mutation-authors";
-import { getCollection } from "@/lib/pocketbase";
+import { supabase } from "@/lib/supabase/client";
+import { emptyToNull, throwIfError } from "@/lib/supabase/errors";
 import { queryKeys } from "@/lib/legacy/query-keys";
-import { rateLimited } from "@/lib/rate-limited-api";
 import type { MatchRecord } from "@/hooks/legacy/use-matches";
 import type { Collections } from "@/types/__pocketbase-types";
 
@@ -14,6 +14,14 @@ type CreateManyMatchesInput = {
   tournamentId: string;
   matches: MatchInput[];
 };
+
+function matchDbPayload(data: Record<string, unknown>) {
+  const body = { ...data };
+  for (const key of ["team_a", "team_b", "winner"] as const) {
+    if (key in body) body[key] = emptyToNull(body[key] as string | null | undefined);
+  }
+  return body;
+}
 
 function invalidateMatches(queryClient: ReturnType<typeof useQueryClient>) {
   queryClient.invalidateQueries({ queryKey: queryKeys.matches });
@@ -32,12 +40,12 @@ export function useMatchMutations() {
 
   const createMutation = useMutation({
     mutationFn: async (data: MatchInput) => {
-      return rateLimited(async () => {
-        const col = getCollection("matches");
-        return col.create(
-          withCreatedAuditFields(toMatchWritePayload(data, "create")),
-        );
-      });
+      const payload = matchDbPayload(
+        withCreatedAuditFields(toMatchWritePayload(data, "create")),
+      );
+      return throwIfError(
+        await supabase.from("matches").insert(payload as never).select("*").single(),
+      );
     },
     onMutate: async (data) => {
       const tid = data.tournament;
@@ -97,13 +105,12 @@ export function useMatchMutations() {
   const updateMutation = useMutation({
     mutationFn: async (data: MatchInput & { id: string }) => {
       const { id, ...patch } = data;
-      return rateLimited(async () => {
-        const col = getCollection("matches");
-        return col.update(
-          id,
-          withUpdatedAuditField(toMatchWritePayload(patch, "update")),
-        );
-      });
+      const payload = matchDbPayload(
+        withUpdatedAuditField(toMatchWritePayload(patch, "update")),
+      );
+      return throwIfError(
+        await supabase.from("matches").update(payload as never).eq("id", id).select("*").single(),
+      );
     },
     onMutate: async (data) => {
       const { id, ...patch } = data;
@@ -159,10 +166,12 @@ export function useMatchMutations() {
 
   const archiveMutation = useMutation({
     mutationFn: async (id: string) => {
-      return rateLimited(async () => {
-        const col = getCollection("matches");
-        return col.update(id, withUpdatedAuditField({ archived: true }));
-      });
+      return throwIfError(
+        await supabase
+          .from("matches")
+          .update(withUpdatedAuditField({ archived: true }) as never)
+          .eq("id", id),
+      );
     },
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.matches });
@@ -193,35 +202,35 @@ export function useMatchMutations() {
 
   const restoreMutation = useMutation({
     mutationFn: async (id: string) => {
-      return rateLimited(async () => {
-        const col = getCollection("matches");
-        return col.update(id, withUpdatedAuditField({ archived: false }));
-      });
+      return throwIfError(
+        await supabase
+          .from("matches")
+          .update(withUpdatedAuditField({ archived: false }) as never)
+          .eq("id", id),
+      );
     },
     onSettled: () => invalidateMatches(queryClient),
   });
 
   const createManyMutation = useMutation({
     mutationFn: async ({ tournamentId, matches }: CreateManyMatchesInput) => {
-      return rateLimited(async () => {
-        const col = getCollection("matches");
-        const created: MatchRecord[] = [];
-        for (const payload of matches) {
-          const row = await col.create(
-            withCreatedAuditFields(
-              toMatchWritePayload(
-                {
-                  ...payload,
-                  tournament: tournamentId,
-                },
-                "create",
-              ),
+      const rows = matches.map((payload) =>
+        matchDbPayload(
+          withCreatedAuditFields(
+            toMatchWritePayload(
+              {
+                ...payload,
+                tournament: tournamentId,
+              },
+              "create",
             ),
-          );
-          created.push(row as MatchRecord);
-        }
-        return created;
-      });
+          ),
+        ),
+      );
+      const data = throwIfError(
+        await supabase.from("matches").insert(rows as never).select("*"),
+      );
+      return (data ?? []) as unknown as MatchRecord[];
     },
     onSettled: (_data, _error, variables) => {
       const tid = variables?.tournamentId;
@@ -235,12 +244,13 @@ export function useMatchMutations() {
 
   const publishDraftsMutation = useMutation({
     mutationFn: async (ids: string[]) => {
-      return rateLimited(async () => {
-        const col = getCollection("matches");
-        for (const id of ids) {
-          await col.update(id, withUpdatedAuditField({ status: "scheduled" }));
-        }
-      });
+      if (ids.length === 0) return;
+      throwIfError(
+        await supabase
+          .from("matches")
+          .update(withUpdatedAuditField({ status: "scheduled" }) as never)
+          .in("id", ids),
+      );
     },
     onSettled: () => invalidateMatches(queryClient),
   });

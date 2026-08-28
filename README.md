@@ -12,7 +12,8 @@ For how to run an event (players and committee), see **[MANUAL.md](./MANUAL.md)*
 - [Vite](https://vite.dev/) + [React 19](https://react.dev/)
 - [TanStack Router](https://tanstack.com/router) — file-based routes under `src/routes`
 - [TanStack Query](https://tanstack.com/query) — client data layer
-- [PocketBase](https://pocketbase.io/) — backend (hosted URL via env); hooks in `pb_hooks/`
+- [Supabase](https://supabase.com/) — Postgres, Auth, RLS (URL + publishable key via env)
+- [PocketBase](https://pocketbase.io/) — previous backend; still referenced by legacy routes
 - [Tailwind CSS v4](https://tailwindcss.com/) — styling
 - UI: shadcn-style components ([Base UI](https://base-ui.com/), Lucide)
 
@@ -36,7 +37,9 @@ For how to run an event (players and committee), see **[MANUAL.md](./MANUAL.md)*
 
    | Variable | Purpose |
    | --- | --- |
-   | `VITE_POCKETHOST_URL` | PocketBase / PocketHost instance |
+   | `VITE_SUPABASE_URL` | Supabase project URL |
+   | `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable key |
+   | `VITE_POCKETHOST_URL` | Legacy PocketBase instance |
    | `VITE_TURNSTILE_SITE_KEY` | Cloudflare Turnstile on public registration (optional) |
    | `VITE_RESEND_API_KEY` / `VITE_RESEND_FROM` | Registration status-code email |
    | `VITE_WEBSITE_URL_BETA` / `VITE_WEBSITE_URL_MAIN` | Public site hosts (allowlist awareness) |

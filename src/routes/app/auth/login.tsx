@@ -6,8 +6,11 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { usePocketBaseAuth } from "@/hooks/legacy/use-pocketbase-auth";
-import { pb } from "@/lib/pocketbase";
+import { useCommitteeAuth } from "@/hooks/use-committee-auth";
+import {
+  ensureCommitteeAuth,
+  isCommitteeSessionValid,
+} from "@/lib/supabase/committee-auth";
 import { useForm } from "@tanstack/react-form";
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -15,8 +18,10 @@ import { z } from "zod";
 
 export const Route = createFileRoute("/app/auth/login")({
   component: AdminLoginPage,
-  beforeLoad: () => {
-    if (typeof window !== "undefined" && pb.authStore.isValid) {
+  beforeLoad: async () => {
+    if (typeof window === "undefined") return;
+    const snap = await ensureCommitteeAuth();
+    if (isCommitteeSessionValid(snap)) {
       throw redirect({ to: "/app" });
     }
   },
@@ -33,7 +38,7 @@ const loginFormSchema = z.object({
 type LoginFormSchema = z.infer<typeof loginFormSchema>;
 
 function AdminLoginPage() {
-  const { signIn } = usePocketBaseAuth();
+  const { signIn } = useCommitteeAuth();
   const navigate = useNavigate();
 
   const form = useForm({

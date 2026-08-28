@@ -1,18 +1,15 @@
-import { getCollectionsParticipantsRecords } from "@/hooks/orval/participants-collection/participants-collection";
-import { patchCollectionsParticipantsRecordsId } from "@/hooks/orval/participants-collection/participants-collection";
 import type { ParticipantsRecord } from "@/hooks/orval/model/participantsRecord";
 import type { TeamsRecord } from "@/hooks/orval/model/teamsRecord";
 import type { TeamsRecordStatus } from "@/hooks/orval/model/teamsRecordStatus";
-import {
-  getCollectionsTeamsRecords,
-  postCollectionsTeamsRecords,
-  patchCollectionsTeamsRecordsId,
-} from "@/hooks/orval/teams-collection/teams-collection";
 import { getAuthRecordId } from "@/lib/legacy/mutation-authors";
+import { supabase } from "@/lib/supabase/client";
+import { throwIfError } from "@/lib/supabase/errors";
 import {
-  unwrapOrvalListItems,
-  unwrapOrvalRecord,
-} from "@/lib/registration/orval";
+  PARTICIPANT_EMBED,
+  TEAM_EMBED,
+  mapParticipantRow,
+  mapTeamRow,
+} from "@/lib/supabase/map-records";
 
 export type EnsureCreateTeamResult =
   | { formed: false; reason: "not_create_team" | "missing_name" | "still_pending" | "no_approved" }
@@ -120,7 +117,7 @@ export function planJoinTeamAssign(participant: {
   status?: string | null;
 }):
   | Extract<EnsureJoinTeamResult, { assigned: false }>
-  | Extract<EnsureJoinTeamResult, { assigned: true; alreadyAssigned: true }>
+  | Extract<EnsureJoinTeamResult, { assigned: true }>
   | { proceed: true; participantId: string; teamId: string } {
   if (participant.team_intent !== "join_team") {
     return { assigned: false, reason: "not_join_team" };
@@ -158,39 +155,52 @@ export async function ensureJoinTeamAfterApprove(input: {
   if ("assigned" in plan) return plan;
 
   const { participantId, teamId } = plan;
-  const teamsRes = await getCollectionsTeamsRecords({
-    page: 1,
-    perPage: 1,
-    filter: `id = "${teamId}" && tournament = "${tournamentId}" && archived != true`,
-  });
-  const team = unwrapOrvalListItems<TeamsRecord>(teamsRes)[0];
-  if (!team?.id) {
+  const teamRow = throwIfError(
+    await supabase
+      .from("teams")
+      .select(TEAM_EMBED)
+      .eq("id", teamId)
+      .eq("tournament", tournamentId)
+      .eq("archived", false)
+      .maybeSingle(),
+  );
+  if (!teamRow) {
     return { assigned: false, reason: "team_not_found" };
   }
+  const team = mapTeamRow(teamRow as Record<string, unknown>);
 
-  await patchCollectionsParticipantsRecordsId(
-    participantId,
-    withAudit(
-      {
-        team: teamId,
-        status: "assigned",
-      },
-      "update",
-    ) as unknown as ParticipantsRecord,
+  throwIfError(
+    await supabase
+      .from("participants")
+      .update(
+        withAudit(
+          {
+            team: teamId,
+            status: "assigned",
+          },
+          "update",
+        ) as never,
+      )
+      .eq("id", participantId),
   );
 
-  const membersRes = await getCollectionsParticipantsRecords({
-    page: 1,
-    perPage: 500,
-    filter: `tournament = "${tournamentId}" && archived != true && team = "${teamId}" && status = "assigned"`,
-  });
-  const memberCount =
-    unwrapOrvalListItems<ParticipantsRecord>(membersRes).length;
+  const members = throwIfError(
+    await supabase
+      .from("participants")
+      .select("id")
+      .eq("tournament", tournamentId)
+      .eq("archived", false)
+      .eq("team", teamId)
+      .eq("status", "assigned"),
+  );
+  const memberCount = members?.length ?? 0;
   const nextStatus = statusForCount(memberCount, team.status, minReady);
   if (nextStatus) {
-    await patchCollectionsTeamsRecordsId(
-      teamId,
-      withAudit({ status: nextStatus }, "update") as unknown as TeamsRecord,
+    throwIfError(
+      await supabase
+        .from("teams")
+        .update(withAudit({ status: nextStatus }, "update") as never)
+        .eq("id", teamId),
     );
   }
 
@@ -222,14 +232,17 @@ export async function ensureCreateTeamAfterApprove(input: {
   }
   const key = nameKey(teamName);
 
-  const peersRes = await getCollectionsParticipantsRecords({
-    page: 1,
-    perPage: 500,
-    filter: `tournament = "${tournamentId}" && archived != true && team_intent = "create_team"`,
-  });
-  const peers = unwrapOrvalListItems<ParticipantsRecord>(peersRes).filter(
-    (p) => nameKey(p.preferred_team_name) === key,
+  const peerRows = throwIfError(
+    await supabase
+      .from("participants")
+      .select(PARTICIPANT_EMBED)
+      .eq("tournament", tournamentId)
+      .eq("archived", false)
+      .eq("team_intent", "create_team"),
   );
+  const peers = (peerRows ?? [])
+    .map((row) => mapParticipantRow(row as Record<string, unknown>))
+    .filter((p) => nameKey(p.preferred_team_name) === key);
 
   const gate = createTeamFormationGate(peers);
   if (!gate.ready) {
@@ -237,12 +250,16 @@ export async function ensureCreateTeamAfterApprove(input: {
   }
   const approved = gate.approved as ParticipantsRecord[];
 
-  const teamsRes = await getCollectionsTeamsRecords({
-    page: 1,
-    perPage: 500,
-    filter: `tournament = "${tournamentId}" && archived != true`,
-  });
-  const teams = unwrapOrvalListItems<TeamsRecord>(teamsRes);
+  const teamRows = throwIfError(
+    await supabase
+      .from("teams")
+      .select(TEAM_EMBED)
+      .eq("tournament", tournamentId)
+      .eq("archived", false),
+  );
+  const teams = (teamRows ?? []).map((row) =>
+    mapTeamRow(row as Record<string, unknown>),
+  );
   let team = resolveCreateTeamRecord(
     teams,
     participant.preferred_team,
@@ -253,19 +270,26 @@ export async function ensureCreateTeamAfterApprove(input: {
   if (!team?.id) {
     const status =
       statusForCount(approved.length, undefined, minReady) ?? "forming";
-    const created = await postCollectionsTeamsRecords(
-      withAudit(
-        {
-          tournament: tournamentId,
-          name: teamName,
-          status,
-          archived: false,
-          ...(approved[0]?.id ? { captain: approved[0].id } : {}),
-        },
-        "create",
-      ) as unknown as TeamsRecord,
+    team = mapTeamRow(
+      throwIfError(
+        await supabase
+          .from("teams")
+          .insert(
+            withAudit(
+              {
+                tournament: tournamentId,
+                name: teamName,
+                status,
+                archived: false,
+                ...(approved[0]?.id ? { captain: approved[0].id } : {}),
+              },
+              "create",
+            ) as never,
+          )
+          .select(TEAM_EMBED)
+          .single(),
+      ) as Record<string, unknown>,
     );
-    team = unwrapOrvalRecord<TeamsRecord>(created);
     createdNew = true;
   }
 
@@ -277,15 +301,19 @@ export async function ensureCreateTeamAfterApprove(input: {
   for (const p of approved) {
     if (!p.id) continue;
     if (p.team === teamId && p.status === "assigned") continue;
-    await patchCollectionsParticipantsRecordsId(
-      p.id,
-      withAudit(
-        {
-          team: teamId,
-          status: "assigned",
-        },
-        "update",
-      ) as unknown as ParticipantsRecord,
+    throwIfError(
+      await supabase
+        .from("participants")
+        .update(
+          withAudit(
+            {
+              team: teamId,
+              status: "assigned",
+            },
+            "update",
+          ) as never,
+        )
+        .eq("id", p.id),
     );
   }
 
@@ -295,9 +323,11 @@ export async function ensureCreateTeamAfterApprove(input: {
   if (nextStatus) patch.status = nextStatus;
   if (!team.captain && captainId) patch.captain = captainId;
   if (Object.keys(patch).length > 0) {
-    await patchCollectionsTeamsRecordsId(
-      teamId,
-      withAudit(patch, "update") as unknown as TeamsRecord,
+    throwIfError(
+      await supabase
+        .from("teams")
+        .update(withAudit(patch, "update") as never)
+        .eq("id", teamId),
     );
   }
 
@@ -325,12 +355,17 @@ export async function maybeArchiveEmptyCreateTeam(input: {
   const teamId = participant.preferred_team?.trim();
   if (!teamId) return { archived: false };
 
-  const peersRes = await getCollectionsParticipantsRecords({
-    page: 1,
-    perPage: 500,
-    filter: `tournament = "${tournamentId}" && archived != true && (preferred_team = "${teamId}" || team = "${teamId}")`,
-  });
-  const peers = unwrapOrvalListItems<ParticipantsRecord>(peersRes);
+  const peerRows = throwIfError(
+    await supabase
+      .from("participants")
+      .select("*")
+      .eq("tournament", tournamentId)
+      .eq("archived", false)
+      .or(`preferred_team.eq.${teamId},team.eq.${teamId}`),
+  );
+  const peers = (peerRows ?? []).map((row) =>
+    mapParticipantRow(row as Record<string, unknown>),
+  );
   const stillActive = peers.some(
     (p) =>
       p.id !== participant.id &&
@@ -340,17 +375,21 @@ export async function maybeArchiveEmptyCreateTeam(input: {
   );
   if (stillActive) return { archived: false };
 
-  const teamsRes = await getCollectionsTeamsRecords({
-    page: 1,
-    perPage: 1,
-    filter: `id = "${teamId}" && archived != true`,
-  });
-  const team = unwrapOrvalListItems<TeamsRecord>(teamsRes)[0];
-  if (!team?.id) return { archived: false };
-
-  await patchCollectionsTeamsRecordsId(
-    team.id,
-    withAudit({ archived: true }, "update") as unknown as TeamsRecord,
+  const teamRow = throwIfError(
+    await supabase
+      .from("teams")
+      .select("id")
+      .eq("id", teamId)
+      .eq("archived", false)
+      .maybeSingle(),
   );
-  return { archived: true, teamId: team.id };
+  if (!teamRow?.id) return { archived: false };
+
+  throwIfError(
+    await supabase
+      .from("teams")
+      .update(withAudit({ archived: true }, "update") as never)
+      .eq("id", teamRow.id),
+  );
+  return { archived: true, teamId: teamRow.id };
 }

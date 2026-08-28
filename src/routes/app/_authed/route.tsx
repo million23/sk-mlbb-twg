@@ -1,16 +1,21 @@
-import { AdminShell } from "@/components/admin/admin-shell";
 import { canAccessAdminApp } from "@/lib/admin/permissions";
-import { pb } from "@/lib/pocketbase";
+import { AdminShell } from "@/components/admin/admin-shell";
+import {
+  ensureCommitteeAuth,
+  isCommitteeSessionValid,
+  signOutCommittee,
+} from "@/lib/supabase/committee-auth";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/app/_authed")({
-  beforeLoad: () => {
+  beforeLoad: async () => {
     if (typeof window === "undefined") return;
-    if (!pb.authStore.isValid) {
+    const snap = await ensureCommitteeAuth();
+    if (!isCommitteeSessionValid(snap)) {
       throw redirect({ to: "/app/auth/login" });
     }
-    if (!canAccessAdminApp(pb.authStore.record)) {
-      pb.authStore.clear();
+    if (!canAccessAdminApp(snap.admin)) {
+      await signOutCommittee();
       throw redirect({ to: "/app/auth/login" });
     }
   },

@@ -31,3 +31,22 @@ export function participantListFilter(
   }
   return parts.join(" && ");
 }
+
+function escapeIlike(value: string): string {
+  return value.replaceAll(/[%_,]/g, " ").replaceAll('"', "").trim();
+}
+
+export function participantSearchOrFilter(search: string): string | null {
+  const q = escapeIlike(search);
+  if (!q) return null;
+  const pattern = `%${q}%`;
+  return [
+    `name.ilike.${pattern}`,
+    `email.ilike.${pattern}`,
+    `ign.ilike.${pattern}`,
+    `user_id.ilike.${pattern}`,
+    `contact_number.ilike.${pattern}`,
+    `registration_status_code.ilike.${pattern}`,
+    `preferred_team_name.ilike.${pattern}`,
+  ].join(",");
+}

@@ -41,7 +41,7 @@ import {
   resolveAdminTournamentId,
 } from "@/components/admin/admin-tournament-selector";
 import { Spinner } from "@/components/ui/spinner";
-import { usePocketBaseAuth } from "@/hooks/legacy/use-pocketbase-auth";
+import { useCommitteeAuth } from "@/hooks/use-committee-auth";
 import { useTournaments } from "@/hooks/legacy/use-tournaments";
 import { useResolvedTheme } from "@/hooks/use-resolved-theme";
 import { useActiveTournamentId } from "@/lib/admin/active-tournament";
@@ -165,7 +165,7 @@ function AdminShellContent({ children }: { children?: ReactNode }) {
     storedTournamentId,
     tournamentIds,
   );
-  const { signOut, record } = usePocketBaseAuth();
+  const { signOut, record } = useCommitteeAuth();
   const rbac = useAdminRbac();
   const visiblePlatformNavItems = platformNavItems.filter((item) => {
     if (item.to === "/app") return rbac.canViewDashboard;

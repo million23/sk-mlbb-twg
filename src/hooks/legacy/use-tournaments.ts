@@ -2,18 +2,18 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   assertPermission,
   canManageTournaments,
-  type AdminAuthRecord,
 } from "@/lib/admin/permissions";
+import { getCommitteeAdminRecord } from "@/lib/supabase/committee-auth";
+import { supabase } from "@/lib/supabase/client";
+import { throwIfError } from "@/lib/supabase/errors";
 import { withCreatedAuditFields, withUpdatedAuditField } from "@/lib/legacy/mutation-authors";
 import { pocketbaseListQueryOptions } from "@/lib/legacy/pocketbase-list-query-options";
-import { getCollection, pb } from "@/lib/pocketbase";
 import type { Collections } from "@/lib/pocketbase.types";
-import { rateLimited } from "@/lib/rate-limited-api";
 import { queryKeys } from "@/lib/legacy/query-keys";
 
 function assertCanManageTournaments() {
   assertPermission(
-    canManageTournaments(pb.authStore.record as AdminAuthRecord),
+    canManageTournaments(getCommitteeAdminRecord()),
     "You do not have permission to manage tournaments.",
   );
 }
@@ -22,14 +22,6 @@ type TournamentInput = Partial<
   Omit<Collections["tournaments"], "id" | "created" | "updated">
 >;
 type Tournament = Collections["tournaments"];
-
-/** PocketBase filter: not soft-deleted. */
-export const TOURNAMENTS_ACTIVE_FILTER = "archived != true";
-
-/** PocketBase filter: spectator-visible events only. */
-export const TOURNAMENTS_PUBLIC_FILTER = `${TOURNAMENTS_ACTIVE_FILTER} && (status = "upcoming" || status = "live")`;
-
-const TOURNAMENTS_ARCHIVED_FILTER = "archived = true";
 
 function invalidateTournamentQueries(
   queryClient: ReturnType<typeof useQueryClient>,
@@ -46,77 +38,84 @@ export function useTournaments() {
   return useQuery({
     ...pocketbaseListQueryOptions,
     queryKey: queryKeys.tournaments,
-    queryFn: () =>
-      rateLimited(async () => {
-        const col = getCollection("tournaments");
-        const list = await col.getFullList({
-          sort: "-created",
-          filter: TOURNAMENTS_ACTIVE_FILTER,
-        });
-        return list as Tournament[];
-      }),
+    queryFn: async () => {
+      const data = throwIfError(
+        await supabase
+          .from("tournaments")
+          .select("*")
+          .eq("archived", false)
+          .order("created", { ascending: false }),
+      );
+      return (data ?? []) as Tournament[];
+    },
   });
 }
 
-/** Non-archived tournaments with status upcoming or live (public /p routes and landing snapshot). */
 export function usePublicTournaments() {
   return useQuery({
     ...pocketbaseListQueryOptions,
     queryKey: queryKeys.publicTournaments,
-    queryFn: () =>
-      rateLimited(async () => {
-        const col = getCollection("tournaments");
-        const list = await col.getFullList({
-          sort: "-created",
-          filter: TOURNAMENTS_PUBLIC_FILTER,
-        });
-        return list as Tournament[];
-      }),
+    queryFn: async () => {
+      const data = throwIfError(
+        await supabase
+          .from("tournaments")
+          .select("*")
+          .eq("archived", false)
+          .in("status", ["upcoming", "live"])
+          .order("created", { ascending: false }),
+      );
+      return (data ?? []) as Tournament[];
+    },
   });
 }
 
 export function useUpcomingTournaments() {
   return useQuery({
     queryKey: [...queryKeys.tournaments, "upcoming"],
-    queryFn: () =>
-      rateLimited(async () => {
-        const col = getCollection("tournaments");
-        const list = await col.getFullList({
-          filter: `${TOURNAMENTS_ACTIVE_FILTER} && status = "upcoming"`,
-          sort: "startAt",
-        });
-        return list as Tournament[];
-      }),
+    queryFn: async () => {
+      const data = throwIfError(
+        await supabase
+          .from("tournaments")
+          .select("*")
+          .eq("archived", false)
+          .eq("status", "upcoming")
+          .order("start_at", { ascending: true }),
+      );
+      return (data ?? []) as Tournament[];
+    },
   });
 }
 
 export function useCurrentTournaments() {
   return useQuery({
     queryKey: [...queryKeys.tournaments, "current"],
-    queryFn: () =>
-      rateLimited(async () => {
-        const col = getCollection("tournaments");
-        const list = await col.getFullList({
-          filter: `${TOURNAMENTS_ACTIVE_FILTER} && status = "live"`,
-          sort: "startAt",
-        });
-        return list as Tournament[];
-      }),
+    queryFn: async () => {
+      const data = throwIfError(
+        await supabase
+          .from("tournaments")
+          .select("*")
+          .eq("archived", false)
+          .eq("status", "live")
+          .order("start_at", { ascending: true }),
+      );
+      return (data ?? []) as Tournament[];
+    },
   });
 }
 
 export function useArchivedTournaments() {
   return useQuery({
     queryKey: queryKeys.tournamentsArchived,
-    queryFn: () =>
-      rateLimited(async () => {
-        const col = getCollection("tournaments");
-        const list = await col.getFullList({
-          sort: "-updated",
-          filter: TOURNAMENTS_ARCHIVED_FILTER,
-        });
-        return list as Tournament[];
-      }),
+    queryFn: async () => {
+      const data = throwIfError(
+        await supabase
+          .from("tournaments")
+          .select("*")
+          .eq("archived", true)
+          .order("updated", { ascending: false }),
+      );
+      return (data ?? []) as Tournament[];
+    },
   });
 }
 
@@ -126,10 +125,13 @@ export function useTournamentMutations() {
   const createMutation = useMutation({
     mutationFn: async (data: TournamentInput) => {
       assertCanManageTournaments();
-      return rateLimited(async () => {
-        const col = getCollection("tournaments");
-        return col.create(withCreatedAuditFields(data));
-      });
+      return throwIfError(
+        await supabase
+          .from("tournaments")
+          .insert(withCreatedAuditFields(data) as never)
+          .select("*")
+          .single(),
+      );
     },
     onSettled: () => {
       invalidateTournamentQueries(queryClient);
@@ -140,10 +142,14 @@ export function useTournamentMutations() {
     mutationFn: async (data: TournamentInput & { id: string }) => {
       assertCanManageTournaments();
       const { id, ...patch } = data;
-      return rateLimited(async () => {
-        const col = getCollection("tournaments");
-        return col.update(id, withUpdatedAuditField(patch));
-      });
+      return throwIfError(
+        await supabase
+          .from("tournaments")
+          .update(withUpdatedAuditField(patch) as never)
+          .eq("id", id)
+          .select("*")
+          .single(),
+      );
     },
     onMutate: async (data) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.tournaments });
@@ -153,8 +159,8 @@ export function useTournamentMutations() {
         old?.map((t) =>
           t.id === id
             ? { ...t, ...patch, updated: new Date().toISOString() }
-            : t
-        ) ?? old
+            : t,
+        ) ?? old,
       );
       return { prev };
     },
@@ -171,16 +177,18 @@ export function useTournamentMutations() {
   const archiveMutation = useMutation({
     mutationFn: async (id: string) => {
       assertCanManageTournaments();
-      return rateLimited(async () => {
-        const col = getCollection("tournaments");
-        return col.update(id, withUpdatedAuditField({ archived: true }));
-      });
+      return throwIfError(
+        await supabase
+          .from("tournaments")
+          .update(withUpdatedAuditField({ archived: true }) as never)
+          .eq("id", id),
+      );
     },
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.tournaments });
       const prev = queryClient.getQueryData<Tournament[]>(queryKeys.tournaments);
       queryClient.setQueryData<Tournament[]>(queryKeys.tournaments, (old) =>
-        old?.filter((t) => t.id !== id) ?? old
+        old?.filter((t) => t.id !== id) ?? old,
       );
       return { prev };
     },
@@ -197,10 +205,12 @@ export function useTournamentMutations() {
   const restoreMutation = useMutation({
     mutationFn: async (id: string) => {
       assertCanManageTournaments();
-      return rateLimited(async () => {
-        const col = getCollection("tournaments");
-        return col.update(id, withUpdatedAuditField({ archived: false }));
-      });
+      return throwIfError(
+        await supabase
+          .from("tournaments")
+          .update(withUpdatedAuditField({ archived: false }) as never)
+          .eq("id", id),
+      );
     },
     onSettled: () => {
       invalidateTournamentQueries(queryClient);

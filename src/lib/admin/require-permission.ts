@@ -1,5 +1,8 @@
 import type { AdminAuthRecord } from "@/lib/admin/permissions";
-import { pb } from "@/lib/pocketbase";
+import {
+  ensureCommitteeAuth,
+  isCommitteeSessionValid,
+} from "@/lib/supabase/committee-auth";
 import { redirect } from "@tanstack/react-router";
 
 /**
@@ -10,12 +13,13 @@ export function requirePermission(
   check: (auth: AdminAuthRecord) => boolean,
   fallback: "/app" | "/app/auth/login" = "/app",
 ) {
-  return () => {
+  return async () => {
     if (typeof window === "undefined") return;
-    if (!pb.authStore.isValid) {
+    const snap = await ensureCommitteeAuth();
+    if (!isCommitteeSessionValid(snap)) {
       throw redirect({ to: "/app/auth/login" });
     }
-    if (!check(pb.authStore.record)) {
+    if (!check(snap.admin)) {
       throw redirect({ to: fallback });
     }
   };

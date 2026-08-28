@@ -1,17 +1,9 @@
-import {
-  deleteCollectionsParticipantsRecordsId,
-  getCollectionsParticipantsRecords,
-  getPatchCollectionsParticipantsRecordsIdUrl,
-  getPostCollectionsParticipantsRecordsUrl,
-  patchCollectionsParticipantsRecordsId,
-} from "@/hooks/orval/participants-collection/participants-collection";
 import type { ParticipantsRecord } from "@/hooks/orval/model/participantsRecord";
 import { adminParticipantKeys } from "@/hooks/admin/participant-query-keys";
 import { adminTeamKeys } from "@/hooks/admin/team-query-keys";
 import {
   assertPermission,
   canManageParticipants,
-  type AdminAuthRecord,
 } from "@/lib/admin/permissions";
 import {
   ensureCreateTeamAfterApprove,
@@ -20,19 +12,18 @@ import {
 } from "@/lib/admin/ensure-create-team";
 import { PARTICIPANT_DOC_FIELDS } from "@/lib/admin/participant-files";
 import {
-  participantListFilter,
+  participantSearchOrFilter,
   type ParticipantListStatusTab,
 } from "@/lib/admin/participant-list-query";
-import { ApiError, customInstance } from "@/lib/api/mutator/custom-instance";
 import { getAuthRecordId } from "@/lib/legacy/mutation-authors";
-import { toPocketBaseDateTime } from "@/lib/legacy/registered-date";
-import { pb } from "@/lib/pocketbase";
+import { calendarDayFromPbDate } from "@/lib/legacy/registered-date";
+import { getCommitteeAdminRecord } from "@/lib/supabase/committee-auth";
+import { supabase } from "@/lib/supabase/client";
+import { emptyToNull, throwIfError } from "@/lib/supabase/errors";
 import {
-  registrationApiErrorMessage,
-  unwrapOrvalListItems,
-  unwrapOrvalListPage,
-  unwrapOrvalRecord,
-} from "@/lib/registration/orval";
+  PARTICIPANT_EMBED,
+  mapParticipantRow,
+} from "@/lib/supabase/map-records";
 import {
   infiniteQueryOptions,
   queryOptions,
@@ -44,7 +35,7 @@ import {
 
 function assertCanManageParticipants() {
   assertPermission(
-    canManageParticipants(pb.authStore.record as AdminAuthRecord),
+    canManageParticipants(getCommitteeAdminRecord()),
     "You do not have permission to manage participants.",
   );
 }
@@ -89,40 +80,12 @@ function withAuditUpdate(
   return { ...data, updated_by: uid };
 }
 
-function appendFormFields(form: FormData, fields: Record<string, unknown>) {
-  for (const [key, value] of Object.entries(fields)) {
-    if (value === undefined || value === null) continue;
-    if (typeof value === "boolean") {
-      form.append(key, value ? "true" : "false");
-      continue;
-    }
-    // PocketBase multi-select: repeat the key (not a JSON string).
-    if (Array.isArray(value)) {
-      for (const item of value) {
-        form.append(key, String(item));
-      }
-      continue;
-    }
-    form.append(key, String(value));
-  }
-}
-
 function hasUploads(uploads?: ParticipantDocUploads): boolean {
   if (!uploads) return false;
   return PARTICIPANT_DOC_FIELDS.some((k) => {
     const f = uploads[k];
     return f instanceof File && f.size > 0;
   });
-}
-
-function appendUploads(form: FormData, uploads?: ParticipantDocUploads) {
-  if (!uploads) return;
-  for (const key of PARTICIPANT_DOC_FIELDS) {
-    const file = uploads[key];
-    if (file instanceof File && file.size > 0) {
-      form.append(key, file, file.name);
-    }
-  }
 }
 
 export const PARTICIPANT_LIST_PAGE_SIZE = 40;
@@ -135,32 +98,56 @@ async function fetchParticipantListPage(params: {
   perPage: number;
   expand?: boolean;
 }) {
-  const res = await getCollectionsParticipantsRecords({
+  const select = params.expand ? PARTICIPANT_EMBED : "*";
+  let query = supabase
+    .from("participants")
+    .select(select, { count: "exact" })
+    .eq("tournament", params.tournamentId);
+
+  if (params.tab === "archived") query = query.eq("archived", true);
+  else query = query.eq("archived", false);
+
+  if (params.tab !== "all" && params.tab !== "archived") {
+    query = query.eq("registration_status", params.tab);
+  }
+
+  const searchOr = participantSearchOrFilter(params.search);
+  if (searchOr) query = query.or(searchOr);
+
+  const from = (params.page - 1) * params.perPage;
+  const { data, error, count } = await query
+    .order("created", { ascending: false })
+    .range(from, from + params.perPage - 1);
+
+  throwIfError({ data, error });
+  const items = (data ?? []).map((row) =>
+    mapParticipantRow(row as Record<string, unknown>),
+  );
+  const totalItems = count ?? items.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / params.perPage) || 0);
+  return {
+    items,
     page: params.page,
-    perPage: params.perPage,
-    sort: "-created",
-    filter: participantListFilter(
-      params.tournamentId,
-      params.tab,
-      params.search,
-    ),
-    ...(params.expand ? { expand: "preferred_team,team" } : {}),
-  });
-  return unwrapOrvalListPage<ParticipantsRecord>(res);
+    totalPages: totalItems === 0 ? 0 : totalPages,
+    totalItems,
+  };
 }
 
 export function tournamentParticipantsQueryOptions(tournamentId: string) {
   return queryOptions({
     queryKey: adminParticipantKeys.list(tournamentId),
     queryFn: async () => {
-      const res = await getCollectionsParticipantsRecords({
-        page: 1,
-        perPage: 500,
-        sort: "-created",
-        filter: `tournament = "${tournamentId}" && archived != true`,
-        expand: "preferred_team,team",
-      });
-      return unwrapOrvalListItems<ParticipantsRecord>(res);
+      const data = throwIfError(
+        await supabase
+          .from("participants")
+          .select(PARTICIPANT_EMBED)
+          .eq("tournament", tournamentId)
+          .eq("archived", false)
+          .order("created", { ascending: false }),
+      );
+      return (data ?? []).map((row) =>
+        mapParticipantRow(row as Record<string, unknown>),
+      );
     },
     enabled: Boolean(tournamentId),
   });
@@ -281,14 +268,21 @@ export function useParticipantMutations(tournamentId: string) {
   const approve = useMutation({
     mutationFn: async (id: string) => {
       assertCanManageParticipants();
-      const res = await patchCollectionsParticipantsRecordsId(
-        id,
-        withAuditUpdate({
-          registration_status: "approved",
-          registration_reject_reason: "",
-        }) as unknown as ParticipantsRecord,
+      const participant = mapParticipantRow(
+        throwIfError(
+          await supabase
+            .from("participants")
+            .update(
+              withAuditUpdate({
+                registration_status: "approved",
+                registration_reject_reason: null,
+              }) as never,
+            )
+            .eq("id", id)
+            .select(PARTICIPANT_EMBED)
+            .single(),
+        ) as Record<string, unknown>,
       );
-      const participant = unwrapOrvalRecord<ParticipantsRecord>(res);
       const joinResult = await ensureJoinTeamAfterApprove({
         tournamentId,
         participant,
@@ -305,14 +299,21 @@ export function useParticipantMutations(tournamentId: string) {
   const reject = useMutation({
     mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
       assertCanManageParticipants();
-      const res = await patchCollectionsParticipantsRecordsId(
-        id,
-        withAuditUpdate({
-          registration_status: "rejected",
-          registration_reject_reason: reason.trim() || "No reason given",
-        }) as unknown as ParticipantsRecord,
+      const participant = mapParticipantRow(
+        throwIfError(
+          await supabase
+            .from("participants")
+            .update(
+              withAuditUpdate({
+                registration_status: "rejected",
+                registration_reject_reason: reason.trim() || "No reason given",
+              }) as never,
+            )
+            .eq("id", id)
+            .select(PARTICIPANT_EMBED)
+            .single(),
+        ) as Record<string, unknown>,
       );
-      const participant = unwrapOrvalRecord<ParticipantsRecord>(res);
       await maybeArchiveEmptyCreateTeam({ tournamentId, participant });
       return participant;
     },
@@ -322,15 +323,22 @@ export function useParticipantMutations(tournamentId: string) {
   const archive = useMutation({
     mutationFn: async (id: string) => {
       assertCanManageParticipants();
-      const res = await patchCollectionsParticipantsRecordsId(
-        id,
-        withAuditUpdate({
-          archived: true,
-          team: "",
-          status: "unassigned",
-        }) as unknown as ParticipantsRecord,
+      return mapParticipantRow(
+        throwIfError(
+          await supabase
+            .from("participants")
+            .update(
+              withAuditUpdate({
+                archived: true,
+                team: null,
+                status: "unassigned",
+              }) as never,
+            )
+            .eq("id", id)
+            .select(PARTICIPANT_EMBED)
+            .single(),
+        ) as Record<string, unknown>,
       );
-      return unwrapOrvalRecord<ParticipantsRecord>(res);
     },
     onSuccess: invalidate,
   });
@@ -338,11 +346,16 @@ export function useParticipantMutations(tournamentId: string) {
   const restore = useMutation({
     mutationFn: async (id: string) => {
       assertCanManageParticipants();
-      const res = await patchCollectionsParticipantsRecordsId(
-        id,
-        withAuditUpdate({ archived: false }) as unknown as ParticipantsRecord,
+      return mapParticipantRow(
+        throwIfError(
+          await supabase
+            .from("participants")
+            .update(withAuditUpdate({ archived: false }) as never)
+            .eq("id", id)
+            .select(PARTICIPANT_EMBED)
+            .single(),
+        ) as Record<string, unknown>,
       );
-      return unwrapOrvalRecord<ParticipantsRecord>(res);
     },
     onSuccess: invalidate,
   });
@@ -350,7 +363,7 @@ export function useParticipantMutations(tournamentId: string) {
   const hardDelete = useMutation({
     mutationFn: async (id: string) => {
       assertCanManageParticipants();
-      await deleteCollectionsParticipantsRecordsId(id);
+      throwIfError(await supabase.from("participants").delete().eq("id", id));
       return id;
     },
     onSuccess: invalidate,
@@ -365,66 +378,54 @@ export function useParticipantMutations(tournamentId: string) {
       uploads?: ParticipantDocUploads;
     }) => {
       assertCanManageParticipants();
+      if (hasUploads(uploads)) {
+        throw new Error(
+          "ID document upload is not wired to Storage yet. Save the registrant without files for now.",
+        );
+      }
+      const lanes = values.preferred_lane;
       const fields = withAuditCreate({
         tournament: tournamentId,
         name: values.name.trim(),
         email: values.email.trim(),
         ign: values.ign.trim(),
-        birthdate: toPocketBaseDateTime(values.birthdate),
+        birthdate: calendarDayFromPbDate(values.birthdate) || values.birthdate,
         user_id: values.user_id.trim(),
         server_id: values.server_id.trim(),
         address_phase: values.address_phase,
         address_package: values.address_package.trim(),
         address_block: values.address_block.trim(),
         address_lot: values.address_lot.trim(),
-        preferred_lane: (values.preferred_lane[0] ?? "mid") as
-          | "mid"
-          | "gold"
-          | "exp"
-          | "support"
-          | "jungle",
-        preferred_roles: values.preferred_lane,
+        preferred_lane: lanes,
+        preferred_roles: lanes,
         team_intent: values.team_intent,
-        ...(values.team_intent === "join_team" && values.preferred_team
-          ? { preferred_team: values.preferred_team }
-          : {}),
-        ...(values.team_intent === "create_team" &&
-        values.preferred_team_name.trim()
-          ? { preferred_team_name: values.preferred_team_name.trim() }
-          : {}),
+        preferred_team:
+          values.team_intent === "join_team"
+            ? emptyToNull(values.preferred_team)
+            : null,
+        preferred_team_name:
+          values.team_intent === "create_team"
+            ? values.preferred_team_name.trim() || null
+            : null,
         registration_status: values.registration_status,
-        ...(values.registration_status === "rejected"
-          ? {
-              registration_reject_reason:
-                values.registration_reject_reason.trim() || "No reason given",
-            }
-          : {}),
+        registration_reject_reason:
+          values.registration_status === "rejected"
+            ? values.registration_reject_reason.trim() || "No reason given"
+            : null,
         status: "unassigned",
         archived: false,
-        ...(values.contact_number.trim()
-          ? { contact_number: values.contact_number.trim() }
-          : {}),
+        contact_number: values.contact_number.trim() || null,
       });
 
-      if (hasUploads(uploads)) {
-        const form = new FormData();
-        appendFormFields(form, fields);
-        appendUploads(form, uploads);
-        const res = await customInstance<unknown>(
-          getPostCollectionsParticipantsRecordsUrl(),
-          { method: "POST", body: form },
-        );
-        return unwrapOrvalRecord<ParticipantsRecord>(res);
-      }
-
-      const res = await customInstance<unknown>(
-        getPostCollectionsParticipantsRecordsUrl(),
-        {
-          method: "POST",
-          body: JSON.stringify(fields),
-        },
+      return mapParticipantRow(
+        throwIfError(
+          await supabase
+            .from("participants")
+            .insert(fields as never)
+            .select(PARTICIPANT_EMBED)
+            .single(),
+        ) as Record<string, unknown>,
       );
-      return unwrapOrvalRecord<ParticipantsRecord>(res);
     },
     onSuccess: invalidate,
   });
@@ -440,56 +441,52 @@ export function useParticipantMutations(tournamentId: string) {
       uploads?: ParticipantDocUploads;
     }) => {
       assertCanManageParticipants();
+      if (hasUploads(uploads)) {
+        throw new Error(
+          "ID document upload is not wired to Storage yet. Save the registrant without files for now.",
+        );
+      }
+      const lanes = values.preferred_lane;
       const fields = withAuditUpdate({
         name: values.name.trim(),
         email: values.email.trim(),
         ign: values.ign.trim(),
-        birthdate: toPocketBaseDateTime(values.birthdate),
+        birthdate: calendarDayFromPbDate(values.birthdate) || values.birthdate,
         user_id: values.user_id.trim(),
         server_id: values.server_id.trim(),
         address_phase: values.address_phase,
         address_package: values.address_package.trim(),
         address_block: values.address_block.trim(),
         address_lot: values.address_lot.trim(),
-        preferred_lane: (values.preferred_lane[0] ?? "mid") as
-          | "mid"
-          | "gold"
-          | "exp"
-          | "support"
-          | "jungle",
-        preferred_roles: values.preferred_lane,
+        preferred_lane: lanes,
+        preferred_roles: lanes,
         team_intent: values.team_intent,
-        // Clear relation when leaving join_team (PocketBase accepts "").
         preferred_team:
-          values.team_intent === "join_team" ? values.preferred_team : "",
+          values.team_intent === "join_team"
+            ? emptyToNull(values.preferred_team)
+            : null,
         preferred_team_name:
           values.team_intent === "create_team"
-            ? values.preferred_team_name.trim()
-            : "",
+            ? values.preferred_team_name.trim() || null
+            : null,
         registration_status: values.registration_status,
         registration_reject_reason:
           values.registration_status === "rejected"
             ? values.registration_reject_reason.trim() || "No reason given"
-            : "",
-        contact_number: values.contact_number.trim(),
+            : null,
+        contact_number: values.contact_number.trim() || null,
       });
 
-      if (hasUploads(uploads)) {
-        const form = new FormData();
-        appendFormFields(form, fields);
-        appendUploads(form, uploads);
-        const res = await customInstance<unknown>(
-          getPatchCollectionsParticipantsRecordsIdUrl(id),
-          { method: "PATCH", body: form },
-        );
-        return unwrapOrvalRecord<ParticipantsRecord>(res);
-      }
-
-      const res = await patchCollectionsParticipantsRecordsId(
-        id,
-        fields as unknown as ParticipantsRecord,
+      return mapParticipantRow(
+        throwIfError(
+          await supabase
+            .from("participants")
+            .update(fields as never)
+            .eq("id", id)
+            .select(PARTICIPANT_EMBED)
+            .single(),
+        ) as Record<string, unknown>,
       );
-      return unwrapOrvalRecord<ParticipantsRecord>(res);
     },
     onSuccess: invalidate,
   });
@@ -530,7 +527,6 @@ export function useParticipantMutations(tournamentId: string) {
 }
 
 export function participantMutationErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) return registrationApiErrorMessage(error);
   if (error instanceof Error) return error.message;
   return "Request failed";
 }

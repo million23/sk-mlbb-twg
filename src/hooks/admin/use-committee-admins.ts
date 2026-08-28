@@ -1,10 +1,13 @@
 import { adminCommitteeKeys } from "@/hooks/admin/admin-query-keys";
 import type { AdminsRecord } from "@/hooks/orval/model/adminsRecord";
 import type { AdminsRecordRole } from "@/hooks/orval/model/adminsRecordRole";
-import { canManageAdmins, type AdminAuthRecord } from "@/lib/admin/permissions";
+import { canManageAdmins } from "@/lib/admin/permissions";
 import { getAuthRecordId } from "@/lib/legacy/mutation-authors";
-import { getCollection, pb } from "@/lib/pocketbase";
-import { rateLimited } from "@/lib/rate-limited-api";
+import {
+  getCommitteeAdminRecord,
+} from "@/lib/supabase/committee-auth";
+import { supabase } from "@/lib/supabase/client";
+import { throwIfError } from "@/lib/supabase/errors";
 import {
   queryOptions,
   useMutation,
@@ -33,50 +36,47 @@ export type AdminFormValues = {
 };
 
 function assertCanManage() {
-  const auth = pb.authStore.record as AdminAuthRecord;
-  if (!canManageAdmins(auth)) {
+  if (!canManageAdmins(getCommitteeAdminRecord())) {
     throw new Error("Only superadmins can manage admin accounts.");
   }
 }
 
-function normalizeAdmin(row: Record<string, unknown>): CommitteeAdmin | null {
-  const id = typeof row.id === "string" ? row.id : "";
-  if (!id) return null;
-  const isActive =
-    typeof row.is_active === "boolean"
-      ? row.is_active
-      : typeof row.isActive === "boolean"
-        ? row.isActive
-        : true;
+function toCommitteeAdmin(
+  row: {
+    id: string;
+    email: string;
+    name: string;
+    role: AdminsRecordRole;
+    is_active: boolean;
+    last_login_at: string | null;
+    created: string;
+    updated: string;
+  },
+): CommitteeAdmin {
   return {
-    id,
-    email: typeof row.email === "string" ? row.email : undefined,
-    name: typeof row.name === "string" ? row.name : undefined,
-    role: (row.role as AdminsRecordRole | undefined) ?? undefined,
-    is_active: isActive,
-    last_login_at:
-      (typeof row.last_login_at === "string" && row.last_login_at) ||
-      (typeof row.lastLoginAt === "string" && row.lastLoginAt) ||
-      undefined,
-    created: typeof row.created === "string" ? row.created : undefined,
-    updated: typeof row.updated === "string" ? row.updated : undefined,
+    id: row.id,
+    email: row.email,
+    name: row.name,
+    role: row.role,
+    is_active: row.is_active,
+    last_login_at: row.last_login_at ?? undefined,
+    created: row.created,
+    updated: row.updated,
   };
 }
 
 export function committeeAdminsQueryOptions() {
   return queryOptions({
     queryKey: adminCommitteeKeys.admins(),
-    queryFn: () =>
-      rateLimited(async () => {
-        const col = getCollection("admins");
-        const list = await col.getFullList({
-          sort: "-created",
-          fields: "id,email,name,role,is_active,last_login_at,created,updated",
-        });
-        return (list as unknown as Record<string, unknown>[])
-          .map(normalizeAdmin)
-          .filter((a): a is CommitteeAdmin => a != null);
-      }),
+    queryFn: async () => {
+      const data = throwIfError(
+        await supabase
+          .from("admins")
+          .select("id,email,name,role,is_active,last_login_at,created,updated")
+          .order("created", { ascending: false }),
+      );
+      return (data ?? []).map(toCommitteeAdmin);
+    },
     refetchOnMount: "always",
   });
 }
@@ -91,20 +91,11 @@ export function useCommitteeAdminMutations() {
     queryClient.invalidateQueries({ queryKey: adminCommitteeKeys.admins() });
 
   const create = useMutation({
-    mutationFn: async (values: AdminFormValues) => {
+    mutationFn: async (_values: AdminFormValues) => {
       assertCanManage();
-      return rateLimited(async () => {
-        const col = getCollection("admins");
-        return col.create({
-          email: values.email.trim(),
-          password: values.password,
-          passwordConfirm: values.passwordConfirm,
-          name: values.name.trim(),
-          role: values.role,
-          is_active: values.is_active,
-          emailVisibility: true,
-        } as never);
-      });
+      throw new Error(
+        "Create committee users in Supabase Authentication (Add user). The trigger writes the admins row. Then edit role and name here.",
+      );
     },
     onSuccess: invalidate,
   });
@@ -121,20 +112,23 @@ export function useCommitteeAdminMutations() {
       };
     }) => {
       assertCanManage();
-      const body: Record<string, unknown> = {
-        name: values.name.trim(),
-        role: values.role,
-        is_active: values.is_active,
-        emailVisibility: true,
-      };
-      if (values.password && values.passwordConfirm) {
-        body.password = values.password;
-        body.passwordConfirm = values.passwordConfirm;
+      if (values.password || values.passwordConfirm) {
+        throw new Error(
+          "Password changes happen in Supabase Authentication, not in this form.",
+        );
       }
-      return rateLimited(async () => {
-        const col = getCollection("admins");
-        return col.update(id, body as never);
-      });
+      return throwIfError(
+        await supabase
+          .from("admins")
+          .update({
+            name: values.name.trim(),
+            role: values.role,
+            is_active: values.is_active,
+          })
+          .eq("id", id)
+          .select("id,email,name,role,is_active,last_login_at,created,updated")
+          .single(),
+      );
     },
     onSuccess: invalidate,
   });
@@ -146,10 +140,8 @@ export function useCommitteeAdminMutations() {
       if (selfId && selfId === id) {
         throw new Error("You cannot remove your own admin account.");
       }
-      return rateLimited(async () => {
-        const col = getCollection("admins");
-        return col.delete(id);
-      });
+      throwIfError(await supabase.from("admins").delete().eq("id", id));
+      return id;
     },
     onSuccess: invalidate,
   });
@@ -158,24 +150,8 @@ export function useCommitteeAdminMutations() {
 }
 
 export function adminMutationErrorMessage(error: unknown): string {
-  if (error && typeof error === "object") {
-    const pb = error as {
-      message?: string;
-      response?: {
-        message?: string;
-        data?: Record<string, { message?: string }>;
-      };
-    };
-    const field = pb.response?.data
-      ? Object.values(pb.response.data).find((v) => v?.message)?.message
-      : undefined;
-    if (field) return field;
-    if (pb.response?.message) return pb.response.message;
-    if (pb.message) return pb.message;
-  }
   if (error instanceof Error && error.message) return error.message;
   return "Request failed";
 }
 
-/** Narrow helper when a full AdminsRecord is needed for typing. */
 export type { AdminsRecord };

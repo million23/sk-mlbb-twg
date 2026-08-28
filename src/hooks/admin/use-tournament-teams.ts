@@ -1,17 +1,8 @@
 import { adminParticipantKeys } from "@/hooks/admin/participant-query-keys";
 import { adminTeamKeys } from "@/hooks/admin/team-query-keys";
-import {
-  getCollectionsParticipantsRecords,
-  patchCollectionsParticipantsRecordsId,
-} from "@/hooks/orval/participants-collection/participants-collection";
 import type { ParticipantsRecord } from "@/hooks/orval/model/participantsRecord";
 import type { TeamsRecord } from "@/hooks/orval/model/teamsRecord";
 import type { TeamsRecordStatus } from "@/hooks/orval/model/teamsRecordStatus";
-import {
-  getCollectionsTeamsRecords,
-  patchCollectionsTeamsRecordsId,
-  postCollectionsTeamsRecords,
-} from "@/hooks/orval/teams-collection/teams-collection";
 import type { PlannedOpenTeam } from "@/lib/admin/auto-open-teams";
 import {
   nextTeamRosterPatch,
@@ -20,17 +11,18 @@ import {
 import {
   assertPermission,
   canManageTeams,
-  type AdminAuthRecord,
 } from "@/lib/admin/permissions";
-import { ApiError } from "@/lib/api/mutator/custom-instance";
 import { getAuthRecordId } from "@/lib/legacy/mutation-authors";
-import { pb } from "@/lib/pocketbase";
 import { registrationKeys } from "@/hooks/registration/query-keys";
+import { getCommitteeAdminRecord } from "@/lib/supabase/committee-auth";
+import { supabase } from "@/lib/supabase/client";
+import { emptyToNull, throwIfError } from "@/lib/supabase/errors";
 import {
-  registrationApiErrorMessage,
-  unwrapOrvalListItems,
-  unwrapOrvalRecord,
-} from "@/lib/registration/orval";
+  PARTICIPANT_EMBED,
+  TEAM_EMBED,
+  mapParticipantRow,
+  mapTeamRow,
+} from "@/lib/supabase/map-records";
 import {
   queryOptions,
   useMutation,
@@ -40,7 +32,7 @@ import {
 
 function assertCanManageTeams() {
   assertPermission(
-    canManageTeams(pb.authStore.record as AdminAuthRecord),
+    canManageTeams(getCommitteeAdminRecord()),
     "You do not have permission to manage teams.",
   );
 }
@@ -73,14 +65,17 @@ export function tournamentTeamsQueryOptions(tournamentId: string) {
   return queryOptions({
     queryKey: adminTeamKeys.list(tournamentId),
     queryFn: async () => {
-      const res = await getCollectionsTeamsRecords({
-        page: 1,
-        perPage: 500,
-        sort: "-created",
-        filter: `tournament = "${tournamentId}" && archived != true`,
-        expand: "captain",
-      });
-      return unwrapOrvalListItems<TeamsRecord>(res);
+      const data = throwIfError(
+        await supabase
+          .from("teams")
+          .select(TEAM_EMBED)
+          .eq("tournament", tournamentId)
+          .eq("archived", false)
+          .order("created", { ascending: false }),
+      );
+      return (data ?? []).map((row) =>
+        mapTeamRow(row as Record<string, unknown>),
+      );
     },
     enabled: Boolean(tournamentId),
   });
@@ -90,14 +85,17 @@ export function tournamentArchivedTeamsQueryOptions(tournamentId: string) {
   return queryOptions({
     queryKey: adminTeamKeys.archived(tournamentId),
     queryFn: async () => {
-      const res = await getCollectionsTeamsRecords({
-        page: 1,
-        perPage: 500,
-        sort: "-updated",
-        filter: `tournament = "${tournamentId}" && archived = true`,
-        expand: "captain",
-      });
-      return unwrapOrvalListItems<TeamsRecord>(res);
+      const data = throwIfError(
+        await supabase
+          .from("teams")
+          .select(TEAM_EMBED)
+          .eq("tournament", tournamentId)
+          .eq("archived", true)
+          .order("updated", { ascending: false }),
+      );
+      return (data ?? []).map((row) =>
+        mapTeamRow(row as Record<string, unknown>),
+      );
     },
     enabled: Boolean(tournamentId),
   });
@@ -135,22 +133,36 @@ export function useTeamMutations(tournamentId: string) {
     id: string,
     fields: Record<string, unknown>,
   ): Promise<TeamsRecord> => {
-    const res = await patchCollectionsTeamsRecordsId(
-      id,
-      withAuditUpdate(fields) as unknown as TeamsRecord,
+    const body = { ...withAuditUpdate(fields) };
+    if ("captain" in body) body.captain = emptyToNull(body.captain as string);
+    return mapTeamRow(
+      throwIfError(
+        await supabase
+          .from("teams")
+          .update(body as never)
+          .eq("id", id)
+          .select(TEAM_EMBED)
+          .single(),
+      ) as Record<string, unknown>,
     );
-    return unwrapOrvalRecord<TeamsRecord>(res);
   };
 
   const patchParticipant = async (
     id: string,
     fields: Record<string, unknown>,
   ): Promise<ParticipantsRecord> => {
-    const res = await patchCollectionsParticipantsRecordsId(
-      id,
-      withAuditUpdate(fields) as unknown as ParticipantsRecord,
+    const body = { ...withAuditUpdate(fields) };
+    if ("team" in body) body.team = emptyToNull(body.team as string);
+    return mapParticipantRow(
+      throwIfError(
+        await supabase
+          .from("participants")
+          .update(body as never)
+          .eq("id", id)
+          .select(PARTICIPANT_EMBED)
+          .single(),
+      ) as Record<string, unknown>,
     );
-    return unwrapOrvalRecord<ParticipantsRecord>(res);
   };
 
   const syncTeamRosterMeta = async ({
@@ -190,16 +202,23 @@ export function useTeamMutations(tournamentId: string) {
       // Omit empty optional relations — PocketBase rejects `captain: ""` on create
       // ("Cannot be blank" / values should not be empty) even when the field is optional.
       const captain = values.captain?.trim();
-      const res = await postCollectionsTeamsRecords(
-        withAuditCreate({
-          tournament: tournamentId,
-          name: values.name.trim(),
-          status: values.status ?? "forming",
-          archived: false,
-          ...(captain ? { captain } : {}),
-        }) as unknown as TeamsRecord,
+      return mapTeamRow(
+        throwIfError(
+          await supabase
+            .from("teams")
+            .insert(
+              withAuditCreate({
+                tournament: tournamentId,
+                name: values.name.trim(),
+                status: values.status ?? "forming",
+                archived: false,
+                ...(captain ? { captain } : {}),
+              }) as never,
+            )
+            .select(TEAM_EMBED)
+            .single(),
+        ) as Record<string, unknown>,
       );
-      return unwrapOrvalRecord<TeamsRecord>(res);
     },
     onSuccess: invalidate,
   });
@@ -230,16 +249,17 @@ export function useTeamMutations(tournamentId: string) {
   const archive = useMutation({
     mutationFn: async (id: string) => {
       assertCanManageTeams();
-      const membersRes = await getCollectionsParticipantsRecords({
-        page: 1,
-        perPage: 500,
-        filter: `team = "${id}" && archived != true`,
-      });
-      const members = unwrapOrvalListItems<ParticipantsRecord>(membersRes);
-      for (const p of members) {
+      const members = throwIfError(
+        await supabase
+          .from("participants")
+          .select("*")
+          .eq("team", id)
+          .eq("archived", false),
+      );
+      for (const p of members ?? []) {
         if (!p.id) continue;
         await patchParticipant(p.id, {
-          team: "",
+          team: null,
           status: "unassigned",
         });
       }
@@ -374,16 +394,23 @@ export function useTeamMutations(tournamentId: string) {
         [];
       for (const planned of teams) {
         const captain = planned.captainId?.trim() || planned.memberIds[0];
-        const res = await postCollectionsTeamsRecords(
-          withAuditCreate({
-            tournament: tournamentId,
-            name: planned.name.trim(),
-            status: "forming",
-            archived: false,
-            ...(captain ? { captain } : {}),
-          }) as unknown as TeamsRecord,
+        const team = mapTeamRow(
+          throwIfError(
+            await supabase
+              .from("teams")
+              .insert(
+                withAuditCreate({
+                  tournament: tournamentId,
+                  name: planned.name.trim(),
+                  status: "forming",
+                  archived: false,
+                  ...(captain ? { captain } : {}),
+                }) as never,
+              )
+              .select(TEAM_EMBED)
+              .single(),
+          ) as Record<string, unknown>,
         );
-        const team = unwrapOrvalRecord<TeamsRecord>(res);
         if (!team.id) throw new Error("Team was created without an id");
         for (const pid of planned.memberIds) {
           await patchParticipant(pid, {
@@ -423,25 +450,6 @@ export function useTeamMutations(tournamentId: string) {
 }
 
 export function teamMutationErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    const data = error.data;
-    if (data && typeof data === "object") {
-      const envelope = data as {
-        message?: string;
-        data?: Record<string, { message?: string; code?: string }>;
-      };
-      if (envelope.data && typeof envelope.data === "object") {
-        const entry = Object.entries(envelope.data).find(
-          ([, v]) => v?.message,
-        );
-        if (entry) {
-          const [field, detail] = entry;
-          return `${field}: ${detail?.message}`;
-        }
-      }
-    }
-    return registrationApiErrorMessage(error);
-  }
   if (error instanceof Error) return error.message;
   return "Request failed";
 }

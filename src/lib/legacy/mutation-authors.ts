@@ -1,10 +1,6 @@
-import { pb } from "@/lib/pocketbase";
+import { getAuthRecordId } from "@/lib/supabase/committee-auth";
 
-/** Current PocketBase auth record id (`admins` collection), if signed in. */
-export function getAuthRecordId(): string | undefined {
-  const m = pb.authStore.model ?? pb.authStore.record;
-  return m?.id;
-}
+export { getAuthRecordId };
 
 /** Set both audit fields on create (POST). */
 export function withCreatedAuditFields<T extends object>(data: T): T {

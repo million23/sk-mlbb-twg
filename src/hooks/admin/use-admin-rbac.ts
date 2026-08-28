@@ -1,4 +1,4 @@
-import { usePocketBaseAuth } from "@/hooks/legacy/use-pocketbase-auth";
+import { useCommitteeAuth } from "@/hooks/use-committee-auth";
 import {
   canAccessAdminApp,
   canAccessTournamentOps,
@@ -23,7 +23,7 @@ import {
 } from "@/lib/admin/permissions";
 
 export function useAdminRbac() {
-  const { record, isValid } = usePocketBaseAuth();
+  const { record, isValid } = useCommitteeAuth();
   const auth = record as AdminAuthRecord;
 
   return {

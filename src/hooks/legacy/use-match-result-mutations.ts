@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAuthRecordId } from "@/lib/legacy/mutation-authors";
-import { getCollection } from "@/lib/pocketbase";
 import { queryKeys } from "@/lib/legacy/query-keys";
-import { rateLimited } from "@/lib/rate-limited-api";
+import { supabase } from "@/lib/supabase/client";
+import { throwIfError } from "@/lib/supabase/errors";
 import type { Collections } from "@/types/__pocketbase-types";
 
 type MatchResultInput = Partial<
@@ -26,14 +26,17 @@ export function useMatchResultMutations() {
 
   const createMutation = useMutation({
     mutationFn: async (data: MatchResultInput) => {
-      return rateLimited(async () => {
-        const col = getCollection("match_result");
-        const uid = getAuthRecordId();
-        return col.create({
-          ...data,
-          ...(uid ? { created_by: uid, updated_by: uid } : {}),
-        });
-      });
+      const uid = getAuthRecordId();
+      return throwIfError(
+        await supabase
+          .from("match_result")
+          .insert({
+            ...data,
+            ...(uid ? { created_by: uid, updated_by: uid } : {}),
+          } as never)
+          .select("*")
+          .single(),
+      );
     },
     onSettled: (_data, _error, variables) => {
       invalidateMatchResults(queryClient, variables?.match);
@@ -43,14 +46,18 @@ export function useMatchResultMutations() {
   const updateMutation = useMutation({
     mutationFn: async (data: MatchResultInput & { id: string }) => {
       const { id, ...patch } = data;
-      return rateLimited(async () => {
-        const col = getCollection("match_result");
-        const uid = getAuthRecordId();
-        return col.update(id, {
-          ...patch,
-          ...(uid ? { updated_by: uid } : {}),
-        });
-      });
+      const uid = getAuthRecordId();
+      return throwIfError(
+        await supabase
+          .from("match_result")
+          .update({
+            ...patch,
+            ...(uid ? { updated_by: uid } : {}),
+          } as never)
+          .eq("id", id)
+          .select("*")
+          .single(),
+      );
     },
     onSettled: (_data, _error, variables) => {
       invalidateMatchResults(queryClient, variables?.match);
