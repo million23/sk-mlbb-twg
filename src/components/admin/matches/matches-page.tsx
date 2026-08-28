@@ -41,8 +41,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { ParticipantsRecord } from "@/hooks/orval/model/participantsRecord";
+import { fetchMatchResultsForMatchIds } from "@/hooks/legacy/use-match-results";
 import type { MatchRecord } from "@/hooks/legacy/use-matches";
+import type { ParticipantsRecord } from "@/hooks/orval/model/participantsRecord";
 import {
   buildBracketAutoMatchPreview,
   defaultAutoMatchBracketCount,
@@ -55,13 +56,16 @@ import {
   findAdvanceSourceRound,
   toBracketMatchInput,
 } from "@/lib/admin/bracket-rounds";
+import { downloadMatchRosterSpreadsheet } from "@/lib/admin/match-roster-xlsx";
 import { getMatchStatusStyle, isDraftMatchStatus } from "@/lib/legacy/match-status";
 import { cn } from "@/lib/utils";
 import {
   Archive,
   BarChart3,
   ChevronRight,
+  Download,
   Globe,
+  Loader2,
   Medal,
   Pencil,
   Plus,
@@ -285,6 +289,7 @@ export function MatchesPage({
     "next_round" | "playoffs_ready" | null
   >(null);
   const [advanceSourceRound, setAdvanceSourceRound] = useState("Round 1");
+  const [exporting, setExporting] = useState(false);
 
   const highestOrder = useMemo(
     () => matches.reduce((max, row) => Math.max(max, row.order ?? 0), 0),
@@ -361,6 +366,64 @@ export function MatchesPage({
       highestOrder,
       defaultBestOf,
     });
+
+  const activeMatches = useMemo(
+    () => matches.filter((m) => m.archived !== true),
+    [matches],
+  );
+
+  const exportMatchRoster = async () => {
+    if (activeMatches.length === 0 || exporting) return;
+    setExporting(true);
+    try {
+      const stats = await fetchMatchResultsForMatchIds(
+        activeMatches.flatMap((m) => (m.id ? [m.id] : [])),
+      );
+      const basename =
+        tournamentTitle
+          ?.trim()
+          .replace(/[^a-z0-9]+/gi, "-")
+          .replace(/^-|-$/g, "") || "tournament";
+      downloadMatchRosterSpreadsheet({
+        fileBasename: `${basename}-match-roster`,
+        sheetName: "Matches",
+        workbookTitle: tournamentTitle
+          ? `${tournamentTitle} match roster`
+          : "Match roster",
+        matches: activeMatches.map((m) => ({
+          id: m.id,
+          teamAId: m.teamA,
+          teamBId: m.teamB,
+          teamAName: teamName(m, "A"),
+          teamBName: teamName(m, "B"),
+          round: m.round,
+          order: m.order,
+          archived: m.archived,
+        })),
+        players: participants.flatMap((p) =>
+          p.id
+            ? [
+                {
+                  id: p.id,
+                  ign: p.ign,
+                  name: p.name,
+                  teamId: p.team,
+                  archived: p.archived,
+                },
+              ]
+            : [],
+        ),
+        stats,
+      });
+      toast.success("Spreadsheet downloaded");
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Could not export spreadsheet",
+      );
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
@@ -510,6 +573,23 @@ export function MatchesPage({
               </Empty>
             ) : (
               <div className="flex flex-col gap-8">
+                <div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={exporting || activeMatches.length === 0}
+                    onClick={() => void exportMatchRoster()}
+                  >
+                    {exporting ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Download className="size-4" />
+                    )}
+                    {exporting
+                      ? "Downloading…"
+                      : "Download Match Checklist"}
+                  </Button>
+                </div>
                 {groupedMatches.map(([round, rows]) => (
                   <section key={round}>
                     <h2 className="mb-3 font-medium text-muted-foreground text-sm">
