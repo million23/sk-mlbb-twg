@@ -141,6 +141,29 @@ export function buildStructuredWorksheet<T>(
 	return ws;
 }
 
+export function downloadWorkbook(opts: {
+	fileBasename: string;
+	workbookTitle?: string;
+	sheets: { name: string; ws: XLSX.WorkSheet }[];
+}): void {
+	const wb = XLSX.utils.book_new();
+	wb.Props = {
+		Title: opts.workbookTitle ?? opts.sheets[0]?.name ?? "Export",
+		Subject: "Tournament data export",
+		Author: "SK MLBB TWG",
+		CreatedDate: new Date(),
+	};
+	for (const sheet of opts.sheets) {
+		XLSX.utils.book_append_sheet(wb, sheet.ws, sanitizeSheetName(sheet.name));
+	}
+	const name = sanitizeFileBasename(opts.fileBasename);
+	XLSX.writeFile(wb, `${name}-${fileTimestamp()}.xlsx`, {
+		bookType: "xlsx",
+		compression: true,
+		cellDates: true,
+	});
+}
+
 export function downloadStructuredSpreadsheet<T>(
 	opts: DownloadStructuredSpreadsheetOptions<T>,
 ): void {
@@ -153,22 +176,14 @@ export function downloadStructuredSpreadsheet<T>(
 		emptyMessage,
 	} = opts;
 
-	const ws = buildStructuredWorksheet(columns, rows, { emptyMessage });
-	const wb = XLSX.utils.book_new();
-	wb.Props = {
-		Title: workbookTitle ?? sheetName,
-		Subject: "Tournament data export",
-		Author: "SK MLBB TWG",
-		CreatedDate: new Date(),
-	};
-	XLSX.utils.book_append_sheet(wb, ws, sanitizeSheetName(sheetName));
-
-	const name = sanitizeFileBasename(fileBasename);
-	const filename = `${name}-${fileTimestamp()}.xlsx`;
-
-	XLSX.writeFile(wb, filename, {
-		bookType: "xlsx",
-		compression: true,
-		cellDates: true,
+	downloadWorkbook({
+		fileBasename,
+		workbookTitle: workbookTitle ?? sheetName,
+		sheets: [
+			{
+				name: sheetName,
+				ws: buildStructuredWorksheet(columns, rows, { emptyMessage }),
+			},
+		],
 	});
 }

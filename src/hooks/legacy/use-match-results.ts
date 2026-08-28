@@ -35,6 +35,30 @@ export function useMatchResultsForMatch(
   });
 }
 
+const MATCH_ID_FILTER_BATCH = 25;
+
+/** Active match_result rows for the given match ids (batched PocketBase filters). */
+export async function fetchMatchResultsForMatchIds(
+  matchIds: string[],
+): Promise<MatchResultRecord[]> {
+  const ids = [...new Set(matchIds.filter(Boolean))];
+  if (ids.length === 0) return [];
+  return rateLimited(async () => {
+    const col = getCollection("match_result");
+    const batches: MatchResultRecord[] = [];
+    for (let i = 0; i < ids.length; i += MATCH_ID_FILTER_BATCH) {
+      const chunk = ids.slice(i, i + MATCH_ID_FILTER_BATCH);
+      const matchClause = chunk.map((id) => `match = "${id}"`).join(" || ");
+      const list = await col.getFullList({
+        filter: `(${matchClause}) && archived != true`,
+        sort: "-updated,-created",
+      });
+      batches.push(...(list as MatchResultRecord[]));
+    }
+    return batches;
+  });
+}
+
 export function useMatchResultsForTournament(
   tournamentId: string | undefined,
   options?: { enabled?: boolean },
