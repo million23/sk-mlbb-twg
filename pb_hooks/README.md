@@ -45,6 +45,8 @@ sk-mlbb-twg/
     sk_ops.pb.js
     sk_matches.pb.js
     sk_matches_lib.js
+    sk_participants.pb.js
+    sk_participants_lib.js
     sk_mail.js
     sk_discord.js
     views/emails/
@@ -100,6 +102,18 @@ Set `DISCORD_WEBHOOK_URL` on the PocketHost instance (Channel → Integrations �
 [`sk_matches.pb.js`](./sk_matches.pb.js) + [`sk_matches_lib.js`](./sk_matches_lib.js) strip `status = draft` from guest list/view responses after the query runs. Helpers are `require`d inside handlers because PocketHost isolates top-level functions in `*.pb.js`. Staff auth still sees drafts.
 
 Redeploy **both** files and restart.
+
+### Public roster (name + lanes)
+
+[`sk_participants.pb.js`](./sk_participants.pb.js) + [`sk_participants_lib.js`](./sk_participants_lib.js):
+
+- `GET /sk/public/roster?tournament=ID` → `{ teams: [{ id, name, players: [{ id, name, lanes }] }] }`
+- Assigned + approved players only. No email, IGN, address, IDs, or documents.
+- If someone opens `participants` List/View to guests, the same hook strips those fields and hides anyone not on a public roster.
+
+**Do not** set `participants` List/View to fully public (`""`) without this hook deployed. Matches publish is a different collection. Roster uses the `/sk/public/roster` route.
+
+Redeploy both files and restart.
 
 Cloudflare always-pass test keys: [Turnstile testing](https://developers.cloudflare.com/turnstile/troubleshooting/testing/).
 

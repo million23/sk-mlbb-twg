@@ -31,6 +31,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
+import { AdminTableSkeleton } from "@/components/admin/admin-table-skeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -565,11 +566,51 @@ export function MatchesPage({
 
           <TabsContent value={listScope} className="mt-0">
             {isLoading ? (
-              <div className="space-y-4">
-                <Skeleton className="h-6 w-32" />
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
+              <div className="flex flex-col gap-3">
+                <Skeleton className="h-4 w-24 rounded-md" />
+                <AdminTableSkeleton
+                  rows={6}
+                  columns={[
+                    {
+                      key: "label",
+                      label: "Label",
+                      boneClassName: [
+                        "h-4 w-40",
+                        "h-4 w-32",
+                        "h-4 w-48",
+                        "h-4 w-36",
+                        "h-4 w-28",
+                        "h-4 w-44",
+                      ],
+                    },
+                    {
+                      key: "teams",
+                      label: "Teams",
+                      boneClassName: ["h-4 w-48", "h-4 w-40", "h-4 w-56", "h-4 w-36"],
+                    },
+                    {
+                      key: "score",
+                      label: "Score",
+                      boneClassName: "h-4 w-12",
+                    },
+                    {
+                      key: "status",
+                      label: "Status",
+                      boneClassName: "h-5 w-20 rounded-full",
+                    },
+                    ...(canManage
+                      ? [
+                          {
+                            key: "actions",
+                            label: "Actions",
+                            headClassName: "text-right",
+                            cellClassName: "text-right",
+                            boneClassName: "ml-auto h-8 w-24 rounded-md",
+                          },
+                        ]
+                      : []),
+                  ]}
+                />
               </div>
             ) : isError ? (
               <Empty className="border border-border">

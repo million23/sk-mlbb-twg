@@ -1427,6 +1427,61 @@
   }
 }
 
+/* Skeleton: sweep on bones (transform), breathe on layout wrappers. Linear = constant motion. */
+@keyframes skeleton-sweep {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes skeleton-breathe {
+  50% {
+    opacity: 0.62;
+  }
+}
+
+[data-slot="skeleton"]:not(:has(> *)) {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+[data-slot="skeleton"]:not(:has(> *))::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    color-mix(in oklab, var(--foreground) 10%, transparent) 50%,
+    transparent 100%
+  );
+  animation: skeleton-sweep 1.2s linear infinite;
+  animation-delay: inherit;
+  pointer-events: none;
+}
+
+[data-slot="skeleton"]:has(> *) {
+  background-color: transparent;
+  animation: skeleton-breathe 1.15s cubic-bezier(0.23, 1, 0.32, 1) infinite;
+}
+
+[data-slot="skeleton"] + [data-slot="skeleton"] {
+  animation-delay: 50ms;
+}
+
+[data-slot="skeleton"] + [data-slot="skeleton"] + [data-slot="skeleton"] {
+  animation-delay: 100ms;
+}
+
+[data-slot="skeleton"]
+  + [data-slot="skeleton"]
+  + [data-slot="skeleton"]
+  + [data-slot="skeleton"] {
+  animation-delay: 150ms;
+}
+
 /* HIG: respect Reduce Motion (avoid animating layout / scroll; keep essential status motion) */
 @media (prefers-reduced-motion: reduce) {
   html {
@@ -1534,5 +1589,13 @@
   .landing-hero-enter {
     opacity: 1;
     transform: none;
+  }
+
+  [data-slot="skeleton"] {
+    animation: none !important;
+  }
+
+  [data-slot="skeleton"]::after {
+    content: none;
   }
 }

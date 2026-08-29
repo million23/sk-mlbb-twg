@@ -1,4 +1,4 @@
-import { Spinner } from "@/components/ui/spinner";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -229,9 +229,22 @@ export function MatchPlayerResultsBody({
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[16vh] flex-col items-center justify-center gap-3">
-        <Spinner className="size-6 text-primary" />
-        <p className="text-muted-foreground text-sm">Loading results…</p>
+      <div className="flex flex-col gap-8" aria-busy="true">
+        <span className="sr-only">Loading results</span>
+        {["a", "b"].map((side) => (
+          <div key={side} className="flex flex-col gap-2">
+            <Skeleton className="h-5 w-32 rounded-md" />
+            <div className="overflow-hidden rounded-xl border border-border/60 bg-card/40 p-3">
+              <div className="flex flex-col gap-2">
+                <Skeleton className="h-8 w-full rounded-md" />
+                <Skeleton className="h-8 w-full rounded-md" />
+                <Skeleton className="h-8 w-[92%] rounded-md" />
+                <Skeleton className="h-8 w-[88%] rounded-md" />
+                <Skeleton className="h-8 w-[94%] rounded-md" />
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     );
   }

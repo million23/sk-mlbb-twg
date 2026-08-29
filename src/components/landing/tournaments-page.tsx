@@ -98,7 +98,7 @@ function TournamentListItemSkeleton({ index }: { index: number }) {
       <div className="grid gap-4 px-0 py-7 sm:grid-cols-[7.5rem_minmax(0,1fr)_auto] sm:items-start sm:gap-x-8 sm:py-9">
         <Skeleton className="h-4 w-16 rounded-md" />
         <div className="min-w-0 flex flex-col gap-3">
-          <Skeleton className="h-8 w-[85%] max-w-sm rounded-md sm:h-9" />
+          <Skeleton className="h-8 w-[85%] max-w-sm rounded-md sm:h-10" />
           <Skeleton className="h-4 w-40 max-w-full rounded-md" />
           <div className="flex flex-col gap-2">
             <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-x-3 sm:grid-cols-[7.25rem_minmax(0,1fr)]">
@@ -123,7 +123,7 @@ function TournamentsPageSkeleton() {
       <span className="sr-only">Loading tournaments</span>
       <header className="flex max-w-md flex-col gap-3 lg:sticky lg:top-28">
         <Skeleton className="h-3 w-20 rounded-md" />
-        <Skeleton className="h-10 w-full max-w-sm rounded-md sm:h-12" />
+        <Skeleton className="h-12 w-full max-w-sm rounded-md sm:h-14 lg:h-16" />
         <Skeleton className="h-4 w-full max-w-xs rounded-md" />
         <Skeleton className="h-4 w-3/4 max-w-56 rounded-md" />
       </header>

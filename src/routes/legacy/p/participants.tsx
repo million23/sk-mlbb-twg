@@ -18,8 +18,8 @@ import { Spinner } from "@/components/ui/spinner";
 import { useParticipants } from "@/hooks/legacy/use-participants";
 import { useTeams } from "@/hooks/legacy/use-teams";
 import { effectiveParticipantStatus } from "@/lib/legacy/participant-display-status";
+import { participantPublicLanes } from "@/lib/legacy/participant-public-lanes";
 import { createFileRoute } from "@tanstack/react-router";
-import type { PlayerRole } from "@/types/__pocketbase-types";
 import { Search, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 
@@ -138,9 +138,7 @@ function PublicParticipantsPage() {
 				<ul className="grid gap-4 sm:grid-cols-2">
 					{filtered.map((p) => {
 						const eff = effectiveParticipantStatus(p, teams);
-						const roles = p.preferredRoles?.filter(Boolean) as
-							| PlayerRole[]
-							| undefined;
+						const roles = participantPublicLanes(p);
 						const tid = p.team;
 						const teamLabel = tid ? (teamNameById.get(tid) ?? null) : null;
 
