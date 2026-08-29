@@ -70,7 +70,7 @@ onRecordAfterCreateSuccess((e) => {
         collection: "participants",
         recordId: String(record.id || ""),
         error: String(err && (err.message || err) || "send failed"),
-      });
+      }, e);
     } catch (notifyErr) {
       console.log("[sk-discord] mail-error notify failed", notifyErr);
     }
@@ -138,7 +138,7 @@ onRecordAfterUpdateSuccess((e) => {
         collection: "participants",
         recordId: String(record.id || ""),
         error: String(err && (err.message || err) || "send failed"),
-      });
+      }, e);
     } catch (notifyErr) {
       console.log("[sk-discord] mail-error notify failed", notifyErr);
     }

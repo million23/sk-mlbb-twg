@@ -80,7 +80,7 @@ Set on the instance (dashboard env / secrets), then **restart**:
 | `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile secret (**required** — no silent skip) |
 | `TURNSTILE_SKIP=1` | Only local escape hatch; otherwise create fails if secret is missing |
 | `SK_APP_ORIGINS` | Optional extra allowlisted site origins for verify-link emails (comma-separated) |
-| `DISCORD_WEBHOOK_URL` | Discord webhook for **ops** alerts: admin logins + errors (optional; skipped if unset) |
+| `DISCORD_WEBHOOK_URL` | Discord webhook for **ops** alerts: admin logins + every warn/error log (optional; skipped if unset) |
 
 Vite app needs matching `VITE_TURNSTILE_SITE_KEY` in `.env` only (public).  
 **Do not** put secrets in any `VITE_*` variable — set them only on PocketHost.
@@ -90,10 +90,14 @@ Vite app needs matching `VITE_TURNSTILE_SITE_KEY` in `.env` only (public).
 [`sk_ops.pb.js`](./sk_ops.pb.js) + [`sk_discord.js`](./sk_discord.js) post embeds for:
 
 - **Admin login** success / failure (`admins` password auth)
-- **Record create/update/delete errors** on `participants`, `teams`, `matches`, `match_result`, `tournaments`, `admins`
-- **Mail send failures** from registration hooks (so you see SMTP issues without opening PocketBase logs)
+- **Every warn and error** written to Dashboard → Logs (`_logs`; slog warn=4, error=8). Includes failed HTTP requests, hook/`$app.logger()` output, and internal PocketBase messages. Info/debug are not sent. Rows whose message contains `[sk-discord]` are skipped so webhook chatter does not loop.
+- **Record create / update / delete** on all collections (system `_` tables skipped). Updates that only touch `last_login_at` / timestamps are skipped. Email, address, documents, and passwords are not posted.
+- Every alert includes **User** (auth name/email/id, or `guest`) and **IP** (request `realIP` / `X-Forwarded-For`, or the log's `userIP`).
+- **Mail send failures** from registration hooks (those paths `console.log` at info, so they would not hit the log filter on their own)
 
-Not used for normal registration success (that stays email-only).
+Registration still emails the player. Discord also gets the `participants` (and related) row create/update.
+
+Logs can land in Discord a bit late because PocketBase batches log writes.
 
 Set `DISCORD_WEBHOOK_URL` on the PocketHost instance (Channel → Integrations → Webhooks → Copy URL), redeploy `pb_hooks/`, then **restart**.
 
