@@ -13,6 +13,7 @@ import {
 	getRosterCardBackgroundDataUri,
 } from "@/lib/legacy/avatar";
 import { LANE_ROLE_LABELS } from "@/lib/legacy/lane-role-icons";
+import { participantPublicLanes } from "@/lib/legacy/participant-public-lanes";
 import { cn } from "@/lib/utils";
 import type { PlayerRole } from "@/types/__pocketbase-types";
 import { UsersRound } from "lucide-react";
@@ -145,10 +146,9 @@ export function PublicTeamRosterModalProvider({
 									}}
 								>
 									{roster.map((p) => {
-										const roles = p.preferredRoles?.filter(Boolean) as
-											| PlayerRole[]
-											| undefined;
-										const laneList = normalizedRoles(roles);
+										const laneList = normalizedRoles(
+											participantPublicLanes(p),
+										);
 										const bgUri = getRosterCardBackgroundDataUri(p.id);
 										const faceUri = getAvatarUrl(p.id);
 										return (

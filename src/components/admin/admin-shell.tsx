@@ -40,15 +40,12 @@ import {
   AdminTournamentSelector,
   resolveAdminTournamentId,
 } from "@/components/admin/admin-tournament-selector";
-import { Spinner } from "@/components/ui/spinner";
 import { usePocketBaseAuth } from "@/hooks/legacy/use-pocketbase-auth";
 import { useTournaments } from "@/hooks/legacy/use-tournaments";
 import { useResolvedTheme } from "@/hooks/use-resolved-theme";
 import { useActiveTournamentId } from "@/lib/admin/active-tournament";
 import { useAdminRbac } from "@/hooks/admin/use-admin-rbac";
 import { queryClient } from "@/lib/query-client";
-import { cn } from "@/lib/utils";
-import { useIsMutating } from "@tanstack/react-query";
 import {
   Link,
   Outlet,
@@ -201,8 +198,6 @@ function AdminShellContent({ children }: { children?: ReactNode }) {
     open: sidebarOpen,
     setOpen: setSidebarOpen,
   } = useSidebar();
-  const mutatingCount = useIsMutating();
-  const showInsetTopBar = isMobile || mutatingCount > 0;
   const [signOutOpen, setSignOutOpen] = useState(false);
 
   const closeMobileSidebar = () => {
@@ -493,34 +488,20 @@ function AdminShellContent({ children }: { children?: ReactNode }) {
       </AlertDialog>
 
       <SidebarInset className="overflow-hidden">
-        {showInsetTopBar ? (
-          <header
-            className={cn(
-              "relative z-10 flex h-12 shrink-0 items-center border-b border-border bg-background/70 px-4 backdrop-blur-sm",
-              isMobile ? "gap-2" : "justify-end",
-            )}
-          >
+        {isMobile ? (
+          <header className="relative z-10 flex h-12 shrink-0 items-center border-b border-border bg-background/70 px-4 backdrop-blur-sm">
             <MobileSidebarTrigger />
-            {isMobile ? <div className="min-w-0 flex-1" aria-hidden /> : null}
-            <SyncIndicator />
           </header>
         ) : null}
         <div className="relative min-w-0 flex-1 overflow-auto">
           <div
-            className="pointer-events-none absolute inset-0 overflow-hidden"
+            className="pointer-events-none absolute inset-0 overflow-hidden opacity-[0.04] dark:opacity-[0.07]"
             aria-hidden
-          >
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_90%_70%_at_0%_0%,color-mix(in_oklch,var(--primary)_20%,transparent),transparent_60%)]" />
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_55%_at_100%_15%,color-mix(in_oklch,var(--primary)_12%,transparent),transparent_55%)]" />
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_40%_100%,color-mix(in_oklch,var(--primary)_10%,transparent),transparent_55%)]" />
-            <div
-              className="absolute inset-0 opacity-[0.04] dark:opacity-[0.07]"
-              style={{
-                backgroundImage:
-                  "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
-              }}
-            />
-          </div>
+            style={{
+              backgroundImage:
+                "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
+            }}
+          />
           <div className="relative px-4 py-4 md:px-5 md:py-5 lg:px-6 lg:py-6">
             {children ?? <Outlet />}
           </div>
@@ -543,13 +524,5 @@ function MobileSidebarTrigger() {
     >
       <Menu className="size-6" />
     </Button>
-  );
-}
-
-function SyncIndicator() {
-  const isMutating = useIsMutating();
-  if (isMutating === 0) return null;
-  return (
-    <Spinner className="size-4 text-muted-foreground" aria-label="Saving..." />
   );
 }

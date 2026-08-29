@@ -17,4 +17,6 @@ export const queryKeys = {
   publicUpcoming: ["public", "upcoming"] as const,
   publicCurrent: ["public", "current"] as const,
   publicTournaments: ["public", "tournaments"] as const,
+  publicRoster: (tournamentId: string) =>
+    ["public", "roster", tournamentId] as const,
 } as const;

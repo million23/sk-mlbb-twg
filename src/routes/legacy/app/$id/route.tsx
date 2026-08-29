@@ -37,14 +37,11 @@ import {
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Spinner } from "@/components/ui/spinner";
 import { usePocketBaseAuth } from "@/hooks/legacy/use-pocketbase-auth";
 import { useResolvedTheme } from "@/hooks/use-resolved-theme";
 import { canViewAuditLog } from "@/lib/legacy/admin-permissions";
 import { pb } from "@/lib/pocketbase";
 import { queryClient } from "@/lib/query-client";
-import { cn } from "@/lib/utils";
-import { useIsMutating } from "@tanstack/react-query";
 import {
   createFileRoute,
   Link,
@@ -143,8 +140,6 @@ function AdminLayoutContent() {
     open: sidebarOpen,
     setOpen: setSidebarOpen,
   } = useSidebar();
-  const mutatingCount = useIsMutating();
-  const showInsetTopBar = isMobile || mutatingCount > 0;
   const [signOutOpen, setSignOutOpen] = useState(false);
   const id = (params as { id?: string })?.id ?? "main";
 
@@ -382,16 +377,9 @@ function AdminLayoutContent() {
       </AlertDialog>
 
       <SidebarInset>
-        {showInsetTopBar ? (
-          <header
-            className={cn(
-              "flex h-12 shrink-0 items-center border-b border-border px-4",
-              isMobile ? "gap-2" : "justify-end",
-            )}
-          >
+        {isMobile ? (
+          <header className="flex h-12 shrink-0 items-center border-b border-border px-4">
             <MobileSidebarTrigger />
-            {isMobile ? <div className="min-w-0 flex-1" aria-hidden /> : null}
-            <SyncIndicator />
           </header>
         ) : null}
         <div className="min-w-0 flex-1 overflow-auto px-4 py-4 md:px-5 md:py-5 lg:px-6 lg:py-6">
@@ -415,13 +403,5 @@ function MobileSidebarTrigger() {
     >
       <Menu className="size-6" />
     </Button>
-  );
-}
-
-function SyncIndicator() {
-  const isMutating = useIsMutating();
-  if (isMutating === 0) return null;
-  return (
-    <Spinner className="size-4 text-muted-foreground" aria-label="Saving..." />
   );
 }

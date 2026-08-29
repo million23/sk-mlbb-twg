@@ -9,7 +9,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { Skeleton } from "@/components/ui/skeleton";
+import { AdminTableSkeleton } from "@/components/admin/admin-table-skeleton";
 import {
   Table,
   TableBody,
@@ -109,12 +109,78 @@ export function TeamStandingPage({
 
         <AdminStagger index={1}>
           {isLoading ? (
-            <div className="space-y-2">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-            </div>
+            <AdminTableSkeleton
+              rows={6}
+              columns={[
+                {
+                  key: "rank",
+                  label: "Rank",
+                  headClassName: "w-14",
+                  boneClassName: "h-5 w-8 rounded-full",
+                },
+                {
+                  key: "team",
+                  label: "Team",
+                  boneClassName: [
+                    "h-4 w-36",
+                    "h-4 w-28",
+                    "h-4 w-44",
+                    "h-4 w-32",
+                    "h-4 w-40",
+                    "h-4 w-24",
+                  ],
+                },
+                {
+                  key: "p",
+                  label: "P",
+                  headClassName: "text-right",
+                  cellClassName: "text-right",
+                  boneClassName: "ml-auto h-4 w-6",
+                },
+                {
+                  key: "w",
+                  label: "W",
+                  headClassName: "text-right",
+                  cellClassName: "text-right",
+                  boneClassName: "ml-auto h-4 w-6",
+                },
+                {
+                  key: "l",
+                  label: "L",
+                  headClassName: "text-right",
+                  cellClassName: "text-right",
+                  boneClassName: "ml-auto h-4 w-6",
+                },
+                {
+                  key: "gw",
+                  label: "GW",
+                  headClassName: "text-right",
+                  cellClassName: "text-right",
+                  boneClassName: "ml-auto h-4 w-6",
+                },
+                {
+                  key: "gl",
+                  label: "GL",
+                  headClassName: "text-right",
+                  cellClassName: "text-right",
+                  boneClassName: "ml-auto h-4 w-6",
+                },
+                {
+                  key: "gd",
+                  label: "GD",
+                  headClassName: "text-right",
+                  cellClassName: "text-right",
+                  boneClassName: "ml-auto h-4 w-8",
+                },
+                {
+                  key: "win",
+                  label: "Win %",
+                  headClassName: "text-right",
+                  cellClassName: "text-right",
+                  boneClassName: "ml-auto h-4 w-10",
+                },
+              ]}
+            />
           ) : isError ? (
             <Empty className="border border-border">
               <EmptyHeader>

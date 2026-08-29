@@ -41,7 +41,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
+import { AdminTableSkeleton } from "@/components/admin/admin-table-skeleton";
 import {
   Table,
   TableBody,
@@ -508,11 +508,60 @@ export function TeamsPage({
 
           <div className="mt-0">
             {isLoading ? (
-              <div className="space-y-2">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-              </div>
+              <AdminTableSkeleton
+                columns={[
+                  {
+                    key: "team",
+                    label: "Team",
+                    boneClassName: [
+                      "h-4 w-36",
+                      "h-4 w-28",
+                      "h-4 w-44",
+                      "h-4 w-32",
+                      "h-4 w-40",
+                      "h-4 w-24",
+                      "h-4 w-36",
+                      "h-4 w-48",
+                    ],
+                    stacked: true,
+                  },
+                  {
+                    key: "captain",
+                    label: "Captain",
+                    headClassName: "hidden md:table-cell",
+                    cellClassName: "hidden md:table-cell",
+                    boneClassName: ["h-4 w-32", "h-4 w-24", "h-4 w-40", "h-4 w-28"],
+                  },
+                  {
+                    key: "members",
+                    label: "Members",
+                    boneClassName: "h-4 w-8",
+                  },
+                  {
+                    key: "status",
+                    label: "Status",
+                    boneClassName: "h-5 w-16 rounded-full",
+                  },
+                  {
+                    key: "registered",
+                    label: "Registered",
+                    headClassName: "hidden sm:table-cell",
+                    cellClassName: "hidden sm:table-cell",
+                    boneClassName: "h-4 w-24",
+                  },
+                  ...(listScope === "archived" && canManage
+                    ? [
+                        {
+                          key: "actions",
+                          label: "Actions",
+                          headClassName: "text-right",
+                          cellClassName: "text-right",
+                          boneClassName: "ml-auto h-8 w-20 rounded-md",
+                        },
+                      ]
+                    : []),
+                ]}
+              />
             ) : isError ? (
               <Empty className="border border-border">
                 <EmptyHeader>
