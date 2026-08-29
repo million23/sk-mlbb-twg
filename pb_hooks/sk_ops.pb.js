@@ -3,7 +3,8 @@
 /**
  * Ops alerts → Discord (DISCORD_WEBHOOK_URL).
  * - Admin password logins (success + failure)
- * - Record create/update/delete persistence errors on key collections
+ * - All PocketBase warn/error Dashboard Logs (_logs)
+ * - Record create / update / delete on all collections
  *
  * Helpers via require(`${__hooks}/sk_discord.js`) — handler isolation.
  */
@@ -51,50 +52,52 @@ onRecordAuthWithPasswordRequest((e) => {
   }
 }, "admins");
 
-function reportRecordError(where, e) {
-  const discord = require(`${__hooks}/sk_discord.js`);
-  const meta = discord.requestMeta(e);
-  const record = e.record;
-  const collection =
-    (e.collection && e.collection.name) ||
-    (record && record.collectionName && record.collectionName()) ||
-    "—";
-  const err = e.error;
-  discord.notifyError({
-    title: "Record " + where + " failed",
-    where: where,
-    collection: String(collection),
-    recordId: record ? String(record.id || "") : "",
-    ip: meta.ip,
-    method: meta.method,
-    path: meta.path,
-    error: String(err && (err.message || err) || "unknown error"),
-  });
-}
+/** slog Warn=4, Error=8. Persist the log first so Discord latency does not block writes. */
+onModelCreate((e) => {
+  const model = e.model;
+  const level = Number(model.level);
+  const payload = {
+    id: String(model.id || ""),
+    level: level,
+    message: String(model.message || ""),
+    data: model.data,
+  };
+  e.next();
 
-onRecordAfterCreateError((e) => {
+  if (!(level >= 4)) {
+    return;
+  }
   try {
-    reportRecordError("create", e);
+    const discord = require(`${__hooks}/sk_discord.js`);
+    discord.notifyLog(payload);
   } catch (err) {
-    console.log("[sk-discord] create-error notify failed", err);
+    console.log("[sk-discord] log notify failed", err);
+  }
+}, "_logs");
+
+onRecordAfterCreateSuccess((e) => {
+  try {
+    require(`${__hooks}/sk_discord.js`).notifyRecordChange("create", e);
+  } catch (err) {
+    console.log("[sk-discord] record-create notify failed", err);
   }
   e.next();
-}, "participants", "teams", "matches", "match_result", "tournaments", "admins");
+});
 
-onRecordAfterUpdateError((e) => {
+onRecordAfterUpdateSuccess((e) => {
   try {
-    reportRecordError("update", e);
+    require(`${__hooks}/sk_discord.js`).notifyRecordChange("update", e);
   } catch (err) {
-    console.log("[sk-discord] update-error notify failed", err);
+    console.log("[sk-discord] record-update notify failed", err);
   }
   e.next();
-}, "participants", "teams", "matches", "match_result", "tournaments", "admins");
+});
 
-onRecordAfterDeleteError((e) => {
+onRecordAfterDeleteSuccess((e) => {
   try {
-    reportRecordError("delete", e);
+    require(`${__hooks}/sk_discord.js`).notifyRecordChange("delete", e);
   } catch (err) {
-    console.log("[sk-discord] delete-error notify failed", err);
+    console.log("[sk-discord] record-delete notify failed", err);
   }
   e.next();
-}, "participants", "teams", "matches", "match_result", "tournaments", "admins");
+});
