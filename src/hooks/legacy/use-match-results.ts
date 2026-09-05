@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
 import { pocketbaseListQueryOptions } from "@/lib/legacy/pocketbase-list-query-options";
 import { getCollection } from "@/lib/pocketbase";
 import { queryKeys } from "@/lib/legacy/query-keys";
@@ -17,10 +18,14 @@ export function useMatchResultsForMatch(
   options?: { enabled?: boolean },
 ) {
   const eligible = options?.enabled ?? true;
-  return useQuery({
+  const enabled = Boolean(matchId) && eligible;
+  const wasEnabled = useRef(false);
+  const query = useQuery({
     ...pocketbaseListQueryOptions,
     queryKey: [...queryKeys.matchResults, matchId ?? "none"] as const,
-    enabled: Boolean(matchId) && eligible,
+    enabled,
+    staleTime: 0,
+    refetchOnMount: "always",
     placeholderData: (previous) => previous,
     queryFn: () =>
       rateLimited(async () => {
@@ -34,6 +39,16 @@ export function useMatchResultsForMatch(
         return list as MatchResultRecord[];
       }),
   });
+  const refetch = query.refetch;
+
+  useEffect(() => {
+    if (enabled && !wasEnabled.current) {
+      void refetch();
+    }
+    wasEnabled.current = enabled;
+  }, [enabled, refetch]);
+
+  return query;
 }
 
 const MATCH_ID_FILTER_BATCH = 25;

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   bestResultIdByLane,
   displayGameByResultId,
+  findMatchResultIdForGame,
   matchResultTabNumbers,
   matchSeriesGameCount,
   resultGameNumber,
@@ -17,9 +18,35 @@ describe("resultGameNumber", () => {
     expect(resultGameNumber({ game_number: 0 })).toBe(1);
   });
 
-  it("keeps a positive game index", () => {
-    expect(resultGameNumber({ game_number: 3 })).toBe(3);
-    expect(resultGameNumber({ game_number: 2.9 })).toBe(2);
+  it("reads camelCase gameNumber", () => {
+    expect(resultGameNumber({ gameNumber: 2 })).toBe(2);
+    expect(storedGameNumber({ gameNumber: 2 })).toBe(2);
+  });
+});
+
+describe("findMatchResultIdForGame", () => {
+  it("requires an explicit stored game number", () => {
+    expect(
+      findMatchResultIdForGame(
+        [{ id: "old", player: "p1", created: "2026-01-01" }],
+        "p1",
+        1,
+      ),
+    ).toBeUndefined();
+  });
+
+  it("picks the newest row for that player and map", () => {
+    expect(
+      findMatchResultIdForGame(
+        [
+          { id: "g2", player: "p1", game_number: 2, created: "2026-01-02" },
+          { id: "g1-old", player: "p1", game_number: 1, created: "2026-01-01" },
+          { id: "g1-new", player: "p1", game_number: 1, created: "2026-01-03" },
+        ],
+        "p1",
+        1,
+      ),
+    ).toBe("g1-new");
   });
 });
 

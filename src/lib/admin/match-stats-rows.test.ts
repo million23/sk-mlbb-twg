@@ -1,37 +1,46 @@
 import { describe, expect, it } from "vitest";
 import { shouldReplaceMatchStatsRows } from "./match-stats-rows";
 
+const ready = {
+  open: true,
+  matchId: "m1",
+  resultsPending: false,
+  isFetching: false,
+  isSaving: false,
+  hasDirtyRows: false,
+  hasLocalRows: true,
+};
+
 describe("shouldReplaceMatchStatsRows", () => {
-  it("does not clobber local rows when the same match refetches", () => {
+  it("keeps local rows while a refetch is in flight", () => {
     expect(
       shouldReplaceMatchStatsRows({
-        open: true,
-        matchId: "m1",
-        alreadySyncedMatchId: "m1",
-        resultsPending: false,
+        ...ready,
+        isFetching: true,
       }),
     ).toBe(false);
+  });
+
+  it("applies server rows after a refetch finishes", () => {
+    expect(shouldReplaceMatchStatsRows(ready)).toBe(true);
   });
 
   it("waits until the first result fetch finishes", () => {
     expect(
       shouldReplaceMatchStatsRows({
-        open: true,
-        matchId: "m1",
-        alreadySyncedMatchId: null,
+        ...ready,
         resultsPending: true,
+        hasLocalRows: false,
       }),
     ).toBe(false);
   });
 
-  it("loads server rows once the sheet opens on a match", () => {
+  it("does not overwrite unsaved edits", () => {
     expect(
       shouldReplaceMatchStatsRows({
-        open: true,
-        matchId: "m1",
-        alreadySyncedMatchId: null,
-        resultsPending: false,
+        ...ready,
+        hasDirtyRows: true,
       }),
-    ).toBe(true);
+    ).toBe(false);
   });
 });

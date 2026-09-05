@@ -1,11 +1,62 @@
-/** Which map in a Bo1/Bo3/Bo5 series a `match_result` row belongs to. */
-export function resultGameNumber(result: {
+type GameNumberFields = {
   game_number?: number | string | null;
-}): number {
-  const raw = result.game_number;
+  gameNumber?: number | string | null;
+};
+
+function rawStoredGameNumber(
+  result: GameNumberFields,
+): number | string | null | undefined {
+  return result.game_number ?? result.gameNumber;
+}
+
+/** Explicit map index, or null when the field is missing / junk. */
+export function storedGameNumber(result: GameNumberFields): number | null {
+  const raw = rawStoredGameNumber(result);
   const n = typeof raw === "string" ? Number.parseFloat(raw) : raw;
-  if (typeof n !== "number" || !Number.isFinite(n) || n < 1) return 1;
+  if (typeof n !== "number" || !Number.isFinite(n) || n < 1) return null;
   return Math.trunc(n);
+}
+
+/** Which map in a Bo1/Bo3/Bo5 series a `match_result` row belongs to. */
+export function resultGameNumber(result: GameNumberFields): number {
+  return storedGameNumber(result) ?? 1;
+}
+
+/** PATCH this id for player+map. Ignores rows with no stored `game_number`. */
+export function findMatchResultIdForGame(
+  results: Array<
+    GameNumberFields & {
+      id?: string;
+      created?: string;
+      player?: unknown;
+      expand?: { player?: { id?: string } };
+    }
+  >,
+  playerId: string,
+  gameNumber: number,
+): string | undefined {
+  const matches = results.filter((result) => {
+    if (!result.id) return false;
+    if (resultPlayerId(result) !== playerId) return false;
+    return storedGameNumber(result) === gameNumber;
+  });
+  if (matches.length === 0) return undefined;
+  matches.sort((a, b) => (a.created ?? "").localeCompare(b.created ?? ""));
+  return matches[matches.length - 1]?.id;
+}
+
+export function resultPlayerId(result: {
+  player?: unknown;
+  expand?: { player?: { id?: string } };
+}): string | undefined {
+  const p = result.player;
+  if (typeof p === "string" && p.trim()) return p.trim();
+  if (p && typeof p === "object" && "id" in p) {
+    const id = (p as { id?: unknown }).id;
+    if (typeof id === "string" && id.trim()) return id.trim();
+  }
+  const expanded = result.expand?.player?.id?.trim();
+  return expanded || undefined;
 }
 
 export function matchSeriesGameCount(
@@ -32,19 +83,10 @@ export type MatchResultGameRow = {
   game_performance_rating?: number;
   accumulated_gold?: number;
   game_number?: number | string | null;
+  gameNumber?: number | string | null;
   created?: string;
   updated?: string;
 };
-
-/** Explicit map index, or null when the field is missing / junk. */
-export function storedGameNumber(result: {
-  game_number?: number | string | null;
-}): number | null {
-  const raw = result.game_number;
-  const n = typeof raw === "string" ? Number.parseFloat(raw) : raw;
-  if (typeof n !== "number" || !Number.isFinite(n) || n < 1) return null;
-  return Math.trunc(n);
-}
 
 function rowTime(row: MatchResultGameRow): number {
   const raw = row.updated || row.created;
