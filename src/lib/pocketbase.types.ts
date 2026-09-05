@@ -65,7 +65,7 @@ export interface Collections {
     game_performance_rating?: number
     accumulated_gold?: number
     game_number?: number
-    archived: boolean
+    archived?: boolean
     created_by?: string
     updated_by?: string
     created?: string

@@ -3234,8 +3234,7 @@
         },
         "required": [
           "match",
-          "player",
-          "archived"
+          "player"
         ]
       },
       "matchesRecord": {
