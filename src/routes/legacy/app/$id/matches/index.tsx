@@ -94,6 +94,7 @@ import { useTournaments } from "@/hooks/legacy/use-tournaments";
 import { tournamentAgeGroupFromBirthdate } from "@/lib/legacy/age";
 import { getMatchStatusStyle } from "@/lib/legacy/match-status";
 import { tournamentLabel } from "@/lib/legacy/tournament-label";
+import { shouldReplaceMatchStatsRows } from "@/lib/admin/match-stats-rows";
 import { cn } from "@/lib/utils";
 import type { Collections } from "@/types/__pocketbase-types";
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
@@ -108,7 +109,7 @@ import {
 	Shuffle,
 	Swords,
 } from "lucide-react";
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -1955,9 +1956,10 @@ function MatchStatsDialog({
 	participants: Collections["participants"][];
 }) {
 	const mutations = useMatchResultMutations();
-	const { data: matchResults, isLoading } = useMatchResultsForMatch(match?.id, {
-		enabled: open,
-	});
+	const { data: matchResults, isPending: resultsPending } =
+		useMatchResultsForMatch(match?.id, {
+			enabled: open,
+		});
 	const headline =
 		match?.matchLabel?.trim() ||
 		(match ? `${teamName(match, "A")} vs ${teamName(match, "B")}` : "");
@@ -1976,6 +1978,7 @@ function MatchStatsDialog({
 		}>
 	>([]);
 	const [isSaving, setIsSaving] = useState(false);
+	const syncedMatchId = useRef<string | null>(null);
 
 	const laneLabelByValue = useMemo(
 		() =>
@@ -2052,9 +2055,23 @@ function MatchStatsDialog({
 	}, [match, matchResults, participants]);
 
 	useEffect(() => {
-		if (!open) return;
+		if (!open) {
+			syncedMatchId.current = null;
+			return;
+		}
+		if (
+			!shouldReplaceMatchStatsRows({
+				open,
+				matchId: match?.id,
+				alreadySyncedMatchId: syncedMatchId.current,
+				resultsPending,
+			})
+		) {
+			return;
+		}
 		setRows(initialRows);
-	}, [open, initialRows]);
+		syncedMatchId.current = match?.id ?? null;
+	}, [open, match?.id, resultsPending, initialRows]);
 
 	const hasDirtyRows = rows.some((row) => row.dirty);
 	const groupedRows = useMemo(() => {
@@ -2219,6 +2236,7 @@ function MatchStatsDialog({
 			toast.success(
 				`Saved ${savedCount} player result${savedCount > 1 ? "s" : ""}`,
 			);
+			mutations.invalidate(match.id);
 		} catch (error) {
 			toast.error(
 				error instanceof Error ? error.message : "Could not submit results",
@@ -2239,7 +2257,7 @@ function MatchStatsDialog({
 				</SheetHeader>
 
 				<div className="min-h-0 flex-1 overflow-auto px-4 py-4 sm:px-6">
-					{isLoading ? (
+					{resultsPending && rows.length < 1 ? (
 						<div className="rounded-lg border border-border/70">
 							<div className="grid min-w-[900px] grid-cols-[1.3fr_1fr_0.9fr_0.9fr_0.9fr_0.9fr_110px] gap-2 border-b border-border/70 px-3 py-2">
 								<Skeleton className="h-4 w-20" />

@@ -36,9 +36,6 @@ export function useMatchResultMutations() {
         });
       });
     },
-    onSettled: (_data, _error, variables) => {
-      invalidateMatchResults(queryClient, variables?.match);
-    },
   });
 
   const updateMutation = useMutation({
@@ -53,12 +50,11 @@ export function useMatchResultMutations() {
         });
       });
     },
-    onSettled: (_data, _error, variables) => {
-      invalidateMatchResults(queryClient, variables?.match);
-    },
   });
 
   return {
+    invalidate: (matchId?: string) =>
+      invalidateMatchResults(queryClient, matchId),
     create: {
       mutate: createMutation.mutate,
       mutateAsync: createMutation.mutateAsync,

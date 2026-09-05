@@ -142,19 +142,31 @@ export function findAdvanceSourceRound(
   return { ok: true, sourceRound: rounds[rounds.length - 1]! };
 }
 
-function winnersByBracket(
-  roundMatches: BracketMatchInput[],
-): Map<string, AutoMatchTeam[]> {
-  const map = new Map<string, AutoMatchTeam[]>();
+function bracketKey(m: BracketMatchInput): string {
+  return normRound(m.bracket) || "Bracket";
+}
+
+function eliminationMatches(matches: BracketMatchInput[]): BracketMatchInput[] {
+  return matches.filter((m) => !isPlayoffsRound(normRound(m.round)));
+}
+
+function uniqueBrackets(matches: BracketMatchInput[]): string[] {
+  const seen = new Map<string, string>();
+  for (const m of matches) {
+    const key = bracketKey(m);
+    if (!seen.has(key.toLowerCase())) seen.set(key.toLowerCase(), key);
+  }
+  return [...seen.values()].sort((a, b) => a.localeCompare(b));
+}
+
+function winnersInRound(roundMatches: BracketMatchInput[]): AutoMatchTeam[] {
+  const list: AutoMatchTeam[] = [];
   for (const m of roundMatches) {
-    const bracket = normRound(m.bracket) || "Bracket";
     const team = teamFromWinner(m);
     if (!team) continue;
-    const list = map.get(bracket) ?? [];
     if (!list.some((t) => t.id === team.id)) list.push(team);
-    map.set(bracket, list);
   }
-  return map;
+  return list;
 }
 
 export type AdvanceRoundResult =
@@ -174,106 +186,74 @@ export type AdvanceRoundResult =
 
 export function buildAdvanceRoundPreview(args: {
   matches: BracketMatchInput[];
-  sourceRound: string;
+  /** Ignored for selection. Each bracket uses its own unfinished elimination round. */
+  sourceRound?: string;
   highestOrder: number;
   defaultBestOf?: number;
   nextRound?: string;
 }): AdvanceRoundResult {
-  const sourceRound = normRound(args.sourceRound);
-  if (!sourceRound) {
-    return { ok: false, error: "Source round is required." };
-  }
-
-  const roundMatches = matchesInRound(args.matches, sourceRound);
-  if (roundMatches.length === 0) {
+  const elimination = eliminationMatches(args.matches);
+  const brackets = uniqueBrackets(elimination);
+  if (brackets.length === 0) {
     return {
       ok: false,
-      error: `No matches found for ${sourceRound}.`,
-    };
-  }
-
-  const incomplete = roundMatches.filter((m) => !isMatchCompleteForAdvance(m));
-  if (incomplete.length > 0) {
-    return {
-      ok: false,
-      error: `${incomplete.length} match${incomplete.length === 1 ? "" : "es"} in ${sourceRound} still need a winner.`,
-    };
-  }
-
-  const byBracket = winnersByBracket(roundMatches);
-  if (byBracket.size === 0) {
-    return { ok: false, error: "No winners found in this round." };
-  }
-
-  const winnerCounts = [...byBracket.values()].map((w) => w.length);
-  const maxWinners = Math.max(...winnerCounts);
-  const suggestedNext =
-    normRound(args.nextRound) || suggestNextRoundName(sourceRound);
-
-  // 2 or fewer winners per bracket → no bracket final; seed playoffs.
-  if (maxWinners <= 2) {
-    const existingPlayoffs = args.matches.filter((m) =>
-      isPlayoffsRound(normRound(m.round)),
-    );
-    if (existingPlayoffs.length > 0) {
-      return {
-        ok: false,
-        error:
-          "Playoff matches already exist. Archive them before regenerating.",
-      };
-    }
-
-    const advancers: PlayoffAdvancer[] = [];
-    for (const [bracket, teams] of byBracket) {
-      for (const team of teams) {
-        advancers.push({ team, bracket });
-      }
-    }
-    if (advancers.length < 2) {
-      return {
-        ok: false,
-        error: "Need at least 2 playoff advancers across brackets.",
-      };
-    }
-
-    const playoff = buildPlayoffPreview({
-      advancers,
-      highestOrder: args.highestOrder,
-      defaultBestOf: args.defaultBestOf,
-      defaultRound: "Quarterfinals",
-    });
-    if (!playoff.ok) return playoff;
-
-    return {
-      ok: true,
-      kind: "playoffs_ready",
-      advancers,
-      preview: playoff.preview,
-    };
-  }
-
-  if (suggestedNext === "Playoffs") {
-    return {
-      ok: false,
-      error:
-        "This round still has more than 2 winners per bracket — keep advancing inside elimination first.",
-    };
-  }
-
-  const existingNext = matchesInRound(args.matches, suggestedNext);
-  if (existingNext.length > 0) {
-    return {
-      ok: false,
-      error: `${suggestedNext} already has matches. Archive them before regenerating.`,
+      error: "No elimination matches to advance. Generate Round 1 first.",
     };
   }
 
   const bestOf = Math.max(1, args.defaultBestOf ?? 3);
   const rows: AutoMatchPreview["rows"] = [];
   const leftOut: AutoMatchTeam[] = [];
+  const playoffAdvancers: PlayoffAdvancer[] = [];
+  const waiting: string[] = [];
+  const blocked: string[] = [];
   let order = args.highestOrder + 1;
 
-  for (const [bracket, winners] of byBracket) {
+  for (const bracket of brackets) {
+    const bm = elimination.filter((m) => bracketKey(m) === bracket);
+    const source = findAdvanceSourceRound(bm);
+    if (!source.ok) {
+      blocked.push(`${bracket}: ${source.error}`);
+      continue;
+    }
+
+    const sourceRound = source.sourceRound;
+    const roundMatches = matchesInRound(bm, sourceRound);
+    const incomplete = roundMatches.filter((m) => !isMatchCompleteForAdvance(m));
+    if (incomplete.length > 0) {
+      waiting.push(
+        `${bracket}: ${incomplete.length} match${incomplete.length === 1 ? "" : "es"} in ${sourceRound} still need a winner.`,
+      );
+      continue;
+    }
+
+    const winners = winnersInRound(roundMatches);
+    if (winners.length < 1) {
+      waiting.push(`${bracket}: No winners found in ${sourceRound}.`);
+      continue;
+    }
+
+    const suggestedNext =
+      normRound(args.nextRound) || suggestNextRoundName(sourceRound);
+
+    if (winners.length <= 2 || suggestedNext === "Playoffs") {
+      if (winners.length > 2) {
+        blocked.push(
+          `${bracket}: ${sourceRound} still has more than 2 winners — keep advancing inside elimination first.`,
+        );
+        continue;
+      }
+      for (const team of winners) {
+        playoffAdvancers.push({ team, bracket });
+      }
+      continue;
+    }
+
+    const existingNext = matchesInRound(bm, suggestedNext);
+    if (existingNext.length > 0) {
+      continue;
+    }
+
     const shuffled = shuffledCopy(winners);
     const pairCount = Math.floor(shuffled.length / 2);
     for (let i = 0; i < pairCount; i += 1) {
@@ -294,18 +274,60 @@ export function buildAdvanceRoundPreview(args: {
     }
   }
 
-  if (rows.length < 1) {
+  if (rows.length > 0) {
+    const rounds = [...new Set(rows.map((r) => r.round))];
+    return {
+      ok: true,
+      kind: "next_round",
+      nextRound: rounds.join(" / "),
+      preview: { rows, leftOut },
+    };
+  }
+
+  if (waiting.length === 0 && playoffAdvancers.length >= 2) {
+    const existingPlayoffs = args.matches.filter((m) =>
+      isPlayoffsRound(normRound(m.round)),
+    );
+    if (existingPlayoffs.length > 0) {
+      return {
+        ok: false,
+        error:
+          "Playoff matches already exist. Archive them before regenerating.",
+      };
+    }
+
+    const playoff = buildPlayoffPreview({
+      advancers: playoffAdvancers,
+      highestOrder: args.highestOrder,
+      defaultBestOf: args.defaultBestOf,
+      defaultRound: "Quarterfinals",
+    });
+    if (!playoff.ok) return playoff;
+
+    return {
+      ok: true,
+      kind: "playoffs_ready",
+      advancers: playoffAdvancers,
+      preview: playoff.preview,
+    };
+  }
+
+  if (waiting.length > 0) {
+    return { ok: false, error: waiting.join(" ") };
+  }
+  if (blocked.length > 0) {
+    return { ok: false, error: blocked.join(" ") };
+  }
+  if (playoffAdvancers.length > 0) {
     return {
       ok: false,
-      error: "Not enough winners to create the next round.",
+      error: "Need at least 2 playoff advancers across finished brackets.",
     };
   }
 
   return {
-    ok: true,
-    kind: "next_round",
-    nextRound: suggestedNext,
-    preview: { rows, leftOut },
+    ok: false,
+    error: "Not enough winners to create the next round.",
   };
 }
 
