@@ -109,7 +109,7 @@ import {
 	Shuffle,
 	Swords,
 } from "lucide-react";
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -1956,10 +1956,13 @@ function MatchStatsDialog({
 	participants: Collections["participants"][];
 }) {
 	const mutations = useMatchResultMutations();
-	const { data: matchResults, isPending: resultsPending } =
-		useMatchResultsForMatch(match?.id, {
-			enabled: open,
-		});
+	const {
+		data: matchResults,
+		isPending: resultsPending,
+		isFetching,
+	} = useMatchResultsForMatch(match?.id, {
+		enabled: open,
+	});
 	const headline =
 		match?.matchLabel?.trim() ||
 		(match ? `${teamName(match, "A")} vs ${teamName(match, "B")}` : "");
@@ -1978,7 +1981,6 @@ function MatchStatsDialog({
 		}>
 	>([]);
 	const [isSaving, setIsSaving] = useState(false);
-	const syncedMatchId = useRef<string | null>(null);
 
 	const laneLabelByValue = useMemo(
 		() =>
@@ -2054,26 +2056,34 @@ function MatchStatsDialog({
 			});
 	}, [match, matchResults, participants]);
 
+	const hasDirtyRows = rows.some((row) => row.dirty);
+
 	useEffect(() => {
-		if (!open) {
-			syncedMatchId.current = null;
-			return;
-		}
+		if (!open) return;
 		if (
 			!shouldReplaceMatchStatsRows({
 				open,
 				matchId: match?.id,
-				alreadySyncedMatchId: syncedMatchId.current,
 				resultsPending,
+				isFetching,
+				isSaving,
+				hasDirtyRows,
+				hasLocalRows: rows.length > 0,
 			})
 		) {
 			return;
 		}
 		setRows(initialRows);
-		syncedMatchId.current = match?.id ?? null;
-	}, [open, match?.id, resultsPending, initialRows]);
-
-	const hasDirtyRows = rows.some((row) => row.dirty);
+	}, [
+		open,
+		match?.id,
+		resultsPending,
+		isFetching,
+		isSaving,
+		hasDirtyRows,
+		rows.length,
+		initialRows,
+	]);
 	const groupedRows = useMemo(() => {
 		const grouped = new Map<string, typeof rows>();
 		for (const row of rows) {

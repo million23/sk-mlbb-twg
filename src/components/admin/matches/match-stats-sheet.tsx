@@ -32,13 +32,15 @@ import { useMatchResultsForMatch } from "@/hooks/legacy/use-match-results";
 import type { MatchRecord } from "@/hooks/legacy/use-matches";
 import { shouldReplaceMatchStatsRows } from "@/lib/admin/match-stats-rows";
 import {
+  findMatchResultIdForGame,
   resultGameNumber,
+  resultPlayerId,
   seriesGameNumbers,
 } from "@/lib/legacy/match-result-game";
 import { formatParticipantNameDisplay } from "@/lib/legacy/participant-normalize";
 import type { Collections } from "@/types/__pocketbase-types";
 import { Check, Pencil } from "lucide-react";
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 const MATCH_RESULT_LANES: {
@@ -309,17 +311,19 @@ export function MatchStatsSheet({
   participants: ParticipantsRecord[];
 }) {
   const mutations = useMatchResultMutations();
-  const { data: matchResults, isPending: resultsPending } =
-    useMatchResultsForMatch(match?.id, {
-      enabled: open,
-    });
+  const {
+    data: matchResults,
+    isPending: resultsPending,
+    isFetching,
+  } = useMatchResultsForMatch(match?.id, {
+    enabled: open,
+  });
   const headline =
     match?.matchLabel?.trim() ||
     (match ? `${teamName(match, "A")} vs ${teamName(match, "B")}` : "");
   const [rows, setRows] = useState<StatsRow[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [activeGame, setActiveGame] = useState("1");
-  const syncedMatchId = useRef<string | null>(null);
   const gameNumbers = seriesGameNumbers(match?.bestOf);
   const selectedGame = Number.parseInt(activeGame, 10) || 1;
 
@@ -340,12 +344,16 @@ export function MatchStatsSheet({
       [match.teamA, match.teamB].filter(Boolean) as string[],
     );
     const resultsByPlayerGame = new Map(
-      (matchResults ?? [])
-        .filter((result) => Boolean(result.player))
-        .map((result) => [
-          statsRowKey(result.player as string, resultGameNumber(result)),
-          result,
-        ]),
+      (matchResults ?? []).flatMap((result) => {
+        const playerId = resultPlayerId(result);
+        if (!playerId) return [];
+        return [
+          [
+            statsRowKey(playerId, resultGameNumber(result)),
+            result,
+          ] as const,
+        ];
+      }),
     );
 
     const roster = [...participants]
@@ -407,31 +415,40 @@ export function MatchStatsSheet({
     );
   }, [match, matchResults, participants]);
 
+  const hasDirtyRows = rows.some((row) => row.dirty);
+
   useEffect(() => {
-    if (!open) {
-      syncedMatchId.current = null;
-      return;
-    }
+    if (!open) return;
     if (
       !shouldReplaceMatchStatsRows({
         open,
         matchId: match?.id,
-        alreadySyncedMatchId: syncedMatchId.current,
         resultsPending,
+        isFetching,
+        isSaving,
+        hasDirtyRows,
+        hasLocalRows: rows.length > 0,
       })
     ) {
       return;
     }
     setRows(initialRows);
-    syncedMatchId.current = match?.id ?? null;
-  }, [open, match?.id, resultsPending, initialRows]);
+  }, [
+    open,
+    match?.id,
+    resultsPending,
+    isFetching,
+    isSaving,
+    hasDirtyRows,
+    rows.length,
+    initialRows,
+  ]);
 
   useEffect(() => {
     if (!open) return;
     setActiveGame("1");
   }, [open]);
 
-  const hasDirtyRows = rows.some((row) => row.dirty);
   const visibleRows = useMemo(
     () => rows.filter((row) => row.gameNumber === selectedGame),
     [rows, selectedGame],
@@ -525,11 +542,23 @@ export function MatchStatsSheet({
             accumulated_gold: parsedGold,
           };
 
-          if (row.resultId) {
+          const existingId =
+            row.resultId ??
+            findMatchResultIdForGame(
+              matchResults ?? [],
+              row.playerId,
+              row.gameNumber,
+            );
+
+          if (existingId) {
             await mutations.update.mutateAsync({
-              id: row.resultId,
+              id: existingId,
               ...payload,
             });
+            createdIds.set(
+              statsRowKey(row.playerId, row.gameNumber),
+              existingId,
+            );
           } else {
             const created = await mutations.create.mutateAsync(payload);
             createdIds.set(statsRowKey(row.playerId, row.gameNumber), created.id);
