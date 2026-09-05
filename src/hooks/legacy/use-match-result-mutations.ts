@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAuthRecordId } from "@/lib/legacy/mutation-authors";
+import { toMatchResultWritePayload } from "@/lib/legacy/match-result-write";
 import { getCollection } from "@/lib/pocketbase";
 import { queryKeys } from "@/lib/legacy/query-keys";
 import { rateLimited } from "@/lib/rate-limited-api";
@@ -30,7 +31,7 @@ export function useMatchResultMutations() {
         const col = getCollection("match_result");
         const uid = getAuthRecordId();
         return col.create({
-          ...data,
+          ...toMatchResultWritePayload(data, "create"),
           ...(uid ? { created_by: uid, updated_by: uid } : {}),
         });
       });
@@ -47,7 +48,7 @@ export function useMatchResultMutations() {
         const col = getCollection("match_result");
         const uid = getAuthRecordId();
         return col.update(id, {
-          ...patch,
+          ...toMatchResultWritePayload(patch, "update"),
           ...(uid ? { updated_by: uid } : {}),
         });
       });
