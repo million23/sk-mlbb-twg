@@ -263,6 +263,160 @@ describe("buildAdvanceRoundPreview", () => {
 		).toEqual(["a1", "a5", "b1", "b5"]);
 	});
 
+	it("does not seed playoffs while another bracket is still unfinished", () => {
+		const matches = [
+			match({
+				bracket: "Bracket A",
+				round: "Semifinals",
+				teamA: "a1",
+				teamB: "a3",
+				winner: "a1",
+				winnerName: "A1",
+				teamAName: "A1",
+				teamBName: "A3",
+			}),
+			match({
+				bracket: "Bracket A",
+				round: "Semifinals",
+				teamA: "a5",
+				teamB: "a7",
+				winner: "a5",
+				winnerName: "A5",
+				teamAName: "A5",
+				teamBName: "A7",
+			}),
+			match({
+				bracket: "Bracket B",
+				round: "Round 1",
+				teamA: "b1",
+				teamB: "b2",
+				winner: "",
+				status: "scheduled",
+				teamAName: "B1",
+				teamBName: "B2",
+			}),
+		];
+		const result = buildAdvanceRoundPreview({
+			matches,
+			highestOrder: 40,
+		});
+		expect(result.ok).toBe(false);
+		if (result.ok) return;
+		expect(result.error).toMatch(/Bracket B/);
+	});
+
+	it("advances a finished bracket while another bracket still needs winners", () => {
+		const matches = [
+			...completedRound1BracketA(),
+			match({
+				bracket: "Bracket B",
+				round: "Round 1",
+				teamA: "b1",
+				teamB: "b2",
+				winner: "b1",
+				winnerName: "B1",
+				teamAName: "B1",
+				teamBName: "B2",
+			}),
+			match({
+				bracket: "Bracket B",
+				round: "Round 1",
+				teamA: "b3",
+				teamB: "b4",
+				winner: "",
+				status: "scheduled",
+				teamAName: "B3",
+				teamBName: "B4",
+			}),
+		];
+		const result = buildAdvanceRoundPreview({
+			matches,
+			sourceRound: "Round 1",
+			highestOrder: 10,
+		});
+		expect(result.ok).toBe(true);
+		if (!result.ok || result.kind !== "next_round") return;
+		expect(result.preview.rows).toHaveLength(2);
+		expect(result.preview.rows.every((r) => r.bracket === "Bracket A")).toBe(
+			true,
+		);
+	});
+
+	it("advances a lagging bracket when another already has the next round", () => {
+		const matches = [
+			...completedRound1BracketA(),
+			match({
+				bracket: "Bracket A",
+				round: "Round 2",
+				teamA: "a1",
+				teamB: "a3",
+				status: "scheduled",
+				teamAName: "A1",
+				teamBName: "A3",
+			}),
+			match({
+				bracket: "Bracket A",
+				round: "Round 2",
+				teamA: "a5",
+				teamB: "a7",
+				status: "scheduled",
+				teamAName: "A5",
+				teamBName: "A7",
+			}),
+			match({
+				bracket: "Bracket B",
+				round: "Round 1",
+				teamA: "b1",
+				teamB: "b2",
+				winner: "b1",
+				winnerName: "B1",
+				teamAName: "B1",
+				teamBName: "B2",
+			}),
+			match({
+				bracket: "Bracket B",
+				round: "Round 1",
+				teamA: "b3",
+				teamB: "b4",
+				winner: "b3",
+				winnerName: "B3",
+				teamAName: "B3",
+				teamBName: "B4",
+			}),
+			match({
+				bracket: "Bracket B",
+				round: "Round 1",
+				teamA: "b5",
+				teamB: "b6",
+				winner: "b5",
+				winnerName: "B5",
+				teamAName: "B5",
+				teamBName: "B6",
+			}),
+			match({
+				bracket: "Bracket B",
+				round: "Round 1",
+				teamA: "b7",
+				teamB: "b8",
+				winner: "b7",
+				winnerName: "B7",
+				teamAName: "B7",
+				teamBName: "B8",
+			}),
+		];
+		const result = buildAdvanceRoundPreview({
+			matches,
+			highestOrder: 30,
+		});
+		expect(result.ok).toBe(true);
+		if (!result.ok || result.kind !== "next_round") return;
+		expect(result.nextRound).toBe("Round 2");
+		expect(result.preview.rows).toHaveLength(2);
+		expect(result.preview.rows.every((r) => r.bracket === "Bracket B")).toBe(
+			true,
+		);
+	});
+
 	it("leaves an odd winner unpaired inside a bracket", () => {
 		const matches = [
 			match({

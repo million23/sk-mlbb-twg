@@ -58,6 +58,7 @@ import {
   LayoutDashboard,
   ListOrdered,
   LogOut,
+  Medal,
   Menu,
   Moon,
   PanelLeft,
@@ -112,6 +113,11 @@ const tournamentNavItems = [
     to: "/app/tournaments/$tournamentId/team-standing" as const,
     label: "Team Standing",
     icon: ListOrdered,
+  },
+  {
+    to: "/app/tournaments/$tournamentId/player-stats" as const,
+    label: "Player stats",
+    icon: Medal,
   },
   {
     to: "/app/tournaments/$tournamentId/matches" as const,
@@ -183,6 +189,9 @@ function AdminShellContent({ children }: { children?: ReactNode }) {
       return rbac.canViewMatches;
     }
     if (item.to === "/app/tournaments/$tournamentId/team-standing") {
+      return rbac.canViewTeamStanding;
+    }
+    if (item.to === "/app/tournaments/$tournamentId/player-stats") {
       return rbac.canViewTeamStanding;
     }
     return rbac.canAccessTournamentOps;
@@ -494,14 +503,6 @@ function AdminShellContent({ children }: { children?: ReactNode }) {
           </header>
         ) : null}
         <div className="relative min-w-0 flex-1 overflow-auto">
-          <div
-            className="pointer-events-none absolute inset-0 overflow-hidden opacity-[0.04] dark:opacity-[0.07]"
-            aria-hidden
-            style={{
-              backgroundImage:
-                "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
-            }}
-          />
           <div className="relative px-4 py-4 md:px-5 md:py-5 lg:px-6 lg:py-6">
             {children ?? <Outlet />}
           </div>

@@ -30,6 +30,7 @@ import type { ParticipantsRecord } from "@/hooks/orval/model/participantsRecord"
 import { useMatchResultMutations } from "@/hooks/legacy/use-match-result-mutations";
 import { useMatchResultsForMatch } from "@/hooks/legacy/use-match-results";
 import type { MatchRecord } from "@/hooks/legacy/use-matches";
+import { shouldReplaceMatchStatsRows } from "@/lib/admin/match-stats-rows";
 import {
   resultGameNumber,
   seriesGameNumbers,
@@ -37,7 +38,7 @@ import {
 import { formatParticipantNameDisplay } from "@/lib/legacy/participant-normalize";
 import type { Collections } from "@/types/__pocketbase-types";
 import { Check, Pencil } from "lucide-react";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 const MATCH_RESULT_LANES: {
@@ -308,15 +309,17 @@ export function MatchStatsSheet({
   participants: ParticipantsRecord[];
 }) {
   const mutations = useMatchResultMutations();
-  const { data: matchResults, isLoading } = useMatchResultsForMatch(match?.id, {
-    enabled: open,
-  });
+  const { data: matchResults, isPending: resultsPending } =
+    useMatchResultsForMatch(match?.id, {
+      enabled: open,
+    });
   const headline =
     match?.matchLabel?.trim() ||
     (match ? `${teamName(match, "A")} vs ${teamName(match, "B")}` : "");
   const [rows, setRows] = useState<StatsRow[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [activeGame, setActiveGame] = useState("1");
+  const syncedMatchId = useRef<string | null>(null);
   const gameNumbers = seriesGameNumbers(match?.bestOf);
   const selectedGame = Number.parseInt(activeGame, 10) || 1;
 
@@ -405,9 +408,23 @@ export function MatchStatsSheet({
   }, [match, matchResults, participants]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      syncedMatchId.current = null;
+      return;
+    }
+    if (
+      !shouldReplaceMatchStatsRows({
+        open,
+        matchId: match?.id,
+        alreadySyncedMatchId: syncedMatchId.current,
+        resultsPending,
+      })
+    ) {
+      return;
+    }
     setRows(initialRows);
-  }, [open, initialRows]);
+    syncedMatchId.current = match?.id ?? null;
+  }, [open, match?.id, resultsPending, initialRows]);
 
   useEffect(() => {
     if (!open) return;
@@ -537,6 +554,7 @@ export function MatchStatsSheet({
       toast.success(
         `Saved ${savedCount} player result${savedCount > 1 ? "s" : ""}`,
       );
+      mutations.invalidate(match.id);
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Could not submit results",
@@ -557,7 +575,7 @@ export function MatchStatsSheet({
         </SheetHeader>
 
         <div className="min-h-0 flex-1 overflow-auto px-4 py-4 sm:px-6">
-          {isLoading ? (
+          {resultsPending && rows.length < 1 ? (
             <div className="rounded-lg border border-border/70">
               <div className="grid min-w-[900px] grid-cols-[1.3fr_1fr_0.9fr_0.9fr_0.9fr_0.9fr_110px] gap-2 border-b border-border/70 px-3 py-2">
                 <Skeleton className="h-4 w-20" />

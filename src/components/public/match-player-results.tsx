@@ -1,3 +1,4 @@
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -11,10 +12,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { MatchResultRecord } from "@/hooks/legacy/use-match-results";
 import type { MatchRecord } from "@/hooks/legacy/use-matches";
 import { LANE_ICON_SRC, LANE_ROLE_LABELS } from "@/lib/legacy/lane-role-icons";
-import { resultGameNumber } from "@/lib/legacy/match-result-game";
+import {
+  bestResultIdByLane,
+  kdaRatio,
+  matchResultTabNumbers,
+  storedGameNumber,
+  visibleMatchResultRows,
+} from "@/lib/legacy/match-result-game";
 import { cn } from "@/lib/utils";
-import { Crown } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Crown, Medal } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
 type LaneKey = NonNullable<MatchResultRecord["lane"]>;
 
@@ -40,19 +47,18 @@ function winnerName(m: MatchRecord): string {
 
 function kda(r: MatchResultRecord): string {
   if (r.kills == null && r.deaths == null && r.assists == null) return "—";
-  const k = r.kills ?? 0;
-  const d = Math.max(1, r.deaths ?? 0);
-  const a = r.assists ?? 0;
-  return ((k + a) / d).toFixed(2);
+  return kdaRatio(r).toFixed(2);
 }
 
 function playerLabel(r: MatchResultRecord): string {
-  const p = r.expand?.player;
+  const p = r.expand?.player as
+    | (NonNullable<MatchResultRecord["expand"]>["player"] & { ign?: string })
+    | undefined;
   if (!p) return "Unknown";
-  const gameId = p.gameID?.trim();
+  const ign = p.ign?.trim() || p.gameID?.trim();
   const name = p.name?.trim();
-  if (gameId && name) return `${gameId} · ${name}`;
-  return gameId || name || "Unknown";
+  if (ign && name && ign !== name) return `${ign} · ${name}`;
+  return ign || name || "Unknown";
 }
 
 function sortByLane(rows: MatchResultRecord[]): MatchResultRecord[] {
@@ -82,10 +88,12 @@ function TeamResultTable({
   name,
   rows,
   isWinner,
+  bestByLane,
 }: {
   name: string;
   rows: MatchResultRecord[];
   isWinner: boolean;
+  bestByLane: Map<string, string>;
 }) {
   if (!rows.length) return null;
   return (
@@ -119,51 +127,71 @@ function TeamResultTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rows.map((r) => (
-              <TableRow key={r.id} className="border-border/30">
-                <TableCell className="pl-4 font-medium text-sm">
-                  {playerLabel(r)}
-                </TableCell>
-                <TableCell>
-                  {r.lane ? (
-                    <div className="flex items-center gap-1.5">
-                      <img
-                        src={LANE_ICON_SRC[r.lane as LaneKey]}
-                        alt={LANE_ROLE_LABELS[r.lane as LaneKey]}
-                        className="size-4 shrink-0"
-                      />
-                      <span className="font-mono text-muted-foreground text-xs">
-                        {LANE_LABEL[r.lane as LaneKey]}
-                      </span>
-                    </div>
-                  ) : (
-                    <span className="text-muted-foreground">—</span>
+            {rows.map((r) => {
+              const isBestLane =
+                Boolean(r.lane) &&
+                Boolean(r.id) &&
+                bestByLane.get(r.lane as string) === r.id;
+              return (
+                <TableRow
+                  key={r.id}
+                  className={cn(
+                    "border-border/30",
+                    isBestLane && "bg-primary/10",
                   )}
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {r.kills ?? "—"}
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {r.deaths ?? "—"}
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {r.assists ?? "—"}
-                </TableCell>
-                <TableCell className="text-right font-mono text-xs tabular-nums">
-                  {kda(r)}
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {r.game_performance_rating != null
-                    ? r.game_performance_rating.toFixed(1)
-                    : "—"}
-                </TableCell>
-                <TableCell className="pr-4 text-right text-muted-foreground text-xs tabular-nums">
-                  {r.accumulated_gold != null
-                    ? Math.round(r.accumulated_gold).toLocaleString()
-                    : "—"}
-                </TableCell>
-              </TableRow>
-            ))}
+                >
+                  <TableCell className="pl-4 font-medium text-sm">
+                    <span className="inline-flex flex-wrap items-center gap-1.5">
+                      {playerLabel(r)}
+                      {isBestLane ? (
+                        <Badge variant="default" className="h-5 gap-1">
+                          <Medal className="size-3" />
+                          Best {LANE_LABEL[r.lane as LaneKey] ?? r.lane}
+                        </Badge>
+                      ) : null}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    {r.lane ? (
+                      <div className="flex items-center gap-1.5">
+                        <img
+                          src={LANE_ICON_SRC[r.lane as LaneKey]}
+                          alt={LANE_ROLE_LABELS[r.lane as LaneKey]}
+                          className="size-4 shrink-0"
+                        />
+                        <span className="font-mono text-muted-foreground text-xs">
+                          {LANE_LABEL[r.lane as LaneKey]}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {r.kills ?? "—"}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {r.deaths ?? "—"}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {r.assists ?? "—"}
+                  </TableCell>
+                  <TableCell className="text-right font-mono text-xs tabular-nums">
+                    {kda(r)}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {r.game_performance_rating != null
+                      ? r.game_performance_rating.toFixed(1)
+                      : "—"}
+                  </TableCell>
+                  <TableCell className="pr-4 text-right text-muted-foreground text-xs tabular-nums">
+                    {r.accumulated_gold != null
+                      ? Math.round(r.accumulated_gold).toLocaleString()
+                      : "—"}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </div>
@@ -182,17 +210,20 @@ function GameTeamTables({
   const tB = teamName(match, "B");
   const win = winnerName(match);
   const byTeam = splitByTeam(results, match);
+  const bestByLane = useMemo(() => bestResultIdByLane(results), [results]);
   return (
     <div className="flex flex-col gap-6">
       <TeamResultTable
         name={tA}
         rows={byTeam.a}
         isWinner={Boolean(win && win === tA)}
+        bestByLane={bestByLane}
       />
       <TeamResultTable
         name={tB}
         rows={byTeam.b}
         isWinner={Boolean(win && win === tB)}
+        bestByLane={bestByLane}
       />
     </div>
   );
@@ -207,22 +238,39 @@ export function MatchPlayerResultsBody({
   results: MatchResultRecord[] | undefined;
   isLoading: boolean;
 }) {
+  const cleanResults = useMemo(
+    () => visibleMatchResultRows(results ?? [], match.bestOf),
+    [results, match.bestOf],
+  );
+  const tabNumbers = useMemo(
+    () => matchResultTabNumbers(cleanResults, match.bestOf),
+    [cleanResults, match.bestOf],
+  );
   const games = useMemo(() => {
     const grouped = new Map<number, MatchResultRecord[]>();
-    for (const row of results ?? []) {
-      const game = resultGameNumber(row);
+    for (const n of tabNumbers) grouped.set(n, []);
+    for (const row of cleanResults) {
+      const game = storedGameNumber(row);
+      if (game == null) continue;
       const list = grouped.get(game) ?? [];
       list.push(row);
       grouped.set(game, list);
     }
-    return [...grouped.entries()]
-      .sort(([a], [b]) => a - b)
-      .map(([gameNumber, rows]) => ({ gameNumber, rows }));
-  }, [results]);
+    return tabNumbers.map((gameNumber) => ({
+      gameNumber,
+      rows: grouped.get(gameNumber) ?? [],
+    }));
+  }, [cleanResults, tabNumbers]);
 
   const [activeGame, setActiveGame] = useState(() =>
-    String(games[0]?.gameNumber ?? 1),
+    String(tabNumbers[0] ?? 1),
   );
+
+  useEffect(() => {
+    if (!tabNumbers.includes(Number.parseInt(activeGame, 10))) {
+      setActiveGame(String(tabNumbers[0] ?? 1));
+    }
+  }, [tabNumbers, activeGame]);
 
   const selected =
     games.find((g) => String(g.gameNumber) === activeGame) ?? games[0];
@@ -249,17 +297,17 @@ export function MatchPlayerResultsBody({
     );
   }
 
-  if (games.length < 1) {
+  if (cleanResults.length < 1) {
     return (
       <div className="flex min-h-[16vh] flex-col items-center justify-center gap-2 text-center">
         <p className="text-muted-foreground text-sm">
-          No player results recorded for this match yet.
+          No usable player results for this match yet.
         </p>
       </div>
     );
   }
 
-  if (games.length === 1 && selected) {
+  if (tabNumbers.length <= 1 && selected) {
     return <GameTeamTables match={match} results={selected.rows} />;
   }
 
@@ -269,7 +317,10 @@ export function MatchPlayerResultsBody({
       onValueChange={(v) => setActiveGame(String(v ?? "1"))}
       className="gap-4"
     >
-      <TabsList className="w-full max-w-full flex-wrap justify-start">
+      <TabsList
+        variant="line"
+        className="mb-1 h-auto min-h-9 w-full max-w-full flex-wrap justify-start gap-1"
+      >
         {games.map((game) => (
           <TabsTrigger key={game.gameNumber} value={String(game.gameNumber)}>
             Game {game.gameNumber}
@@ -278,7 +329,13 @@ export function MatchPlayerResultsBody({
       </TabsList>
       {games.map((game) => (
         <TabsContent key={game.gameNumber} value={String(game.gameNumber)}>
-          <GameTeamTables match={match} results={game.rows} />
+          {game.rows.length < 1 ? (
+            <p className="text-muted-foreground text-sm">
+              No player results recorded for this game yet.
+            </p>
+          ) : (
+            <GameTeamTables match={match} results={game.rows} />
+          )}
         </TabsContent>
       ))}
     </Tabs>

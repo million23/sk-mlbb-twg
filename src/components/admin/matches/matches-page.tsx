@@ -54,7 +54,6 @@ import {
 } from "@/lib/admin/auto-matches";
 import {
   buildAdvanceRoundPreview,
-  findAdvanceSourceRound,
   toBracketMatchInput,
 } from "@/lib/admin/bracket-rounds";
 import { downloadMatchDetailsSpreadsheet } from "@/lib/admin/match-details-xlsx";
@@ -343,14 +342,8 @@ export function MatchesPage({
   };
 
   const openAdvancePreview = () => {
-    const source = findAdvanceSourceRound(bracketInputs);
-    if (!source.ok) {
-      toast.error(source.error);
-      return;
-    }
     const result = buildAdvanceRoundPreview({
       matches: bracketInputs,
-      sourceRound: source.sourceRound,
       highestOrder,
       defaultBestOf,
     });
@@ -358,7 +351,9 @@ export function MatchesPage({
       toast.error(result.error);
       return;
     }
-    setAdvanceSourceRound(source.sourceRound);
+    setAdvanceSourceRound(
+      result.kind === "next_round" ? result.nextRound : "Playoffs",
+    );
     setAdvanceKind(result.kind);
     setAdvancePreview(result.preview);
     setAdvanceOpen(true);
@@ -367,7 +362,6 @@ export function MatchesPage({
   const reshuffleAdvance = () =>
     buildAdvanceRoundPreview({
       matches: bracketInputs,
-      sourceRound: advanceSourceRound,
       highestOrder,
       defaultBestOf,
     });
@@ -955,7 +949,7 @@ export function MatchesPage({
           description={
             advanceKind === "playoffs_ready"
               ? `Each bracket is down to 2 teams from ${advanceSourceRound}. Pairings avoid same-bracket rematches.`
-              : `Winners from ${advanceSourceRound}, paired inside each bracket for the next elimination round.`
+              : `Winners from finished brackets (${advanceSourceRound}), paired inside each bracket. Other brackets can catch up later.`
           }
           onShufflePreview={() => {
             const next = reshuffleAdvance();

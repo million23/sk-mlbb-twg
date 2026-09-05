@@ -21,6 +21,7 @@ export function useMatchResultsForMatch(
     ...pocketbaseListQueryOptions,
     queryKey: [...queryKeys.matchResults, matchId ?? "none"] as const,
     enabled: Boolean(matchId) && eligible,
+    placeholderData: (previous) => previous,
     queryFn: () =>
       rateLimited(async () => {
         if (!matchId) return [];

@@ -44,6 +44,7 @@ import { Route as LegacyPTournamentsIdRouteImport } from './routes/legacy/p/tour
 import { Route as AppAuthedTournamentsTournamentIdIndexRouteImport } from './routes/app/_authed/tournaments/$tournamentId/index'
 import { Route as AppAuthedTournamentsTournamentIdMatchesRouteImport } from './routes/app/_authed/tournaments/$tournamentId/matches'
 import { Route as AppAuthedTournamentsTournamentIdParticipantsRouteImport } from './routes/app/_authed/tournaments/$tournamentId/participants'
+import { Route as AppAuthedTournamentsTournamentIdPlayerStatsRouteImport } from './routes/app/_authed/tournaments/$tournamentId/player-stats'
 import { Route as AppAuthedTournamentsTournamentIdTeamStandingRouteImport } from './routes/app/_authed/tournaments/$tournamentId/team-standing'
 import { Route as AppAuthedTournamentsTournamentIdTeamsRouteImport } from './routes/app/_authed/tournaments/$tournamentId/teams'
 import { Route as LegacyAppIdMatchesIndexRouteImport } from './routes/legacy/app/$id/matches/index'
@@ -235,6 +236,12 @@ const AppAuthedTournamentsTournamentIdParticipantsRoute =
     path: '/participants',
     getParentRoute: () => AppAuthedTournamentsTournamentIdRouteRoute,
   } as any)
+const AppAuthedTournamentsTournamentIdPlayerStatsRoute =
+  AppAuthedTournamentsTournamentIdPlayerStatsRouteImport.update({
+    id: '/player-stats',
+    path: '/player-stats',
+    getParentRoute: () => AppAuthedTournamentsTournamentIdRouteRoute,
+  } as any)
 const AppAuthedTournamentsTournamentIdTeamStandingRoute =
   AppAuthedTournamentsTournamentIdTeamStandingRouteImport.update({
     id: '/team-standing',
@@ -329,6 +336,7 @@ export interface FileRoutesByFullPath {
   '/legacy/p/tournaments/': typeof LegacyPTournamentsIndexRoute
   '/app/tournaments/$tournamentId/matches': typeof AppAuthedTournamentsTournamentIdMatchesRoute
   '/app/tournaments/$tournamentId/participants': typeof AppAuthedTournamentsTournamentIdParticipantsRoute
+  '/app/tournaments/$tournamentId/player-stats': typeof AppAuthedTournamentsTournamentIdPlayerStatsRoute
   '/app/tournaments/$tournamentId/team-standing': typeof AppAuthedTournamentsTournamentIdTeamStandingRoute
   '/app/tournaments/$tournamentId/teams': typeof AppAuthedTournamentsTournamentIdTeamsRoute
   '/legacy/app/$id/matches/archived': typeof LegacyAppIdMatchesArchivedRoute
@@ -372,6 +380,7 @@ export interface FileRoutesByTo {
   '/legacy/p/tournaments': typeof LegacyPTournamentsIndexRoute
   '/app/tournaments/$tournamentId/matches': typeof AppAuthedTournamentsTournamentIdMatchesRoute
   '/app/tournaments/$tournamentId/participants': typeof AppAuthedTournamentsTournamentIdParticipantsRoute
+  '/app/tournaments/$tournamentId/player-stats': typeof AppAuthedTournamentsTournamentIdPlayerStatsRoute
   '/app/tournaments/$tournamentId/team-standing': typeof AppAuthedTournamentsTournamentIdTeamStandingRoute
   '/app/tournaments/$tournamentId/teams': typeof AppAuthedTournamentsTournamentIdTeamsRoute
   '/legacy/app/$id/matches/archived': typeof LegacyAppIdMatchesArchivedRoute
@@ -420,6 +429,7 @@ export interface FileRoutesById {
   '/legacy/p/tournaments/': typeof LegacyPTournamentsIndexRoute
   '/app/_authed/tournaments/$tournamentId/matches': typeof AppAuthedTournamentsTournamentIdMatchesRoute
   '/app/_authed/tournaments/$tournamentId/participants': typeof AppAuthedTournamentsTournamentIdParticipantsRoute
+  '/app/_authed/tournaments/$tournamentId/player-stats': typeof AppAuthedTournamentsTournamentIdPlayerStatsRoute
   '/app/_authed/tournaments/$tournamentId/team-standing': typeof AppAuthedTournamentsTournamentIdTeamStandingRoute
   '/app/_authed/tournaments/$tournamentId/teams': typeof AppAuthedTournamentsTournamentIdTeamsRoute
   '/legacy/app/$id/matches/archived': typeof LegacyAppIdMatchesArchivedRoute
@@ -469,6 +479,7 @@ export interface FileRouteTypes {
     | '/legacy/p/tournaments/'
     | '/app/tournaments/$tournamentId/matches'
     | '/app/tournaments/$tournamentId/participants'
+    | '/app/tournaments/$tournamentId/player-stats'
     | '/app/tournaments/$tournamentId/team-standing'
     | '/app/tournaments/$tournamentId/teams'
     | '/legacy/app/$id/matches/archived'
@@ -512,6 +523,7 @@ export interface FileRouteTypes {
     | '/legacy/p/tournaments'
     | '/app/tournaments/$tournamentId/matches'
     | '/app/tournaments/$tournamentId/participants'
+    | '/app/tournaments/$tournamentId/player-stats'
     | '/app/tournaments/$tournamentId/team-standing'
     | '/app/tournaments/$tournamentId/teams'
     | '/legacy/app/$id/matches/archived'
@@ -559,6 +571,7 @@ export interface FileRouteTypes {
     | '/legacy/p/tournaments/'
     | '/app/_authed/tournaments/$tournamentId/matches'
     | '/app/_authed/tournaments/$tournamentId/participants'
+    | '/app/_authed/tournaments/$tournamentId/player-stats'
     | '/app/_authed/tournaments/$tournamentId/team-standing'
     | '/app/_authed/tournaments/$tournamentId/teams'
     | '/legacy/app/$id/matches/archived'
@@ -837,6 +850,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAuthedTournamentsTournamentIdParticipantsRouteImport
       parentRoute: typeof AppAuthedTournamentsTournamentIdRouteRoute
     }
+    '/app/_authed/tournaments/$tournamentId/player-stats': {
+      id: '/app/_authed/tournaments/$tournamentId/player-stats'
+      path: '/player-stats'
+      fullPath: '/app/tournaments/$tournamentId/player-stats'
+      preLoaderRoute: typeof AppAuthedTournamentsTournamentIdPlayerStatsRouteImport
+      parentRoute: typeof AppAuthedTournamentsTournamentIdRouteRoute
+    }
     '/app/_authed/tournaments/$tournamentId/team-standing': {
       id: '/app/_authed/tournaments/$tournamentId/team-standing'
       path: '/team-standing'
@@ -913,6 +933,7 @@ declare module '@tanstack/react-router' {
 interface AppAuthedTournamentsTournamentIdRouteRouteChildren {
   AppAuthedTournamentsTournamentIdMatchesRoute: typeof AppAuthedTournamentsTournamentIdMatchesRoute
   AppAuthedTournamentsTournamentIdParticipantsRoute: typeof AppAuthedTournamentsTournamentIdParticipantsRoute
+  AppAuthedTournamentsTournamentIdPlayerStatsRoute: typeof AppAuthedTournamentsTournamentIdPlayerStatsRoute
   AppAuthedTournamentsTournamentIdTeamStandingRoute: typeof AppAuthedTournamentsTournamentIdTeamStandingRoute
   AppAuthedTournamentsTournamentIdTeamsRoute: typeof AppAuthedTournamentsTournamentIdTeamsRoute
   AppAuthedTournamentsTournamentIdIndexRoute: typeof AppAuthedTournamentsTournamentIdIndexRoute
@@ -924,6 +945,8 @@ const AppAuthedTournamentsTournamentIdRouteRouteChildren: AppAuthedTournamentsTo
       AppAuthedTournamentsTournamentIdMatchesRoute,
     AppAuthedTournamentsTournamentIdParticipantsRoute:
       AppAuthedTournamentsTournamentIdParticipantsRoute,
+    AppAuthedTournamentsTournamentIdPlayerStatsRoute:
+      AppAuthedTournamentsTournamentIdPlayerStatsRoute,
     AppAuthedTournamentsTournamentIdTeamStandingRoute:
       AppAuthedTournamentsTournamentIdTeamStandingRoute,
     AppAuthedTournamentsTournamentIdTeamsRoute:
